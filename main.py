@@ -29,6 +29,17 @@ class GameWindow(arcade.Window):
         self.projectiles_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()
         self.paused = False
+        self.assets = {"locked_shop_item" : arcade.load_texture("images/locked.png")}
+
+    def setup(self):
+        arcade.set_background_color(arcade.color.ORANGE)
+        self.wave_number = 0
+        self.money = 500
+        self.population = 10
+        self.wave_is_happening = False
+        self.next_wave_duration = 4.0
+        self.current_wave_time = 0.0
+        self.paused = False
 
         # first index is page, second is position in page
         self.shop_listlist = [[ShopItem()] * 5] * 3
@@ -43,26 +54,31 @@ class GameWindow(arcade.Window):
             tower=InstaAirTower()
         )
         self.shop_listlist[0][1].is_unlockable = True
-        self.shop_listlist[1][0].is_unlockable = True
+        self.shop_listlist[1][1].is_unlockable = True
         self.shop_listlist[2][0].is_unlockable = True
         self.current_shop_tab = 0
-        self.assets = {"locked_shop_item" : arcade.load_texture("images/locked.png")}
-
-    def setup(self):
-        arcade.set_background_color(arcade.color.ORANGE)
-        self.wave_number = 0
-        self.money = 500
-        self.population = 10
-        self.wave_is_happening = False
-        self.next_wave_duration = 4.0
-        self.current_wave_time = 0.0
-        self.paused = False
 
     def on_draw(self): 
-        # NOTE : consider moving much of this into methods to make it more readable/scrollable
         arcade.start_render()
-        
-        # Map
+        self.draw_map()
+        self.all_sprites.draw()
+
+        for enemy in self.enemies_list.sprite_list:
+            enemy.draw_health_bar()
+            
+        for tower in self.towers_list.sprite_list:
+            if tower.do_show_range:
+                self.draw_range(tower)
+
+        self.draw_chin_menu()
+        self.draw_shop()
+
+        if self.paused: 
+            self.draw_pause_menu()
+    
+    # draw sub-methods used to make self.on_draw more legible
+    def draw_map(self):
+        # background
         arcade.draw_lrtb_rectangle_filled(
             left   = 0, 
             right  = MAP_WIDTH,
@@ -71,33 +87,30 @@ class GameWindow(arcade.Window):
             color=arcade.color.NAVY_BLUE
         )
 
-        self.all_sprites.draw()
-        for enemy in self.enemies_list.sprite_list:
-            enemy.draw_health_bar()
-        for tower in self.towers_list.sprite_list:
-            if tower.do_show_range:
-                arcade.draw_circle_filled(
-                    center_x=tower.center_x,
-                    center_y=tower.center_y,
-                    radius=tower.range, 
-                    color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=32.0)
-                )
-                arcade.draw_circle_outline(
-                    center_x=tower.center_x,
-                    center_y=tower.center_y,
-                    radius=tower.range, 
-                    color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=128.0), 
-                    border_width=2
-                )
-                arcade.draw_circle_outline(
-                    center_x=tower.center_x,
-                    center_y=tower.center_y,
-                    radius=tower.range-15, 
-                    color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=128.0), 
-                    border_width=2
-                )
+    def draw_range(self, tower):
+        arcade.draw_circle_filled(
+            center_x=tower.center_x,
+            center_y=tower.center_y,
+            radius=tower.range, 
+            color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=32.0)
+        )
+        arcade.draw_circle_outline(
+            center_x=tower.center_x,
+            center_y=tower.center_y,
+            radius=tower.range, 
+            color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=128.0), 
+            border_width=2
+        )
+        arcade.draw_circle_outline(
+            center_x=tower.center_x,
+            center_y=tower.center_y,
+            radius=tower.range-15, 
+            color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=128.0), 
+            border_width=2
+        )
 
-        #chin and ear covers
+    def draw_chin_menu(self):
+        # Background
         arcade.draw_lrtb_rectangle_filled(
             left   = 0, 
             right  = MAP_WIDTH,
@@ -105,15 +118,6 @@ class GameWindow(arcade.Window):
             bottom = 0,
             color=arcade.color.ORANGE
         )
-        arcade.draw_lrtb_rectangle_filled(
-            left   = MAP_WIDTH, 
-            right  = SCREEN_WIDTH,
-            top    = SCREEN_HEIGHT,
-            bottom = 0,
-            color=arcade.color.ORANGE
-        )
-
-        # Chin menu
         # attack button
         arcade.draw_lrtb_rectangle_filled(
             left   = MAP_WIDTH - ATK_BUTT_HEIGHT, 
@@ -148,8 +152,67 @@ class GameWindow(arcade.Window):
             align = "right"
         )
 
-        # side menu / shop
-        # tabs are TODO
+    def draw_shop(self): 
+        # backround
+        if self.current_shop_tab == 0:
+            shop_background_color = arcade.color.ORANGE
+        elif self.current_shop_tab == 1:
+            shop_background_color = arcade.color.PALE_BLUE
+        else:
+            shop_background_color = arcade.color.SADDLE_BROWN
+        arcade.draw_lrtb_rectangle_filled(
+            left   = MAP_WIDTH, 
+            right  = SCREEN_WIDTH,
+            top    = SCREEN_HEIGHT,
+            bottom = 0,
+            color=shop_background_color
+        )
+        # shop tabs
+        arcade.draw_lrtb_rectangle_filled( # combat towers
+            left  = MAP_WIDTH,
+            right = SCREEN_WIDTH - (SCREEN_WIDTH-MAP_WIDTH)*2/3,
+            top    = SCREEN_HEIGHT,
+            bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
+            color = arcade.color.ORANGE
+        )
+        arcade.draw_text( 
+            "COMBAT", 
+            start_x = MAP_WIDTH + 0, 
+            start_y = SCREEN_HEIGHT - 15, 
+            color = arcade.color.WHITE, 
+            font_size = 11,
+            bold = True
+        )
+        arcade.draw_lrtb_rectangle_filled( # sacred towers
+            left  = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3,
+            right = SCREEN_WIDTH - (SCREEN_WIDTH-MAP_WIDTH)*1/3,
+            top    = SCREEN_HEIGHT,
+            bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
+            color = arcade.color.PALE_BLUE
+        )
+        arcade.draw_text( 
+            "SACRED", 
+            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3 + 0, 
+            start_y = SCREEN_HEIGHT - 15, 
+            color = arcade.color.WHITE, 
+            font_size = 11,
+            bold = True
+        )
+        arcade.draw_lrtb_rectangle_filled( # buildings
+            left  = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3,
+            right = SCREEN_WIDTH,
+            top    = SCREEN_HEIGHT,
+            bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
+            color = arcade.color.SADDLE_BROWN
+        )
+        arcade.draw_text( 
+            "BUILDING", 
+            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3 + 0, 
+            start_y = SCREEN_HEIGHT - 15, 
+            color = arcade.color.WHITE, 
+            font_size = 11,
+            bold = True
+        )
         # empty shop slots
         for k in range(0, 5):
             # background
@@ -161,7 +224,7 @@ class GameWindow(arcade.Window):
                 color = arcade.color.BEIGE
             )
             # shop item, if it should be there
-            shop_item = (self.shop_listlist[self.current_shop_tab][k]) # ANCHOR
+            shop_item = (self.shop_listlist[self.current_shop_tab][k])
             if shop_item.is_unlocked:
                 arcade.draw_scaled_texture_rectangle( # draw the thumbnail
                     center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 2, 
@@ -232,38 +295,38 @@ class GameWindow(arcade.Window):
                     texture = self.assets["locked_shop_item"],
                     scale = 0.2
                 )
-
-        if self.paused: # Pause Window
-            arcade.draw_lrtb_rectangle_filled(
-                left   = 0, 
-                right  = SCREEN_WIDTH,
-                top    = SCREEN_HEIGHT,
-                bottom = 0,
-                color=arcade.make_transparent_color(arcade.color.DIM_GRAY, transparency=128.0)
-            )
-            arcade.draw_lrtb_rectangle_filled(
-                left   = self.width/2  - 100, 
-                right  = self.width/2  + 100,
-                top    = self.height/2 + 50,
-                bottom = self.height/2 - 50,
-                color=arcade.color.ASH_GREY
-            )
-            arcade.draw_text(
-                text="Paused",
-                start_x = self.width/2 - 100,
-                start_y = self.height/2 + 10,
-                font_size = 28,
-                width = 200,
-                align = "center"
-            )
-            arcade.draw_text(
-                text="Press Esc to resume",
-                start_x = self.width/2 - 100,
-                start_y = self.height/2 - 10,
-                font_size = 16,
-                width = 200,
-                align = "center"
-            )
+ 
+    def draw_pause_menu(self):
+        arcade.draw_lrtb_rectangle_filled(
+            left   = 0, 
+            right  = SCREEN_WIDTH,
+            top    = SCREEN_HEIGHT,
+            bottom = 0,
+            color=arcade.make_transparent_color(arcade.color.DIM_GRAY, transparency=128.0)
+        )
+        arcade.draw_lrtb_rectangle_filled(
+            left   = self.width/2  - 100, 
+            right  = self.width/2  + 100,
+            top    = self.height/2 + 50,
+            bottom = self.height/2 - 50,
+            color=arcade.color.ASH_GREY
+        )
+        arcade.draw_text(
+            text="Paused",
+            start_x = self.width/2 - 100,
+            start_y = self.height/2 + 10,
+            font_size = 28,
+            width = 200,
+            align = "center"
+        )
+        arcade.draw_text(
+            text="Press Esc to resume",
+            start_x = self.width/2 - 100,
+            start_y = self.height/2 - 10,
+            font_size = 16,
+            width = 200,
+            align = "center"
+        )
 
     def on_update(self, delta_time: float):
         if self.paused:
@@ -311,7 +374,6 @@ class GameWindow(arcade.Window):
         self.towers_list.update()
         return ret
     
-
     def on_key_press(self, symbol: int, modifiers: int):
         if symbol == arcade.key.ESCAPE:
             if self.paused:
@@ -344,6 +406,13 @@ class GameWindow(arcade.Window):
                 self.wave_is_happening = True
                 arcade.schedule(self.add_enemy, interval=2.0)
         # Shop item selection
+        elif (x > MAP_WIDTH) and (y >= SHOP_TOPS[0]): 
+            if x <= MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)/3:
+                self.current_shop_tab = 0
+            elif x > SCREEN_WIDTH - (SCREEN_WIDTH-MAP_WIDTH)/3:
+                self.current_shop_tab = 2
+            else:
+                self.current_shop_tab = 1
         elif (x > MAP_WIDTH) and (y >= SHOP_BOTTOMS[-1]): 
             for k in range(0, 5):
                 shop_item = self.shop_listlist[self.current_shop_tab][k]
