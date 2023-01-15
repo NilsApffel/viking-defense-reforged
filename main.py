@@ -50,18 +50,13 @@ class GameWindow(arcade.Window):
 
     def setup(self):
         arcade.set_background_color(arcade.color.ORANGE)
-
-        first_tower = InstaAirTower()
-        first_tower.center_y = SCREEN_HEIGHT / 2
-        first_tower.center_x = MAP_WIDTH / 2
-        self.towers_list.append(first_tower)
-        self.all_sprites.append(first_tower) 
         self.wave_number = 0
         self.money = 500
         self.population = 10
         self.wave_is_happening = False
         self.next_wave_duration = 4.0
         self.current_wave_time = 0.0
+        self.paused = False
 
     def on_draw(self): 
         # NOTE : consider moving much of this into methods to make it more readable/scrollable
@@ -331,6 +326,18 @@ class GameWindow(arcade.Window):
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
         if (x > MAP_WIDTH) or (y < CHIN_HEIGHT): # we did not just place a tower
             self.unselect_all_shop_items()
+        else: # we clicked inside the map
+            # were we trying to place a new tower ?
+            for k in range(0, 5):
+                shop_item = self.shop_listlist[self.current_shop_tab][k]
+                if shop_item.actively_selected and self.money >= shop_item.cost:
+                    self.money -= shop_item.cost
+                    new_tower = shop_item.tower.make_another()
+                    new_tower.center_x = x
+                    new_tower.center_y = y
+                    self.towers_list.append(new_tower)
+                    self.all_sprites.append(new_tower)
+                    self.unselect_all_shop_items()
         # Next Wave Start Button
         if (MAP_WIDTH-ATK_BUTT_HEIGHT < x < MAP_WIDTH) and (INFO_BAR_HEIGHT < y < CHIN_HEIGHT):
             if not self.wave_is_happening:
@@ -422,12 +429,20 @@ class Tower(arcade.Sprite):
         if self.description is None:
             self.description = "Generic Tower object. How do I make abstract classes again ?"
 
+    # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
+    # place it on the map doesn't work
+    def make_another(self): 
+        return Tower()
+
 
 class InstaAirTower(Tower):
     def __init__(self):
         super().__init__(filename="images/tower_round_converted.png", scale=0.5, cooldown=1.0, 
                             range=100, damage=1, name="Arrow Tower", 
                             description="Fires at flying\nNever misses")
+
+    def make_another(self):
+        return InstaAirTower()
 
 
 class ShopItem():
@@ -451,10 +466,11 @@ if __name__ == "__main__":
     app.setup()
     arcade.run()
 
-# TODO next step : ability to buy and place more towers
+# TODO next step 
 
 # Roadmap items : 
 # vfx for shooting and exploding
+# hover-preview when placing towers
 # shop tabs
 # map split into blocks which each have a type (land, water, deepwater) and occupancy state
 # map texture and associated properties
