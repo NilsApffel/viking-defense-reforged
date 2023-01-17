@@ -13,7 +13,7 @@ INFO_BAR_HEIGHT = 20
 ATK_BUTT_HEIGHT = CHIN_HEIGHT-INFO_BAR_HEIGHT
 SHOP_ITEM_HEIGHT = 62
 SHOP_ITEM_THUMB_SIZE = 40
-SCREEN_TITLE = "Viking Defense Reforged v0.0.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.0.3 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
@@ -42,21 +42,59 @@ class GameWindow(arcade.Window):
         self.paused = False
 
         # first index is page, second is position in page
-        self.shop_listlist = [[ShopItem()] * 5] * 3
-        # TODO build out the actual shopitems
-        # as long as there are empty/boilerplate shop items, the unlock progression will misbehave
-        self.shop_listlist[0][0] = ShopItem(
-            is_unlocked=True, 
-            is_unlockable=False,
-            thumbnail="images/tower_round_converted.png", 
-            scale = 0.3,
-            cost=100,
-            tower=InstaAirTower()
-        )
-        self.shop_listlist[0][1].is_unlockable = True
-        self.shop_listlist[1][1].is_unlockable = True
-        self.shop_listlist[2][0].is_unlockable = True
-        self.current_shop_tab = 0
+        self.load_shop_items()
+        self.current_shop_tab = 1
+
+    def load_shop_items(self):
+        self.shop_listlist = [[ # start Combat towers
+                ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower())
+            ], [ # start Sacred towers
+                ShopItem(is_unlocked=True, is_unlockable=False, 
+                        thumbnail="images/tower_round_converted.png", scale = 0.3,
+                        cost=100, tower=InstaAirTower()), 
+                ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower())
+            ], [ # start Buildings
+                ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
+                        thumbnail="images/question.png", scale = 0.3,
+                        cost=100, tower=Tower())
+            ]]
 
     def on_draw(self): 
         arcade.start_render()
@@ -540,7 +578,6 @@ if __name__ == "__main__":
 # Roadmap items : 
 # vfx for shooting and exploding
 # hover-preview when placing towers
-# shop tabs
 # map split into blocks which each have a type (land, water, deepwater) and occupancy state
 # map texture and associated properties
 # towers clip to blocks
