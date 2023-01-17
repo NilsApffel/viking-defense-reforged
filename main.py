@@ -6,6 +6,7 @@ from copy import copy, deepcopy
 # there's probably a better way than gloabl variables to handle all this sizing...
 SCREEN_WIDTH = 700
 SCREEN_HEIGHT = 600
+CELL_SIZE = 32
 MAP_WIDTH = 480
 MAP_HEIGHT = 480
 CHIN_HEIGHT = SCREEN_HEIGHT-MAP_HEIGHT
@@ -21,7 +22,6 @@ SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT f
 class GameWindow(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
-
         arcade.set_background_color(arcade.color.ORANGE)
 
         self.enemies_list = arcade.SpriteList()
@@ -40,10 +40,9 @@ class GameWindow(arcade.Window):
         self.next_wave_duration = 4.0
         self.current_wave_time = 0.0
         self.paused = False
-
-        # first index is page, second is position in page
-        self.load_shop_items()
+        self.load_shop_items() # first index is page, second is position in page
         self.current_shop_tab = 1
+        self.load_map("./files/map1.txt")
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -96,6 +95,19 @@ class GameWindow(arcade.Window):
                         cost=100, tower=Tower())
             ]]
 
+    def load_map(self, filename):
+        with open(filename, mode="r") as mapfile:
+            map_string_list = mapfile.readlines()
+        map_listlist = []
+        k = 0
+        for map_rowstr in map_string_list:
+            map_rowlist = []
+            for map_char in map_rowstr.rstrip():
+                map_rowlist.append(GridCell(terrain_type=map_char, cellnum=k))
+                k = k + 1
+            map_listlist.append(map_rowlist)
+        self.map_cells = map_listlist
+
     def on_draw(self): 
         arcade.start_render()
         self.draw_map()
@@ -116,14 +128,12 @@ class GameWindow(arcade.Window):
     
     # draw sub-methods used to make self.on_draw more legible
     def draw_map(self):
-        # background
-        arcade.draw_lrtb_rectangle_filled(
-            left   = 0, 
-            right  = MAP_WIDTH,
-            top    = SCREEN_HEIGHT,
-            bottom = CHIN_HEIGHT,
-            color=arcade.color.NAVY_BLUE
-        )
+        # individual cells
+        for i in range(len(self.map_cells)):
+            for j in range(len(self.map_cells[i])):
+                l, r, t, b = cell_lrtb(i, j)
+                c = cell_color(self.map_cells[i][j].terrain_type)
+                arcade.draw_lrtb_rectangle_filled(left=l, right=r, top=t, bottom=b, color=c)
 
     def draw_range(self, tower):
         arcade.draw_circle_filled(
@@ -480,6 +490,20 @@ class GameWindow(arcade.Window):
                 shop_item.actively_selected = False
 
 
+class GridCell():
+    def __init__(self, terrain_type: str = None, cellnum: int = -1) -> None:
+        self.is_occupied = False
+        if (terrain_type is None) or (terrain_type == "g") or (terrain_type == "ground"):
+            self.terrain_type = "ground"
+        elif (terrain_type == "s") or (terrain_type == "shallow"):
+            self.terrain_type = "shallow"
+        elif (terrain_type == "d") or (terrain_type == "deep"):
+            self.terrain_type = "deep"
+        else:
+            raise ValueError("invalid terrain type: " + terrain_type)
+        self.num = cellnum
+
+
 class Enemy(arcade.Sprite):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
         super().__init__(filename, scale)
@@ -568,6 +592,24 @@ class ShopItem():
         self.actively_selected = False
 
 
+def cell_lrtb(i: int, j: int):
+    """Converts a cell's coordinates (as defined by its cell_listlist[i][j] indices)
+    into on-screen coordinates of its left, right, top and bottom edges"""
+    left = j * CELL_SIZE
+    right = left + (CELL_SIZE-1)
+    top = SCREEN_HEIGHT - (i * CELL_SIZE)
+    bottom = top - (CELL_SIZE-1)
+    return left, right, top, bottom
+
+def cell_color(terrain_type:str):
+    if (terrain_type == "ground") or (terrain_type == "g"):
+        return arcade.color.BRONZE
+    if (terrain_type == "shallow") or (terrain_type == "s"):
+        return arcade.color.BLUE
+    if (terrain_type == "deep") or (terrain_type == "d"):
+        return arcade.color.DARK_BLUE
+    return arcade.color.HOT_PINK # anime pigeon guy : is this error handling ? 
+
 if __name__ == "__main__":
     app = GameWindow()
     app.setup()
@@ -578,9 +620,7 @@ if __name__ == "__main__":
 # Roadmap items : 
 # vfx for shooting and exploding
 # hover-preview when placing towers
-# map split into blocks which each have a type (land, water, deepwater) and occupancy state
-# map texture and associated properties
-# towers clip to blocks
+# towers clip to blocks and can only be placed on unoccupied ground
 # wave system overhaul
 # next wave preview
 # projectiles
