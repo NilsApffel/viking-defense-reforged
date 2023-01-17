@@ -14,7 +14,7 @@ INFO_BAR_HEIGHT = 20
 ATK_BUTT_HEIGHT = CHIN_HEIGHT-INFO_BAR_HEIGHT
 SHOP_ITEM_HEIGHT = 62
 SHOP_ITEM_THUMB_SIZE = 40
-SCREEN_TITLE = "Viking Defense Reforged v0.0.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.0.4 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
@@ -438,22 +438,13 @@ class GameWindow(arcade.Window):
             self.unselect_all_shop_items()
         else: # we clicked inside the map
             # were we trying to place a new tower ?
-            for k in range(0, 5):
-                shop_item = self.shop_listlist[self.current_shop_tab][k]
-                if shop_item.actively_selected and self.money >= shop_item.cost:
-                    self.money -= shop_item.cost
-                    new_tower = shop_item.tower.make_another()
-                    new_tower.center_x = x
-                    new_tower.center_y = y
-                    self.towers_list.append(new_tower)
-                    self.all_sprites.append(new_tower)
-                    self.unselect_all_shop_items()
+            self.attempt_tower_place(x, y)  
         # Next Wave Start Button
         if (MAP_WIDTH-ATK_BUTT_HEIGHT < x < MAP_WIDTH) and (INFO_BAR_HEIGHT < y < CHIN_HEIGHT):
             if not self.wave_is_happening:
                 self.wave_is_happening = True
                 arcade.schedule(self.add_enemy, interval=2.0)
-        # Shop item selection
+        # Shop tab change
         elif (x > MAP_WIDTH) and (y >= SHOP_TOPS[0]): 
             if x <= MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)/3:
                 self.current_shop_tab = 0
@@ -461,6 +452,7 @@ class GameWindow(arcade.Window):
                 self.current_shop_tab = 2
             else:
                 self.current_shop_tab = 1
+        # Shop item selection
         elif (x > MAP_WIDTH) and (y >= SHOP_BOTTOMS[-1]): 
             for k in range(0, 5):
                 shop_item = self.shop_listlist[self.current_shop_tab][k]
@@ -468,6 +460,29 @@ class GameWindow(arcade.Window):
                     shop_item.actively_selected = True
 
         return super().on_mouse_press(x, y, button, modifiers)
+
+    def attempt_tower_place(self, x:float, y:float):
+        # check if area is OK to place towers 
+        i, j = nearest_cell_ij(x, y)
+        center_x, center_y = nearest_cell_centerxy(x, y)
+        is_spot_available = ((self.map_cells[i][j].terrain_type == "ground") and 
+                                (not self.map_cells[i][j].is_occupied))
+        if not is_spot_available:
+            return
+
+        # check if a tower is selected and is affordable
+        for k in range(0, 5):
+            shop_item = self.shop_listlist[self.current_shop_tab][k]
+            is_item_buyable = (shop_item.actively_selected and self.money >= shop_item.cost)
+            if is_item_buyable:
+                self.money -= shop_item.cost
+                new_tower = shop_item.tower.make_another()
+                new_tower.center_x = center_x
+                new_tower.center_y = center_y
+                self.towers_list.append(new_tower)
+                self.all_sprites.append(new_tower)
+                self.unselect_all_shop_items()
+                self.map_cells[i][j].is_occupied = True
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
@@ -592,6 +607,7 @@ class ShopItem():
         self.actively_selected = False
 
 
+# misc grid helper functions
 def cell_lrtb(i: int, j: int):
     """Converts a cell's coordinates (as defined by its cell_listlist[i][j] indices)
     into on-screen coordinates of its left, right, top and bottom edges"""
@@ -610,22 +626,39 @@ def cell_color(terrain_type:str):
         return arcade.color.DARK_BLUE
     return arcade.color.HOT_PINK # anime pigeon guy : is this error handling ? 
 
+def nearest_cell_ij(x: float, y:float):
+    j = int(x // CELL_SIZE)
+    # y increases from CHIN_HEIGHT to SCREEN_HEIGHT along the upwards-vertical map axis
+    # we need a variable that decreases along upwards-vertical axis, like i (column index) does.
+    reverse_y = SCREEN_HEIGHT - y 
+    i = int(reverse_y // CELL_SIZE)
+    i = max(i, 0)
+    j = max(j, 0)
+    i = min(15, i)
+    j = min(15, j)
+    return i, j
+
+def nearest_cell_centerxy(x: float, y:float):
+    i, j = nearest_cell_ij(x, y)
+    center_x = (j+0.5)*CELL_SIZE
+    center_y = SCREEN_HEIGHT - (i+0.5)*CELL_SIZE
+    return center_x, center_y
+
+
 if __name__ == "__main__":
     app = GameWindow()
     app.setup()
     arcade.run()
 
-# TODO next step 
+# TODO next step : make tower sprites square and top-viewed
 
 # Roadmap items : 
 # vfx for shooting and exploding
 # hover-preview when placing towers
-# towers clip to blocks and can only be placed on unoccupied ground
 # wave system overhaul
 # next wave preview
 # projectiles
 # floating enemies with land collision and path-finding
-# make tower sprites square and top-viewed
 # shop challenges to unlock more towers
 # massive texture overhaul
 # enchants
