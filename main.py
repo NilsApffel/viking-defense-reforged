@@ -583,7 +583,7 @@ class Tower(arcade.Sprite):
 
 class InstaAirTower(Tower):
     def __init__(self):
-        super().__init__(filename="images/tower_round_converted.png", scale=0.5, cooldown=1.0, 
+        super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=1.0, 
                             range=100, damage=1, name="Arrow Tower", 
                             description="Fires at flying\nNever misses")
 
@@ -640,8 +640,8 @@ def nearest_cell_ij(x: float, y:float):
 
 def nearest_cell_centerxy(x: float, y:float):
     i, j = nearest_cell_ij(x, y)
-    center_x = (j+0.5)*CELL_SIZE
-    center_y = SCREEN_HEIGHT - (i+0.5)*CELL_SIZE
+    center_x = (j+0.5)*CELL_SIZE - 1
+    center_y = SCREEN_HEIGHT - (i+0.5)*CELL_SIZE + 1
     return center_x, center_y
 
 
