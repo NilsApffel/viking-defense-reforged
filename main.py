@@ -1,6 +1,6 @@
 import arcade
-import random
-import math as m
+from random import randint
+from math import atan2, floor, pi
 from copy import copy, deepcopy
 
 # there's probably a better way than gloabl variables to handle all this sizing...
@@ -14,7 +14,7 @@ INFO_BAR_HEIGHT = 20
 ATK_BUTT_HEIGHT = CHIN_HEIGHT-INFO_BAR_HEIGHT
 SHOP_ITEM_HEIGHT = 62
 SHOP_ITEM_THUMB_SIZE = 40
-SCREEN_TITLE = "Viking Defense Reforged v0.0.4 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.0.5 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
@@ -35,15 +35,17 @@ class GridCell():
 
 
 class Enemy(arcade.Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30, is_flying: bool = True):
         super().__init__(filename, scale)
         self.current_health = health
         self.max_health = health
         self.reward = reward
+        self.priority = 800
+        self.is_flying = is_flying
 
     def draw_health_bar(self):
         barheight = 4
-        barwidth = self.max_health * 4
+        barwidth = self.max_health
         arcade.draw_lrtb_rectangle_filled(
             left  = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
             right = self.center_x + barwidth/2,
@@ -65,12 +67,30 @@ class Enemy(arcade.Sprite):
 
 class FlyingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
-        super().__init__(filename=filename, scale=scale, health=health, reward=reward)
+        super().__init__(filename=filename, scale=scale, health=health, reward=reward, is_flying=True)
+
+    def update(self):
+        self.priority = self.center_y
+        super().update()
 
 
 class Dragon(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename="images/dragon.png", scale=0.5, health=4, reward=30)
+        super().__init__(filename="images/dragon.png", scale=0.5, health=10, reward=30)
+
+
+class FloatingEnemy(Enemy):
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
+        super().__init__(filename=filename, scale=scale, health=health, reward=reward, is_flying=False)
+
+    def update(self):
+        self.priority = self.center_y
+        super().update()
+
+
+class TinyBoat(FloatingEnemy):
+    def __init__(self):
+        super().__init__(filename="images/boat.png", scale=0.4, health=15, reward=30)
 
 
 class Tower(arcade.Sprite):
@@ -98,8 +118,8 @@ class Tower(arcade.Sprite):
 
 class InstaAirTower(Tower):
     def __init__(self):
-        super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=1.0, 
-                            range=100, damage=1, name="Arrow Tower", 
+        super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=2.0, 
+                            range=100, damage=5, name="Arrow Tower", 
                             description="Fires at flying\nNever misses")
 
     def make_another(self):
@@ -142,6 +162,7 @@ class GameWindow(arcade.Window):
         self.wave_is_happening = False
         self.next_wave_duration = 4.0
         self.current_wave_time = 0.0
+        self.is_air_wave = False
         self.paused = False
         self.load_shop_items() # first index is page, second is position in page
         self.current_shop_tab = 1
@@ -221,10 +242,11 @@ class GameWindow(arcade.Window):
             enemy.draw_health_bar()
             
         for tower in self.towers_list.sprite_list:
-            if tower.do_show_range:
+            if tower.do_show_range and not self.paused:
                 self.draw_range(tower)
 
-        if self.shop_item_selected and self._mouse_x <= MAP_WIDTH and self._mouse_y >= CHIN_HEIGHT:
+        if ((self.shop_item_selected and not self.paused) and 
+                (self._mouse_x <= MAP_WIDTH and self._mouse_y >= CHIN_HEIGHT)):
             self.preview_tower_placement(
                 x=self._mouse_x, 
                 y=self._mouse_y, 
@@ -542,6 +564,24 @@ class GameWindow(arcade.Window):
                 tower.cooldown_remaining -= delta_time
                 if tower.cooldown_remaining < 0.0:
                     tower.cooldown_remaining = 0.0
+        
+        # hardcoded simple logic for floating enemy movement
+        for enemy in self.enemies_list.sprite_list:
+            if enemy.is_flying:
+                continue
+            if is_in_cell(enemy, i=2, j=4):
+                enemy.velocity = (1, 0)
+            elif is_in_cell(enemy, i=2, j=11):
+                enemy.velocity = (0, -1)
+            elif is_in_cell(enemy, i=6, j=11):
+                enemy.velocity = (-1, 0)
+            elif is_in_cell(enemy, i=6, j=2):
+                enemy.velocity = (0, -1)
+            elif is_in_cell(enemy, i=11, j=2):
+                enemy.velocity = (1, 0)
+            elif is_in_cell(enemy, i=11, j=8):
+                enemy.velocity = (0, -1)
+            enemy.angle = atan2(enemy.velocity[1], enemy.velocity[0])*180/pi
 
         # move and delete spirtes if needed
         self.enemies_list.update()
@@ -560,6 +600,8 @@ class GameWindow(arcade.Window):
                     arcade.unschedule(self.add_enemy)
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
+        if self.paused:
+            return
         if (x > MAP_WIDTH) or (y < CHIN_HEIGHT): # we did not just place a tower
             self.unselect_all_shop_items()
         else: # we clicked inside the map
@@ -569,6 +611,7 @@ class GameWindow(arcade.Window):
         if (MAP_WIDTH-ATK_BUTT_HEIGHT < x < MAP_WIDTH) and (INFO_BAR_HEIGHT < y < CHIN_HEIGHT):
             if not self.wave_is_happening:
                 self.wave_is_happening = True
+                self.is_air_wave = randint(0, 1)
                 arcade.schedule(self.add_enemy, interval=2.0)
         # Shop tab change
         elif (x > MAP_WIDTH) and (y >= SHOP_TOPS[0]): 
@@ -619,10 +662,16 @@ class GameWindow(arcade.Window):
         return ret
 
     def add_enemy(self, delta_time : float):
-        enemy = Dragon()
-        enemy.bottom = SCREEN_HEIGHT
-        enemy.left = random.randint(0, m.floor(MAP_WIDTH-enemy.width))
-        enemy.velocity = (0, -1)
+        if self.is_air_wave:
+            enemy = Dragon()
+            enemy.bottom = SCREEN_HEIGHT
+            enemy.left = randint(0, floor(MAP_WIDTH-enemy.width))
+            enemy.velocity = (0, -1)
+        else:
+            enemy = TinyBoat()
+            enemy.bottom = SCREEN_HEIGHT
+            enemy.center_x, _ = cell_centerxy(i=0, j=4)
+            enemy.velocity = (0, -1)
         self.enemies_list.append(enemy)
         self.all_sprites.append(enemy)
 
@@ -663,25 +712,36 @@ def nearest_cell_ij(x: float, y:float):
     j = min(15, j)
     return i, j
 
-def nearest_cell_centerxy(x: float, y:float):
-    i, j = nearest_cell_ij(x, y)
+def cell_centerxy(i: int, j:int):
     center_x = (j+0.5)*CELL_SIZE - 1
     center_y = SCREEN_HEIGHT - (i+0.5)*CELL_SIZE + 1
     return center_x, center_y
 
+def nearest_cell_centerxy(x: float, y:float):
+    i, j = nearest_cell_ij(x, y)
+    return cell_centerxy(i, j)
+
+def is_in_cell(sprite: arcade.Sprite, i: float, j:float):
+    left, right, top, bottom = cell_lrtb(i, j)
+    if left <= sprite.center_x < right:
+        if bottom <= sprite.center_y < top:
+            return True
+    return False
 
 if __name__ == "__main__":
     app = GameWindow()
     app.setup()
     arcade.run()
 
-# TODO next step : floating enemies with land collision and path-finding
+# TODO next step :
 
 # Roadmap items : 
 # vfx for shooting and exploding
 # wave system overhaul
 # next wave preview
+# floating enemies have land collision and path-finding
 # tower preview has red/green border indicating placeability
+# towers only attack the corresponding type of enemy (flying vs floating vs underwater)
 # projectiles
 # shop challenges to unlock more towers
 # massive texture overhaul
