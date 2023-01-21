@@ -42,6 +42,7 @@ class Enemy(arcade.Sprite):
         self.reward = reward
         self.priority = 800
         self.is_flying = is_flying
+        self.is_hidden = False
 
     def draw_health_bar(self):
         barheight = 4
@@ -96,7 +97,7 @@ class TinyBoat(FloatingEnemy):
 class Tower(arcade.Sprite):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
                     range: float = 100, damage: float = 5, do_show_range: bool = False, 
-                    name: str = None, description: str = None):
+                    name: str = None, description: str = None, can_see_types: list = None):
         super().__init__(filename=filename, scale=scale)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
@@ -109,21 +110,48 @@ class Tower(arcade.Sprite):
         self.description = description
         if self.description is None:
             self.description = "Generic Tower object. How do I make abstract classes again ?"
+        self.can_see_types = can_see_types
+        if can_see_types is None:
+            self.can_see_types = []
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
     def make_another(self): 
         return Tower()
 
+    def can_see(self, enemy: Enemy):
+        distance = arcade.sprite.get_distance_between_sprites(self, enemy)
+        if distance > self.range:
+            return False
+        if enemy.is_flying and not ('flying' in self.can_see_types):
+            return False
+        if (not enemy.is_flying) and not ('floating' in self.can_see_types):
+            return False
+        if enemy.is_hidden and not ('underwater' in self.can_see_types):
+            return False
+        return True
+
 
 class InstaAirTower(Tower):
     def __init__(self):
         super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=2.0, 
                             range=100, damage=5, name="Arrow Tower", 
-                            description="Fires at flying\nNever misses")
+                            description="Fires at flying\nNever misses", 
+                            can_see_types=['flying'])
 
     def make_another(self):
         return InstaAirTower()
+
+
+class WatchTower(Tower):
+    def __init__(self):
+        super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=2.0, 
+                            range=100, damage=5, name="Watchtower", 
+                            description="Fires at floating\nNever misses", 
+                            can_see_types=['floating'])
+
+    def make_another(self):
+        return WatchTower()
 
 
 class ShopItem():
@@ -171,10 +199,10 @@ class GameWindow(arcade.Window):
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
+                ShopItem(is_unlocked=True, is_unlockable=False, # real
+                        thumbnail="images/tower_round_converted.png", scale = 0.3,
+                        cost=100, tower=WatchTower()), 
                 ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
                         cost=100, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
@@ -551,8 +579,7 @@ class GameWindow(arcade.Window):
         for tower in self.towers_list.sprite_list:
             if tower.cooldown_remaining <= 0: # ready to fire
                 for enemy in self.enemies_list.sprite_list:
-                    distance = arcade.sprite.get_distance_between_sprites(tower, enemy)
-                    if distance <= tower.range: # an attack happens
+                    if tower.can_see(enemy): # an attack happens
                         tower.cooldown_remaining = tower.cooldown
                         enemy.current_health -= tower.damage
                         if enemy.current_health <= 0:
@@ -741,7 +768,6 @@ if __name__ == "__main__":
 # next wave preview
 # floating enemies have land collision and path-finding
 # tower preview has red/green border indicating placeability
-# towers only attack the corresponding type of enemy (flying vs floating vs underwater)
 # projectiles
 # shop challenges to unlock more towers
 # massive texture overhaul
