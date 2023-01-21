@@ -19,6 +19,109 @@ SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
 
+
+class GridCell():
+    def __init__(self, terrain_type: str = None, cellnum: int = -1) -> None:
+        self.is_occupied = False
+        if (terrain_type is None) or (terrain_type == "g") or (terrain_type == "ground"):
+            self.terrain_type = "ground"
+        elif (terrain_type == "s") or (terrain_type == "shallow"):
+            self.terrain_type = "shallow"
+        elif (terrain_type == "d") or (terrain_type == "deep"):
+            self.terrain_type = "deep"
+        else:
+            raise ValueError("invalid terrain type: " + terrain_type)
+        self.num = cellnum
+
+
+class Enemy(arcade.Sprite):
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
+        super().__init__(filename, scale)
+        self.current_health = health
+        self.max_health = health
+        self.reward = reward
+
+    def draw_health_bar(self):
+        barheight = 4
+        barwidth = self.max_health * 4
+        arcade.draw_lrtb_rectangle_filled(
+            left  = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
+            right = self.center_x + barwidth/2,
+            top = self.top + barheight, 
+            bottom = self.top, 
+            color=arcade.color.RED)
+        arcade.draw_lrtb_rectangle_filled(
+            left  = self.center_x - barwidth/2,
+            right = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
+            top = self.top + barheight, 
+            bottom = self.top, 
+            color=arcade.color.GREEN)
+
+    def update(self):
+        if self.center_y < CHIN_HEIGHT - 0.5*self.height:
+            self.remove_from_sprite_lists()
+        super().update()
+
+
+class FlyingEnemy(Enemy):
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
+        super().__init__(filename=filename, scale=scale, health=health, reward=reward)
+
+
+class Dragon(FlyingEnemy):
+    def __init__(self):
+        super().__init__(filename="images/dragon.png", scale=0.5, health=4, reward=30)
+
+
+class Tower(arcade.Sprite):
+    def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
+                    range: float = 100, damage: float = 5, do_show_range: bool = False, 
+                    name: str = None, description: str = None):
+        super().__init__(filename=filename, scale=scale)
+        self.cooldown = cooldown
+        self.cooldown_remaining = 0.0
+        self.range = range
+        self.damage = damage
+        self.do_show_range = False
+        self.name = name
+        if self.name is None:
+            self.name = "Example Tower"
+        self.description = description
+        if self.description is None:
+            self.description = "Generic Tower object. How do I make abstract classes again ?"
+
+    # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
+    # place it on the map doesn't work
+    def make_another(self): 
+        return Tower()
+
+
+class InstaAirTower(Tower):
+    def __init__(self):
+        super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=1.0, 
+                            range=100, damage=1, name="Arrow Tower", 
+                            description="Fires at flying\nNever misses")
+
+    def make_another(self):
+        return InstaAirTower()
+
+
+class ShopItem():
+    def __init__(self, is_unlocked: bool = False, is_unlockable: bool = False, thumbnail: str = None, 
+                    scale: float = 1.0, cost: float = 100, tower: Tower = None) -> None:
+        self.is_unlocked = is_unlocked
+        self.is_unlockable = is_unlockable
+        if thumbnail is None:
+            thumbnail = "images/question.png"
+        self.thumbnail = arcade.load_texture(thumbnail)
+        self.scale = scale
+        self.cost = cost
+        self.tower = tower
+        if self.tower is None:
+            self.tower = InstaAirTower()
+        self.actively_selected = False
+
+
 class GameWindow(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
@@ -42,6 +145,7 @@ class GameWindow(arcade.Window):
         self.paused = False
         self.load_shop_items() # first index is page, second is position in page
         self.current_shop_tab = 1
+        self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
         self.load_map("./files/map1.txt")
 
     def load_shop_items(self):
@@ -120,6 +224,13 @@ class GameWindow(arcade.Window):
             if tower.do_show_range:
                 self.draw_range(tower)
 
+        if self.shop_item_selected and self._mouse_x <= MAP_WIDTH and self._mouse_y >= CHIN_HEIGHT:
+            self.preview_tower_placement(
+                x=self._mouse_x, 
+                y=self._mouse_y, 
+                tower_shopitem=self.shop_listlist[self.current_shop_tab][self.shop_item_selected-1]
+            )
+
         self.draw_chin_menu()
         self.draw_shop()
 
@@ -156,6 +267,14 @@ class GameWindow(arcade.Window):
             color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=128.0), 
             border_width=2
         )
+
+    def preview_tower_placement(self, x: float, y: float, tower_shopitem: ShopItem):
+        center_x, center_y = nearest_cell_centerxy(x, y)
+        fake_tower = tower_shopitem.tower.make_another()
+        fake_tower.center_x = center_x
+        fake_tower.center_y = center_y
+        self.draw_range(fake_tower)
+        fake_tower.draw()
 
     def draw_chin_menu(self):
         # Background
@@ -381,6 +500,13 @@ class GameWindow(arcade.Window):
             return
         ret = super().on_update(delta_time)
 
+        # check if any shop item is selected
+        # NOTE this logic could be done somewhere else...
+        self.shop_item_selected = 0
+        for n, item in enumerate(self.shop_listlist[self.current_shop_tab]):
+            if item.actively_selected:
+                self.shop_item_selected = n+1
+
         # check if any enemies get kills
         for enemy in self.enemies_list.sprite_list:
             if enemy.center_y < CHIN_HEIGHT - 0.5*enemy.height:
@@ -486,9 +612,10 @@ class GameWindow(arcade.Window):
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
-        # loop over towers to show any relevant ranges
-        for tower in self.towers_list.sprite_list:
-            tower.do_show_range = ((tower.left < x < tower.right) and (tower.bottom < y < tower.top))
+        if not self.shop_item_selected:
+            # loop over towers to show any relevant ranges
+            for tower in self.towers_list.sprite_list:
+                tower.do_show_range = ((tower.left < x < tower.right) and (tower.bottom < y < tower.top))
         return ret
 
     def add_enemy(self, delta_time : float):
@@ -503,108 +630,6 @@ class GameWindow(arcade.Window):
         for m in range(0, 3):
             for shop_item in self.shop_listlist[m]:
                 shop_item.actively_selected = False
-
-
-class GridCell():
-    def __init__(self, terrain_type: str = None, cellnum: int = -1) -> None:
-        self.is_occupied = False
-        if (terrain_type is None) or (terrain_type == "g") or (terrain_type == "ground"):
-            self.terrain_type = "ground"
-        elif (terrain_type == "s") or (terrain_type == "shallow"):
-            self.terrain_type = "shallow"
-        elif (terrain_type == "d") or (terrain_type == "deep"):
-            self.terrain_type = "deep"
-        else:
-            raise ValueError("invalid terrain type: " + terrain_type)
-        self.num = cellnum
-
-
-class Enemy(arcade.Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
-        super().__init__(filename, scale)
-        self.current_health = health
-        self.max_health = health
-        self.reward = reward
-
-    def draw_health_bar(self):
-        barheight = 4
-        barwidth = self.max_health * 4
-        arcade.draw_lrtb_rectangle_filled(
-            left  = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
-            right = self.center_x + barwidth/2,
-            top = self.top + barheight, 
-            bottom = self.top, 
-            color=arcade.color.RED)
-        arcade.draw_lrtb_rectangle_filled(
-            left  = self.center_x - barwidth/2,
-            right = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
-            top = self.top + barheight, 
-            bottom = self.top, 
-            color=arcade.color.GREEN)
-
-    def update(self):
-        if self.center_y < CHIN_HEIGHT - 0.5*self.height:
-            self.remove_from_sprite_lists()
-        super().update()
-
-
-class FlyingEnemy(Enemy):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
-        super().__init__(filename=filename, scale=scale, health=health, reward=reward)
-
-
-class Dragon(FlyingEnemy):
-    def __init__(self):
-        super().__init__(filename="images/dragon.png", scale=0.5, health=4, reward=30)
-
-
-class Tower(arcade.Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
-                    range: float = 100, damage: float = 5, do_show_range: bool = False, 
-                    name: str = None, description: str = None):
-        super().__init__(filename=filename, scale=scale)
-        self.cooldown = cooldown
-        self.cooldown_remaining = 0.0
-        self.range = range
-        self.damage = damage
-        self.do_show_range = False
-        self.name = name
-        if self.name is None:
-            self.name = "Example Tower"
-        self.description = description
-        if self.description is None:
-            self.description = "Generic Tower object. How do I make abstract classes again ?"
-
-    # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
-    # place it on the map doesn't work
-    def make_another(self): 
-        return Tower()
-
-
-class InstaAirTower(Tower):
-    def __init__(self):
-        super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=1.0, 
-                            range=100, damage=1, name="Arrow Tower", 
-                            description="Fires at flying\nNever misses")
-
-    def make_another(self):
-        return InstaAirTower()
-
-
-class ShopItem():
-    def __init__(self, is_unlocked: bool = False, is_unlockable: bool = False, thumbnail: str = None, 
-                    scale: float = 1.0, cost: float = 100, tower: Tower = None) -> None:
-        self.is_unlocked = is_unlocked
-        self.is_unlockable = is_unlockable
-        if thumbnail is None:
-            thumbnail = "images/question.png"
-        self.thumbnail = arcade.load_texture(thumbnail)
-        self.scale = scale
-        self.cost = cost
-        self.tower = tower
-        if self.tower is None:
-            self.tower = InstaAirTower()
-        self.actively_selected = False
 
 
 # misc grid helper functions
@@ -650,15 +675,14 @@ if __name__ == "__main__":
     app.setup()
     arcade.run()
 
-# TODO next step : make tower sprites square and top-viewed
+# TODO next step : floating enemies with land collision and path-finding
 
 # Roadmap items : 
 # vfx for shooting and exploding
-# hover-preview when placing towers
 # wave system overhaul
 # next wave preview
+# tower preview has red/green border indicating placeability
 # projectiles
-# floating enemies with land collision and path-finding
 # shop challenges to unlock more towers
 # massive texture overhaul
 # enchants
