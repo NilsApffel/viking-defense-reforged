@@ -163,6 +163,7 @@ class Tower(arcade.Sprite):
         if can_see_types is None:
             self.can_see_types = []
         self.target = None
+        self.animation_ontime_remaining = 0
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
@@ -190,6 +191,9 @@ class Tower(arcade.Sprite):
         projectiles_created = []
         return self.damage, projectiles_created
 
+    def draw_shoot_animation(self):
+        pass
+
 
 class InstaAirTower(Tower):
     def __init__(self):
@@ -208,14 +212,32 @@ class WatchTower(Tower):
                             range=100, damage=5, name="Watchtower", 
                             description="Fires at floating\nNever misses", 
                             can_see_types=['floating'])
-        self.animation_ontime_remaining = 0
 
     def make_another(self):
         return WatchTower()
 
     def attack(self, enemy: Enemy):
-        self.animation_ontime_remaining = 0.25
+        self.animation_ontime_remaining = 0.1
+        self.enemy_x = enemy.center_x
+        self.enemy_y = enemy.center_y
         return super().attack(enemy)
+
+    def draw_shoot_animation(self):
+        arcade.draw_line(
+            start_x=self.center_x, 
+            start_y=self.center_y, 
+            end_x=self.enemy_x, 
+            end_y=self.enemy_y, 
+            color=arcade.color.LIGHT_GRAY, 
+            line_width=2
+        )
+
+    def on_update(self, delta_time: float = 1 / 60):
+        self.animation_ontime_remaining -= delta_time
+        if self.animation_ontime_remaining < 0:
+            self.animation_ontime_remaining = 0
+        return super().on_update(delta_time)
+        
 
 
 class OakTreeTower(Tower):
@@ -348,7 +370,9 @@ class GameWindow(arcade.Window):
     def on_draw(self): 
         arcade.start_render()
         self.draw_map()
-        self.all_sprites.draw()
+        self.towers_list.draw()
+        self.enemies_list.draw()
+        self.projectiles_list.draw()
 
         for enemy in self.enemies_list.sprite_list:
             enemy.draw_health_bar()
@@ -356,6 +380,8 @@ class GameWindow(arcade.Window):
         for tower in self.towers_list.sprite_list:
             if tower.do_show_range and not self.paused:
                 self.draw_range(tower)
+            if tower.animation_ontime_remaining > 0:
+                tower.draw_shoot_animation()
 
         if ((self.shop_item_selected and not self.paused) and 
                 (self._mouse_x <= MAP_WIDTH and self._mouse_y >= CHIN_HEIGHT)):
@@ -407,6 +433,17 @@ class GameWindow(arcade.Window):
         fake_tower = tower_shopitem.tower.make_another()
         fake_tower.center_x = center_x
         fake_tower.center_y = center_y
+        i, j = nearest_cell_ij(x, y)
+        left, right, top, bottom = cell_lrtb(i, j)
+        is_spot_available = ((self.map_cells[i][j].terrain_type == "ground") and 
+                                (not self.map_cells[i][j].is_occupied))
+        if is_spot_available:
+            outline_color = arcade.color.GREEN
+        else:
+            outline_color = arcade.color.RED
+        arcade.draw_lrtb_rectangle_filled(
+            left=left, right=right, top=top, bottom=bottom, color=outline_color
+        )
         self.draw_range(fake_tower)
         fake_tower.draw()
 
@@ -874,11 +911,10 @@ if __name__ == "__main__":
 # TODO next step : 
 
 # Roadmap items : 
-# vfx for shooting and exploding
+# vfx for exploding
 # wave system overhaul
 # next wave preview
 # floating enemies have land collision and path-finding
-# tower preview has red/green border indicating placeability
 # shop challenges to unlock more towers
 # massive texture overhaul
 # 2x2 towers
