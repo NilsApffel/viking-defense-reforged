@@ -2,6 +2,7 @@ import arcade
 from random import randint
 from math import atan2, floor, pi, sqrt
 from copy import copy, deepcopy
+from pathfind import find_path
 
 # there's probably a better way than gloabl variables to handle all this sizing...
 SCREEN_WIDTH = 700
@@ -18,6 +19,7 @@ SCREEN_TITLE = "Viking Defense Reforged v0.0.6 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
+MAP_TARGET_J = 7
 
 
 class GridCell():
@@ -32,6 +34,13 @@ class GridCell():
         else:
             raise ValueError("invalid terrain type: " + terrain_type)
         self.num = cellnum
+
+    def __eq__(self, __o: object) -> bool:
+        if __o == self.terrain_type:
+            return True
+        if __o == self.terrain_type[0]:
+            return True
+        return False
 
 
 class Enemy(arcade.Sprite):
@@ -83,12 +92,42 @@ class Dragon(FlyingEnemy):
 
 
 class FloatingEnemy(Enemy):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
+                    reward: float = 30, speed: float = 1):
         super().__init__(filename=filename, scale=scale, health=health, reward=reward, is_flying=False)
+        self.path_to_follow = None
+        self.next_path_step = 0
+        self.speed = speed
 
     def on_update(self, delta_time: float=None):
-        self.priority = self.center_y
+        # follow path steps
+        (i, j) = nearest_cell_ij(self.center_x, self.center_y)
+        if is_in_cell(self, i,j) and ((i,j) in self.path_to_follow):
+            self.next_path_step = self.path_to_follow.index((i,j))+1
+        # target next path step
+        if self.next_path_step < len(self.path_to_follow):
+            target_i, target_j = self.path_to_follow[self.next_path_step]
+            target_x, target_y = cell_centerxy(target_i, target_j)
+            dx = target_x - self.center_x
+            dy = target_y - self.center_y
+            norm = sqrt(dx*dx + dy*dy)
+            self.velocity = (self.speed*dx/norm, self.speed*dy/norm)
+            self.angle = atan2(self.velocity[1], self.velocity[0])*180/pi
+        # set own targeting priority vis-a-vis towers
+        # priority mostly depends on how many steps are left on the path to your target
+        # if your priority is lower than other enemies', towers will try to shoot you first
+        self.priority = self.center_y + 1000 * (len(self.path_to_follow) - self.next_path_step)
         super().on_update(delta_time)
+
+    def calc_path(self, map):
+        """Updates the enemy's internal path_to_follow variable, which is an ordered list of 
+        what cells to go to reach the exit, using a-star pathfinding."""
+        i, j = nearest_cell_ij(self.center_x, self.center_y)
+        target_i = 15
+        target_j = MAP_TARGET_J
+        new_path = find_path(start_cell=(i,j), target_cell=(target_i, target_j), map=map)
+        self.path_to_follow = new_path
+        self.next_path_step = 0
 
 
 class TinyBoat(FloatingEnemy):
@@ -239,7 +278,6 @@ class WatchTower(Tower):
         return super().on_update(delta_time)
         
 
-
 class OakTreeTower(Tower):
     def __init__(self):
         super().__init__(filename="images/Oak_32x32_transparent.png", scale=1.0, cooldown=2.0, 
@@ -365,6 +403,11 @@ class GameWindow(arcade.Window):
                 map_rowlist.append(GridCell(terrain_type=map_char, cellnum=k))
                 k = k + 1
             map_listlist.append(map_rowlist)
+        # last row is all-water for enemy targeting reasons
+        last_rowlist = []
+        for m in range(k, k+len(map_rowlist)):
+            last_rowlist.append(GridCell(terrain_type="shallow", cellnum=m))
+        map_listlist.append(last_rowlist)
         self.map_cells = map_listlist
 
     def on_draw(self): 
@@ -722,24 +765,6 @@ class GameWindow(arcade.Window):
                 tower.cooldown_remaining -= delta_time
                 if tower.cooldown_remaining < 0.0:
                     tower.cooldown_remaining = 0.0
-        
-        # hardcoded simple logic for floating enemy movement
-        for enemy in self.enemies_list.sprite_list:
-            if enemy.is_flying:
-                continue
-            if is_in_cell(enemy, i=2, j=4):
-                enemy.velocity = (1, 0)
-            elif is_in_cell(enemy, i=2, j=11):
-                enemy.velocity = (0, -1)
-            elif is_in_cell(enemy, i=6, j=11):
-                enemy.velocity = (-1, 0)
-            elif is_in_cell(enemy, i=6, j=2):
-                enemy.velocity = (0, -1)
-            elif is_in_cell(enemy, i=11, j=2):
-                enemy.velocity = (1, 0)
-            elif is_in_cell(enemy, i=11, j=8):
-                enemy.velocity = (0, -1)
-            enemy.angle = atan2(enemy.velocity[1], enemy.velocity[0])*180/pi
 
         # move and delete sprites if needed
         self.enemies_list.update()
@@ -847,6 +872,8 @@ class GameWindow(arcade.Window):
             enemy.bottom = SCREEN_HEIGHT
             enemy.center_x, _ = cell_centerxy(i=0, j=4)
             enemy.velocity = (0, -1)
+            enemy.calc_path(map=self.map_cells)
+            # ANCHOR
         self.enemies_list.append(enemy)
         self.all_sprites.append(enemy)
 
@@ -883,8 +910,8 @@ def nearest_cell_ij(x: float, y:float):
     i = int(reverse_y // CELL_SIZE)
     i = max(i, 0)
     j = max(j, 0)
-    i = min(15, i)
-    j = min(15, j)
+    i = min(14, i)
+    j = min(14, j)
     return i, j
 
 def cell_centerxy(i: int, j:int):
@@ -903,6 +930,7 @@ def is_in_cell(sprite: arcade.Sprite, i: float, j:float):
             return True
     return False
 
+
 if __name__ == "__main__":
     app = GameWindow()
     app.setup()
@@ -914,10 +942,12 @@ if __name__ == "__main__":
 # vfx for exploding
 # wave system overhaul
 # next wave preview
-# floating enemies have land collision and path-finding
+# smoother trajectories for floating enemies
+# underwater enemies
 # shop challenges to unlock more towers
 # massive texture overhaul
 # 2x2 towers
 # enchants
 # special abilities
+# floating enemies re-calc their path when a platform is placed
 # info box with tower stats
