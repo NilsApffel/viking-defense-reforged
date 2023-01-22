@@ -1,6 +1,6 @@
 import arcade
 from random import randint
-from math import atan2, floor, pi
+from math import atan2, floor, pi, sqrt
 from copy import copy, deepcopy
 
 # there's probably a better way than gloabl variables to handle all this sizing...
@@ -14,7 +14,7 @@ INFO_BAR_HEIGHT = 20
 ATK_BUTT_HEIGHT = CHIN_HEIGHT-INFO_BAR_HEIGHT
 SHOP_ITEM_HEIGHT = 62
 SHOP_ITEM_THUMB_SIZE = 40
-SCREEN_TITLE = "Viking Defense Reforged v0.0.5 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.0.6 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
@@ -60,19 +60,21 @@ class Enemy(arcade.Sprite):
             bottom = self.top, 
             color=arcade.color.GREEN)
 
-    def update(self):
-        if self.center_y < CHIN_HEIGHT - 0.5*self.height:
+    def take_damage_give_money(self, damage: float):
+        self.current_health -= damage
+        if self.current_health <= 0:
             self.remove_from_sprite_lists()
-        super().update()
+            return self.reward
+        return 0
 
 
 class FlyingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
         super().__init__(filename=filename, scale=scale, health=health, reward=reward, is_flying=True)
 
-    def update(self):
+    def on_update(self, delta_time: float = None):
         self.priority = self.center_y
-        super().update()
+        super().on_update(delta_time)
 
 
 class Dragon(FlyingEnemy):
@@ -84,14 +86,61 @@ class FloatingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
         super().__init__(filename=filename, scale=scale, health=health, reward=reward, is_flying=False)
 
-    def update(self):
+    def on_update(self, delta_time: float=None):
         self.priority = self.center_y
-        super().update()
+        super().on_update(delta_time)
 
 
 class TinyBoat(FloatingEnemy):
     def __init__(self):
         super().__init__(filename="images/boat.png", scale=0.4, health=15, reward=30)
+
+
+class Projectile(arcade.Sprite):
+    def __init__(self, filename: str = None, scale: float = 1, speed: float = 2.0,
+                    center_x: float = 0, center_y: float = 0, angle: float = 0, angle_rate: float = 0,
+                    target: Enemy = None, target_x: float = None, target_y: float = None, 
+                    damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10):
+        super().__init__(filename=filename, scale=scale, center_x=center_x, center_y=center_y, angle=angle)
+        self.speed = speed
+        self.angle_rate = angle_rate
+        self.target = target
+        self.target_x = target_x
+        self.target_y = target_y
+        self.can_be_deleted = False
+        self.has_static_target = (target is None)
+        self.damage = damage
+        self.do_splash_damage = do_splash_damage
+        self.splash_radius = splash_radius
+
+        if not self.has_static_target:
+            self.target_x = self.target.center_x
+            self.target_y = self.target.center_y
+        # calc velocity based on target
+        dx = self.target_x - self.center_x
+        dy = self.target_y - self.center_y
+        norm = sqrt(dx*dx + dy*dy)
+        self.velocity = (self.speed*dx/norm, self.speed*dy/norm)
+
+    def on_update(self, delta_time: float):
+        if not self.has_static_target:
+            if self.target.current_health > 0:
+                self.target_x = self.target.center_x
+                self.target_y = self.target.center_y
+                # calc velocity based on target
+                dx = self.target_x - self.center_x
+                dy = self.target_y - self.center_y
+                norm = sqrt(dx*dx + dy*dy)
+                self.velocity = (self.speed*dx/norm, self.speed*dy/norm)
+            else:
+                self.target=None
+                self.has_static_target = True
+        self.angle += self.angle_rate*delta_time
+        # print(norm, "away from target with speed", self.velocity)
+        if ((self.center_x > MAP_WIDTH + 20) or (self.center_x < -20) or 
+                (self.center_y > SCREEN_HEIGHT + 20) or (self.center_y < CHIN_HEIGHT - 20)):
+            self.remove_from_sprite_lists()
+        return super().on_update(delta_time)
 
 
 class Tower(arcade.Sprite):
@@ -113,6 +162,7 @@ class Tower(arcade.Sprite):
         self.can_see_types = can_see_types
         if can_see_types is None:
             self.can_see_types = []
+        self.target = None
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
@@ -130,6 +180,15 @@ class Tower(arcade.Sprite):
         if enemy.is_hidden and not ('underwater' in self.can_see_types):
             return False
         return True
+
+    def attack(self, enemy: Enemy):
+        """Tells the tower what enemy to attack, in order for it to draw its own animation, 
+        and re-set its own cooldown. Returns instantaneous damage dealt to the enemy and any 
+        new Projectile objects."""
+        self.cooldown_remaining = self.cooldown
+        self.target = enemy
+        projectiles_created = []
+        return self.damage, projectiles_created
 
 
 class InstaAirTower(Tower):
@@ -149,9 +208,34 @@ class WatchTower(Tower):
                             range=100, damage=5, name="Watchtower", 
                             description="Fires at floating\nNever misses", 
                             can_see_types=['floating'])
+        self.animation_ontime_remaining = 0
 
     def make_another(self):
         return WatchTower()
+
+    def attack(self, enemy: Enemy):
+        self.animation_ontime_remaining = 0.25
+        return super().attack(enemy)
+
+
+class OakTreeTower(Tower):
+    def __init__(self):
+        super().__init__(filename="images/Oak_32x32_transparent.png", scale=1.0, cooldown=2.0, 
+                            range=100, damage=5, name="Sacred Oak", 
+                            description="Fires at flying\nHoming", 
+                            can_see_types=['flying'])
+
+    def make_another(self):
+        return OakTreeTower()
+
+    def attack(self, enemy: Enemy):
+        super().attack(enemy)
+        leaf = Projectile(
+            filename="images/leaf.png", scale=1.0, speed=2.0, angle_rate=360,
+            center_x=self.center_x, center_y=self.center_y, 
+            target=enemy, damage=self.damage
+        )
+        return 0, [leaf] # damage will be dealt by projectile
 
 
 class ShopItem():
@@ -193,7 +277,7 @@ class GameWindow(arcade.Window):
         self.is_air_wave = False
         self.paused = False
         self.load_shop_items() # first index is page, second is position in page
-        self.current_shop_tab = 1
+        self.current_shop_tab = 0
         self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
         self.load_map("./files/map1.txt")
 
@@ -204,48 +288,48 @@ class GameWindow(arcade.Window):
                         cost=100, tower=WatchTower()), 
                 ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=200, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=500, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=650, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower())
+                        cost=1000, tower=Tower())
             ], [ # start Sacred towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/tower_round_converted.png", scale = 0.3,
-                        cost=100, tower=InstaAirTower()), 
+                        thumbnail="images/simple_tree.png", scale = 0.3,
+                        cost=120, tower=OakTreeTower()), 
                 ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=180, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=400, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=650, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower())
+                        cost=1000, tower=Tower())
             ], [ # start Buildings
                 ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=300, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=500, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=700, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower()), 
+                        cost=1200, tower=Tower()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=100, tower=Tower())
+                        cost=1500, tower=Tower())
             ]]
 
     def load_map(self, filename):
@@ -557,10 +641,19 @@ class GameWindow(arcade.Window):
             if item.actively_selected:
                 self.shop_item_selected = n+1
 
+        # check for projectile impacts
+        for proj in self.projectiles_list.sprite_list:
+            dx = proj.target_x - proj.center_x
+            dy = proj.target_y - proj.center_y
+            dist_from_target = sqrt(dx*dx + dy*dy)
+            if dist_from_target < proj.speed/2:
+                self.perform_impact(proj)
+
         # check if any enemies get kills
         for enemy in self.enemies_list.sprite_list:
             if enemy.center_y < CHIN_HEIGHT - 0.5*enemy.height:
                 self.population -= 1
+                enemy.remove_from_sprite_lists()
 
         # wave time management
         if self.wave_is_happening:
@@ -580,11 +673,12 @@ class GameWindow(arcade.Window):
             if tower.cooldown_remaining <= 0: # ready to fire
                 for enemy in self.enemies_list.sprite_list:
                     if tower.can_see(enemy): # an attack happens
-                        tower.cooldown_remaining = tower.cooldown
-                        enemy.current_health -= tower.damage
-                        if enemy.current_health <= 0:
-                            self.money += enemy.reward
-                            enemy.remove_from_sprite_lists()
+                        dmg, projlist = tower.attack(enemy)
+                        earnings = enemy.take_damage_give_money(dmg)
+                        self.money += earnings
+                        for proj in projlist:
+                            self.projectiles_list.append(proj)
+                            self.all_sprites.append(proj)
                         # we found something to shoot, stop looping through enemies
                         break
             else : # not ready to fire
@@ -610,11 +704,28 @@ class GameWindow(arcade.Window):
                 enemy.velocity = (0, -1)
             enemy.angle = atan2(enemy.velocity[1], enemy.velocity[0])*180/pi
 
-        # move and delete spirtes if needed
+        # move and delete sprites if needed
         self.enemies_list.update()
+        self.enemies_list.on_update(delta_time) 
         self.towers_list.update()
+        self.towers_list.on_update(delta_time)
+        self.projectiles_list.update()
+        self.projectiles_list.on_update(delta_time)
         return ret
     
+    def perform_impact(self, projectile: Projectile):
+        if projectile.do_splash_damage:
+            for enemy in self.enemies_list.sprite_list:
+                if arcade.get_distance_between_sprites(projectile, enemy) < projectile.splash_radius:
+                    earnings = enemy.take_damage_give_money(damage=projectile.damage)
+                    self.money += earnings
+        else:
+            if projectile.target is None:
+                return
+            earnings = projectile.target.take_damage_give_money(projectile.damage)
+            self.money += earnings
+        projectile.remove_from_sprite_lists()
+
     def on_key_press(self, symbol: int, modifiers: int):
         if symbol == arcade.key.ESCAPE:
             if self.paused:
@@ -760,7 +871,7 @@ if __name__ == "__main__":
     app.setup()
     arcade.run()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
 # vfx for shooting and exploding
@@ -768,9 +879,9 @@ if __name__ == "__main__":
 # next wave preview
 # floating enemies have land collision and path-finding
 # tower preview has red/green border indicating placeability
-# projectiles
 # shop challenges to unlock more towers
 # massive texture overhaul
+# 2x2 towers
 # enchants
 # special abilities
 # info box with tower stats
