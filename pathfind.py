@@ -11,7 +11,7 @@ def get_adjacent_cells(i: int, j: int):
     return [(i-1,j), (i+1,j), (i,j-1), (i,j+1)]
 
 def new_routing_options(known_cells: list, known_routes: list, map: list):
-    print("I know how to go to these:", known_cells)
+    # print("I know how to go to these:", known_cells)
     new_cells = []
     new_routes = []
     for kcell, kroute in zip(known_cells, known_routes):

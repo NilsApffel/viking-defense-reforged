@@ -15,7 +15,7 @@ INFO_BAR_HEIGHT = 20
 ATK_BUTT_HEIGHT = CHIN_HEIGHT-INFO_BAR_HEIGHT
 SHOP_ITEM_HEIGHT = 62
 SHOP_ITEM_THUMB_SIZE = 40
-SCREEN_TITLE = "Viking Defense Reforged v0.0.6 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.0.7 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
@@ -44,7 +44,8 @@ class GridCell():
 
 
 class Enemy(arcade.Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30, is_flying: bool = True):
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
+                    reward: float = 30, is_flying: bool = True, can_hide: bool = False):
         super().__init__(filename, scale)
         self.current_health = health
         self.max_health = health
@@ -52,6 +53,7 @@ class Enemy(arcade.Sprite):
         self.priority = 800
         self.is_flying = is_flying
         self.is_hidden = False
+        self.can_hide = can_hide
 
     def draw_health_bar(self):
         barheight = 4
@@ -93,8 +95,9 @@ class Dragon(FlyingEnemy):
 
 class FloatingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                    reward: float = 30, speed: float = 1):
-        super().__init__(filename=filename, scale=scale, health=health, reward=reward, is_flying=False)
+                    reward: float = 30, speed: float = 1, can_hide: bool = False):
+        super().__init__(filename=filename, scale=scale, health=health, 
+                            reward=reward, is_flying=False, can_hide=can_hide)
         self.path_to_follow = None
         self.next_path_step = 0
         self.speed = speed
@@ -130,9 +133,24 @@ class FloatingEnemy(Enemy):
         self.next_path_step = 0
 
 
+class UnderwaterEnemy(FloatingEnemy):
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
+                    reward: float = 30, speed: float = 1, sumberged_texture_filename: str = None):
+        super().__init__(filename=filename, scale=scale, health=health, 
+                            reward=reward, speed=speed, can_hide=True)
+        self.append_texture(arcade.load_texture(sumberged_texture_filename))
+        self.set_texture(0)
+
+
 class TinyBoat(FloatingEnemy):
     def __init__(self):
         super().__init__(filename="images/boat.png", scale=0.4, health=15, reward=30)
+
+
+class BigWhale(UnderwaterEnemy):
+    def __init__(self):
+        super().__init__(filename="images/whale.png", scale=1, health=50, 
+                            reward=120, sumberged_texture_filename="images/whale_submerged2.png")
 
 
 class Projectile(arcade.Sprite):
@@ -731,7 +749,7 @@ class GameWindow(arcade.Window):
 
         # check if any enemies get kills
         for enemy in self.enemies_list.sprite_list:
-            if enemy.center_y < CHIN_HEIGHT - 0.5*enemy.height:
+            if enemy.center_y <= CHIN_HEIGHT - 0.4*CELL_SIZE:
                 self.population -= 1
                 enemy.remove_from_sprite_lists()
 
@@ -745,6 +763,17 @@ class GameWindow(arcade.Window):
                 self.next_wave_duration += 3.0
                 self.current_wave_time = 0.0
                 # print("Next wave will last for " + str(self.next_wave_duration))
+
+        # underwater enemy hiding
+        for enemy in self.enemies_list:
+            if enemy.can_hide:
+                i, j = nearest_cell_ij(enemy.center_x, enemy.center_y)
+                if self.map_cells[i][j].terrain_type == "deep":
+                    enemy.is_hidden = True
+                    enemy.set_texture(1)
+                else:
+                    enemy.is_hidden = False
+                    enemy.set_texture(0)
 
         # tower attacks
         # sort enemies by increasing Y (low Y = high priority target)
@@ -868,7 +897,10 @@ class GameWindow(arcade.Window):
             enemy.left = randint(0, floor(MAP_WIDTH-enemy.width))
             enemy.velocity = (0, -1)
         else:
-            enemy = TinyBoat()
+            if randint(0,1):
+                enemy = BigWhale()
+            else:
+                enemy = TinyBoat()
             enemy.bottom = SCREEN_HEIGHT
             enemy.center_x, _ = cell_centerxy(i=0, j=4)
             enemy.velocity = (0, -1)
@@ -936,14 +968,13 @@ if __name__ == "__main__":
     app.setup()
     arcade.run()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
 # vfx for exploding
 # wave system overhaul
 # next wave preview
 # smoother trajectories for floating enemies
-# underwater enemies
 # shop challenges to unlock more towers
 # massive texture overhaul
 # 2x2 towers
