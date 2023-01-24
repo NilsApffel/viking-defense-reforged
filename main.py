@@ -15,7 +15,7 @@ INFO_BAR_HEIGHT = 20
 ATK_BUTT_HEIGHT = CHIN_HEIGHT-INFO_BAR_HEIGHT
 SHOP_ITEM_HEIGHT = 62
 SHOP_ITEM_THUMB_SIZE = 40
-SCREEN_TITLE = "Viking Defense Reforged v0.0.7 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.0.8 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
@@ -266,7 +266,7 @@ class InstaAirTower(Tower):
 class WatchTower(Tower):
     def __init__(self):
         super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=2.0, 
-                            range=100, damage=5, name="Watchtower", 
+                            range=112, damage=5, name="Watchtower", 
                             description="Fires at floating\nNever misses", 
                             can_see_types=['floating'])
 
@@ -296,10 +296,35 @@ class WatchTower(Tower):
         return super().on_update(delta_time)
         
 
+class Catapult(Tower):
+    def __init__(self):
+        super().__init__(filename="images/catapult_top.png", scale=1.0, cooldown=3.5, 
+                            range=208, damage=10, name="Catapult", 
+                            description="Fires at Floating & Underwater\nUnhoming. Splash damage", 
+                            can_see_types=['floating', 'underwater'])
+
+    def make_another(self):
+        return Catapult()
+
+    def attack(self, enemy: Enemy):
+        super().attack(enemy)
+        cannonball = Projectile(
+            filename="images/cannonball.png", scale=0.3, speed=2.0, angle_rate=0,
+            center_x=self.center_x, center_y=self.center_y, 
+            target_x=enemy.center_x, target_y=enemy.center_y, 
+            damage=self.damage, do_splash_damage=True, splash_radius=32
+        )
+        return 0, [cannonball] # damage will be dealt by projectile
+
+    # TODO : add rotation of top of the tower, an un-moving base, 
+    # and tracking enemy via top rotation using on_update.
+    # (bonus: use rotation to slightly adjust starting position of projectile)
+
+
 class OakTreeTower(Tower):
     def __init__(self):
         super().__init__(filename="images/Oak_32x32_transparent.png", scale=1.0, cooldown=2.0, 
-                            range=100, damage=5, name="Sacred Oak", 
+                            range=112, damage=5, name="Sacred Oak", 
                             description="Fires at flying\nHoming", 
                             can_see_types=['flying'])
 
@@ -364,9 +389,9 @@ class GameWindow(arcade.Window):
                 ShopItem(is_unlocked=True, is_unlockable=False, # real
                         thumbnail="images/tower_round_converted.png", scale = 0.3,
                         cost=100, tower=WatchTower()), 
-                ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
-                        cost=200, tower=Tower()), 
+                ShopItem(is_unlocked=True, is_unlockable=False, # real but should be locked
+                        thumbnail="images/catapult_cool.png", scale = 0.6,
+                        cost=200, tower=Catapult()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
                         cost=500, tower=Tower()), 
@@ -643,7 +668,7 @@ class GameWindow(arcade.Window):
                     shop_item.tower.description, 
                     start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
                     start_y = SHOP_TOPS[k] - 28, 
-                    width = 100,
+                    width = 200,
                     color = arcade.color.BLACK, 
                     font_size = 10,
                     multiline = True
@@ -971,6 +996,7 @@ if __name__ == "__main__":
 # TODO next step :
 
 # Roadmap items : 
+# find a bolder but narrower font for text
 # vfx for exploding
 # wave system overhaul
 # next wave preview
