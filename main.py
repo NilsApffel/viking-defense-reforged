@@ -88,9 +88,24 @@ class FlyingEnemy(Enemy):
         super().on_update(delta_time)
 
 
-class Dragon(FlyingEnemy):
+class TinyBird(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename="images/dragon.png", scale=0.5, health=10, reward=30)
+        super().__init__(filename="images/TinyBird.png", scale=1.0, health=10, reward=30)
+
+
+class SmallShip(FlyingEnemy):
+    def __init__(self):
+        super().__init__(filename="images/SmallShip.png", scale=1.0, health=20, reward=60)
+
+
+class MediumDragon(FlyingEnemy):
+    def __init__(self):
+        super().__init__(filename="images/MediumDragon.png", scale=1.0, health=30, reward=100)
+
+
+class BigDragon(FlyingEnemy):
+    def __init__(self):
+        super().__init__(filename="images/BigDragon.png", scale=1.0, health=70, reward=150)
 
 
 class FloatingEnemy(Enemy):
@@ -144,13 +159,24 @@ class UnderwaterEnemy(FloatingEnemy):
 
 class TinyBoat(FloatingEnemy):
     def __init__(self):
-        super().__init__(filename="images/boat.png", scale=0.4, health=15, reward=30)
+        super().__init__(filename="images/boat.png", scale=0.3, health=15, reward=30)
+
+
+class SmallSnake(UnderwaterEnemy):
+    def __init__(self):
+        super().__init__(filename="images/whale.png", scale=0.5, health=25, 
+                            reward=60, sumberged_texture_filename="images/whale_submerged2.png")
+
+
+class MediumBoat(FloatingEnemy):
+    def __init__(self):
+        super().__init__(filename="images/boat.png", scale=0.65, health=50, reward=100)
 
 
 class BigWhale(UnderwaterEnemy):
     def __init__(self):
-        super().__init__(filename="images/whale.png", scale=1, health=50, 
-                            reward=120, sumberged_texture_filename="images/whale_submerged2.png")
+        super().__init__(filename="images/whale.png", scale=1.0, health=80, 
+                            reward=150, sumberged_texture_filename="images/whale_submerged2.png")
 
 
 class Projectile(arcade.Sprite):
@@ -917,15 +943,28 @@ class GameWindow(arcade.Window):
 
     def add_enemy(self, delta_time : float):
         if self.is_air_wave:
-            enemy = Dragon()
+            rnd = randint(0,10)
+            if rnd < 4.5:
+                enemy = TinyBird()
+            elif rnd < 6.5:
+                enemy = SmallShip()
+            elif rnd < 8.5:
+                enemy = MediumDragon()
+            else:
+                enemy = BigDragon()
             enemy.bottom = SCREEN_HEIGHT
             enemy.left = randint(0, floor(MAP_WIDTH-enemy.width))
             enemy.velocity = (0, -1)
         else:
-            if randint(0,1):
-                enemy = BigWhale()
-            else:
+            rnd = randint(0,10)
+            if rnd < 4.5:
                 enemy = TinyBoat()
+            elif rnd < 6.5:
+                enemy = SmallSnake()
+            elif rnd < 8.5:
+                enemy = MediumBoat()
+            else:
+                enemy = BigWhale()
             enemy.bottom = SCREEN_HEIGHT
             enemy.center_x, _ = cell_centerxy(i=0, j=4)
             enemy.velocity = (0, -1)
