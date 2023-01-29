@@ -15,7 +15,7 @@ INFO_BAR_HEIGHT = 20
 ATK_BUTT_HEIGHT = CHIN_HEIGHT-INFO_BAR_HEIGHT
 SHOP_ITEM_HEIGHT = 62
 SHOP_ITEM_THUMB_SIZE = 40
-SCREEN_TITLE = "Viking Defense Reforged v0.0.8 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.0.9 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
@@ -164,19 +164,19 @@ class TinyBoat(FloatingEnemy):
 
 class SmallSnake(UnderwaterEnemy):
     def __init__(self):
-        super().__init__(filename="images/whale.png", scale=0.5, health=25, 
-                            reward=60, sumberged_texture_filename="images/whale_submerged2.png")
+        super().__init__(filename="images/SmallSnake.png", scale=1.0, health=25, 
+                            reward=60, sumberged_texture_filename="images/SmallSnakeUnderwater.png")
 
 
 class MediumBoat(FloatingEnemy):
     def __init__(self):
-        super().__init__(filename="images/boat.png", scale=0.65, health=50, reward=100)
+        super().__init__(filename="images/MediumBoat.png", scale=1.0, health=50, reward=100)
 
 
 class BigWhale(UnderwaterEnemy):
     def __init__(self):
-        super().__init__(filename="images/whale.png", scale=1.0, health=80, 
-                            reward=150, sumberged_texture_filename="images/whale_submerged2.png")
+        super().__init__(filename="images/BigWhale.png", scale=1.0, health=80, 
+                            reward=150, sumberged_texture_filename="images/BigWhaleUnderwater.png")
 
 
 class Projectile(arcade.Sprite):
