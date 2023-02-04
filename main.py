@@ -1,13 +1,14 @@
 import arcade
 from random import randint, random
 from math import floor, sqrt
+from copy import deepcopy
 import csv
 from constants import *
 from grid import *
 from enemies import *
 from towers import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.1.0 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.1.1 Dev"
 
 
 class ShopItem():
@@ -82,6 +83,7 @@ class GameWindow(arcade.Window):
         self.enemies_list = arcade.SpriteList()
         self.towers_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
+        self.effects_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()
         self.paused = False
         self.assets = {"locked_shop_item" : arcade.load_texture("images/locked.png")}
@@ -206,6 +208,8 @@ class GameWindow(arcade.Window):
                 self.draw_range(tower)
             if tower.animation_ontime_remaining > 0:
                 tower.draw_shoot_animation()
+
+        self.effects_list.draw()
 
         if ((self.shop_item_selected and not self.paused) and 
                 (self._mouse_x <= MAP_WIDTH and self._mouse_y >= CHIN_HEIGHT)):
@@ -405,11 +409,14 @@ class GameWindow(arcade.Window):
                 arcade.draw_text( # tower description
                     shop_item.tower.description, 
                     start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
-                    start_y = SHOP_TOPS[k] - 28, 
+                    start_y = SHOP_TOPS[k] - 34, 
                     width = 200,
                     color = arcade.color.BLACK, 
-                    font_size = 10,
-                    multiline = True
+                    font_size = 12,
+                    multiline = True, 
+                    # may require using e.g. arcade.load_font('./agencyfb.ttf') 
+                    # for cross-platform compatibility
+                    font_name="Agency FB" 
                 ) 
                 arcade.draw_text( # tower price
                     str(shop_item.cost), 
@@ -564,24 +571,26 @@ class GameWindow(arcade.Window):
                     enemy.set_texture(0)
 
         # tower attacks
-        # sort enemies by increasing Y (low Y = high priority target)
-        self.enemies_list.sort(key= lambda enmy : enmy.position[1])
-        for tower in self.towers_list.sprite_list:
-            if tower.cooldown_remaining <= 0: # ready to fire
-                for enemy in self.enemies_list.sprite_list:
-                    if tower.can_see(enemy): # an attack happens
+        # sort enemies by increasing priority (low priority will be attacked first)
+        self.enemies_list.sort(key= lambda enmy : enmy.priority)
+        for tower in self.towers_list.sprite_list:  
+            for enemy in self.enemies_list.sprite_list:
+                if tower.can_see(enemy): 
+                    # we found something to target, stop looping through enemies
+                    tower.aim_to(enemy)
+                    if tower.cooldown_remaining <= 0: # ready to fire
+                        # an attack happens
                         dmg, projlist = tower.attack(enemy)
                         earnings = enemy.take_damage_give_money(dmg)
                         self.money += earnings
                         for proj in projlist:
                             self.projectiles_list.append(proj)
                             self.all_sprites.append(proj)
-                        # we found something to shoot, stop looping through enemies
-                        break
-            else : # not ready to fire
-                tower.cooldown_remaining -= delta_time
-                if tower.cooldown_remaining < 0.0:
-                    tower.cooldown_remaining = 0.0
+                    else : # not ready to fire
+                        tower.cooldown_remaining -= delta_time
+                        if tower.cooldown_remaining < 0.0:
+                            tower.cooldown_remaining = 0.0
+                    break # only do this for the first enemy each tower can see
 
         # move and delete sprites if needed
         self.enemies_list.update()
@@ -590,6 +599,8 @@ class GameWindow(arcade.Window):
         self.towers_list.on_update(delta_time)
         self.projectiles_list.update()
         self.projectiles_list.on_update(delta_time)
+        self.effects_list.update()
+        self.effects_list.on_update(delta_time)
 
         # check for loss condition
         if self.population <= 0:
@@ -612,6 +623,12 @@ class GameWindow(arcade.Window):
                 return
             earnings = projectile.target.take_damage_give_money(projectile.damage)
             self.money += earnings
+        if not (projectile.impact_effect is None):
+            explosion = deepcopy(projectile.impact_effect)
+            explosion.center_x = projectile.target_x
+            explosion.center_y = projectile.target_y
+            self.effects_list.append(explosion)
+            self.all_sprites.append(explosion)
         projectile.remove_from_sprite_lists()
 
     def on_key_press(self, symbol: int, modifiers: int):
@@ -668,13 +685,13 @@ class GameWindow(arcade.Window):
             shop_item = self.shop_listlist[self.current_shop_tab][k]
             is_item_buyable = (shop_item.actively_selected and self.money >= shop_item.cost)
             if is_item_buyable:
+                # buy and place it
                 self.money -= shop_item.cost
                 new_tower = shop_item.tower.make_another()
                 new_tower.center_x = center_x
                 new_tower.center_y = center_y
                 self.towers_list.append(new_tower)
                 self.all_sprites.append(new_tower)
-                self.unselect_all_shop_items()
                 self.map_cells[i][j].is_occupied = True
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
@@ -699,10 +716,7 @@ if __name__ == "__main__":
 # TODO next step :
 
 # Roadmap items : 
-# catapult visual improvements
-# better tower targeting priorities that don't just rely on y-position
-# find a bolder but narrower font for text
-# vfx for exploding
+# vfx for enemies exploding
 # wave system compatible with infinite free-play
 # next wave preview
 # smoother trajectories for floating enemies

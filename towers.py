@@ -1,11 +1,28 @@
 import arcade
 from enemies import *
 
+class Explosion(arcade.Sprite):
+    def __init__(self, filename: str = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.2, 
+                    scale_increase_rate: float = 4.0, center_x: float = 0, center_y: float = 0):
+        self.max_lifetime = lifetime_seconds
+        self.elapsed_lifetime = 0.0
+        self.scale_increase_rate = scale_increase_rate
+        super().__init__(filename=filename, scale=starting_scale, center_x=center_x, center_y=center_y)
+
+    def on_update(self, delta_time: float = 1 / 60):
+        self.scale += self.scale_increase_rate * delta_time
+        self.elapsed_lifetime += delta_time
+        if self.elapsed_lifetime > self.max_lifetime:
+            self.remove_from_sprite_lists()
+        return super().on_update(delta_time)
+
+
 class Projectile(arcade.Sprite):
     def __init__(self, filename: str = None, scale: float = 1, speed: float = 2.0,
                     center_x: float = 0, center_y: float = 0, angle: float = 0, angle_rate: float = 0,
                     target: Enemy = None, target_x: float = None, target_y: float = None, 
-                    damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10):
+                    damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10, 
+                    impact_effect: Explosion = None):
         super().__init__(filename=filename, scale=scale, center_x=center_x, center_y=center_y, angle=angle)
         self.speed = speed
         self.angle_rate = angle_rate
@@ -17,6 +34,7 @@ class Projectile(arcade.Sprite):
         self.damage = damage
         self.do_splash_damage = do_splash_damage
         self.splash_radius = splash_radius
+        self.impact_effect = impact_effect
 
         if not self.has_static_target:
             self.target_x = self.target.center_x
@@ -55,7 +73,8 @@ class Projectile(arcade.Sprite):
 class Tower(arcade.Sprite):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
                     range: float = 100, damage: float = 5, do_show_range: bool = False, 
-                    name: str = None, description: str = None, can_see_types: list = None):
+                    name: str = None, description: str = None, can_see_types: list = None, 
+                    has_rotating_top: bool = False):
         super().__init__(filename=filename, scale=scale)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
@@ -72,12 +91,22 @@ class Tower(arcade.Sprite):
         if can_see_types is None:
             self.can_see_types = []
         self.target = None
+        self.target_x = MAP_WIDTH/2
+        self.target_y = SCREEN_HEIGHT * 100000
         self.animation_ontime_remaining = 0
+        self.does_rotate = has_rotating_top
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
     def make_another(self): 
         return Tower()
+
+    def on_update(self, delta_time: float = 1 / 60):
+        if self.does_rotate:
+            dx = self.target_x - self.center_x
+            dy = self.target_y - self.center_y
+            self.angle = atan2(-dx, dy)*180/pi
+        return super().on_update(delta_time)
 
     def can_see(self, enemy: Enemy):
         distance = arcade.sprite.get_distance_between_sprites(self, enemy)
@@ -90,6 +119,10 @@ class Tower(arcade.Sprite):
         if enemy.is_hidden and not ('underwater' in self.can_see_types):
             return False
         return True
+
+    def aim_to(self, enemy: Enemy):
+        self.target_x = enemy.center_x
+        self.target_y = enemy.center_y
 
     def attack(self, enemy: Enemy):
         """Tells the tower what enemy to attack, in order for it to draw its own animation, 
@@ -150,10 +183,17 @@ class WatchTower(Tower):
 
 class Catapult(Tower):
     def __init__(self):
-        super().__init__(filename="images/catapult_top.png", scale=1.0, cooldown=3.5, 
-                            range=208, damage=10, name="Catapult", 
-                            description="Fires at Floating & Underwater\nUnhoming. Splash damage", 
-                            can_see_types=['floating', 'underwater'])
+        super().__init__(
+            filename="images/catapult_top.png", 
+            scale=1.0, 
+            cooldown=3.5, 
+            range=208, 
+            damage=10, 
+            name="Catapult", 
+            description="Fires at Floating & Underwater\nUnhoming. Splash damage", 
+            can_see_types=['floating', 'underwater'], 
+            has_rotating_top=True
+        )
 
     def make_another(self):
         return Catapult()
@@ -161,10 +201,11 @@ class Catapult(Tower):
     def attack(self, enemy: Enemy):
         super().attack(enemy)
         cannonball = Projectile(
-            filename="images/cannonball.png", scale=0.3, speed=2.0, angle_rate=0,
+            filename="images/cannonball.png", scale=0.3, speed=2.5, angle_rate=0,
             center_x=self.center_x, center_y=self.center_y, 
             target_x=enemy.center_x, target_y=enemy.center_y, 
-            damage=self.damage, do_splash_damage=True, splash_radius=32
+            damage=self.damage, do_splash_damage=True, splash_radius=32, 
+            impact_effect=Explosion(filename='./images/cannonball-explosion.png')
         )
         return 0, [cannonball] # damage will be dealt by projectile
 
