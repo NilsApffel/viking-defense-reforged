@@ -1,8 +1,9 @@
 import arcade
-from random import randint
+from random import randint, random
 from math import atan2, floor, pi, sqrt
 from copy import copy, deepcopy
 from pathfind import find_path
+import csv
 
 # there's probably a better way than gloabl variables to handle all this sizing...
 SCREEN_WIDTH = 700
@@ -15,7 +16,7 @@ INFO_BAR_HEIGHT = 20
 ATK_BUTT_HEIGHT = CHIN_HEIGHT-INFO_BAR_HEIGHT
 SHOP_ITEM_HEIGHT = 62
 SHOP_ITEM_THUMB_SIZE = 40
-SCREEN_TITLE = "Viking Defense Reforged v0.0.9 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.1.0 Dev"
 SCALING = 1.0 # this does nothing as far as I can tell
 SHOP_TOPS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k for k in range(0, 5)]
 SHOP_BOTTOMS = [SCREEN_HEIGHT - 27 - (4+SHOP_ITEM_HEIGHT)*k - SHOP_ITEM_HEIGHT for k in range(0, 5)]
@@ -383,6 +384,54 @@ class ShopItem():
         self.actively_selected = False
 
 
+class Wave():
+    def __init__(self, number, modifier, rank, type1, quant1, type2, quant2, type3, quant3) -> None:
+        self.number = int(number)
+        rnk = int(rank)
+        try:
+            q1 = int(quant1)
+        except:
+            q1 = 0
+        try:
+            q2 = int(quant2)
+        except:
+            q2 = 0
+        try:
+            q3 = int(quant3)
+        except:
+            q3 = 0
+        
+        self.enemies_list = []
+        for k in range(q1):
+            self.enemies_list.append((modifier, rnk, type1))
+        for k in range(q2):
+            self.enemies_list.append((modifier, rnk, type2))
+        for k in range(q3):
+            self.enemies_list.append((modifier, rnk, type3))
+        
+    def spawn(self, enemy_index: int) -> Enemy:
+        enemy_type_name = self.enemies_list[enemy_index][2]
+        if 'flying' in enemy_type_name:
+            if 'tiny' in enemy_type_name:
+                enemy = TinyBird()
+            elif 'small' in enemy_type_name:
+                enemy = SmallShip()
+            elif 'medium' in enemy_type_name:
+                enemy = MediumDragon()
+            elif 'big' in enemy_type_name:
+                enemy = BigDragon()
+        else:
+            if 'tiny' in enemy_type_name:
+                enemy = TinyBoat()
+            elif 'small' in enemy_type_name:
+                enemy = SmallSnake()
+            elif 'medium' in enemy_type_name:
+                enemy = MediumBoat()
+            elif 'big' in enemy_type_name:
+                enemy = BigWhale()
+        return enemy
+        
+
 class GameWindow(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
@@ -397,11 +446,13 @@ class GameWindow(arcade.Window):
 
     def setup(self):
         arcade.set_background_color(arcade.color.ORANGE)
+        self.game_state = 'playing'
         self.wave_number = 0
         self.money = 500
         self.population = 10
         self.wave_is_happening = False
-        self.next_wave_duration = 4.0
+        self.enemies_left_to_spawn = 0
+        self.next_enemy_index = 0
         self.current_wave_time = 0.0
         self.is_air_wave = False
         self.paused = False
@@ -409,6 +460,7 @@ class GameWindow(arcade.Window):
         self.current_shop_tab = 0
         self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
         self.load_map("./files/map1.txt")
+        self.load_waves("./files/map1CampaignWaves.csv")
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -478,6 +530,24 @@ class GameWindow(arcade.Window):
             last_rowlist.append(GridCell(terrain_type="shallow", cellnum=m))
         map_listlist.append(last_rowlist)
         self.map_cells = map_listlist
+
+    def load_waves(self, filename):
+        self.wave_list = []
+        with open(filename, mode='r', newline='') as csvfile:
+            wave_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            next(wave_reader) # skip header
+            for row in wave_reader:
+                self.wave_list.append(Wave(
+                    number=row[0], 
+                    modifier=row[1],
+                    rank=row[2],
+                    type1=row[3],
+                    quant1=row[4],
+                    type2=row[5], 
+                    quant2=row[6], 
+                    type3=row[7],
+                    quant3=row[8]
+                ))
 
     def on_draw(self): 
         arcade.start_render()
@@ -747,22 +817,35 @@ class GameWindow(arcade.Window):
                 )
  
     def draw_pause_menu(self):
-        arcade.draw_lrtb_rectangle_filled(
+
+        popup_color = arcade.color.ASH_GREY
+        popup_title = 'Paused'
+        popup_subtext = 'Press Esc to resume'
+        if self.game_state == 'won':
+            popup_color = arcade.color.FERN_GREEN
+            popup_title = 'You Win !'
+            popup_subtext = 'Waves survived: '+str(self.wave_number)
+        elif self.game_state == 'lost':
+            popup_color = arcade.color.DARK_RED
+            popup_title = 'Game Over'
+            popup_subtext = 'Waves survived: '+str(self.wave_number)
+
+        arcade.draw_lrtb_rectangle_filled( # dim screen
             left   = 0, 
             right  = SCREEN_WIDTH,
             top    = SCREEN_HEIGHT,
             bottom = 0,
             color=arcade.make_transparent_color(arcade.color.DIM_GRAY, transparency=128.0)
         )
-        arcade.draw_lrtb_rectangle_filled(
+        arcade.draw_lrtb_rectangle_filled( # Message background
             left   = self.width/2  - 100, 
             right  = self.width/2  + 100,
             top    = self.height/2 + 50,
             bottom = self.height/2 - 50,
-            color=arcade.color.ASH_GREY
+            color=popup_color
         )
         arcade.draw_text(
-            text="Paused",
+            text=popup_title,
             start_x = self.width/2 - 100,
             start_y = self.height/2 + 10,
             font_size = 28,
@@ -770,7 +853,7 @@ class GameWindow(arcade.Window):
             align = "center"
         )
         arcade.draw_text(
-            text="Press Esc to resume",
+            text=popup_subtext,
             start_x = self.width/2 - 100,
             start_y = self.height/2 - 10,
             font_size = 16,
@@ -779,7 +862,8 @@ class GameWindow(arcade.Window):
         )
 
     def on_update(self, delta_time: float):
-        if self.paused:
+        if self.paused or self.game_state == 'won' or self.game_state == 'lost':
+            self.paused = True
             return
         ret = super().on_update(delta_time)
 
@@ -804,16 +888,27 @@ class GameWindow(arcade.Window):
                 self.population -= 1
                 enemy.remove_from_sprite_lists()
 
-        # wave time management
+        # wave management
         if self.wave_is_happening:
-            # print("Wave time : " + str(self.current_wave_time))
             self.current_wave_time += delta_time
-            if self.current_wave_time > self.next_wave_duration:
+            # spawn next enemy, if needed, and decrement enemies_left_to_spawn
+            if self.enemies_left_to_spawn > 0:
+                if random() < delta_time: # decide to spawn new enemy
+                    new_enemy = self.wave_list[self.wave_number-1].spawn(self.next_enemy_index)
+                    new_enemy.bottom = SCREEN_HEIGHT
+                    new_enemy.velocity = (0, -1)
+                    if new_enemy.is_flying:
+                        new_enemy.left = randint(0, floor(MAP_WIDTH-new_enemy.width))
+                    else:
+                        new_enemy.center_x, _ = cell_centerxy(i=0, j=randint(0,4))
+                        new_enemy.calc_path(map=self.map_cells)
+                    self.enemies_list.append(new_enemy)
+                    self.all_sprites.append(new_enemy)
+                    self.enemies_left_to_spawn -= 1
+                    self.next_enemy_index += 1
+            # check if wave is over 
+            elif self.enemies_left_to_spawn == 0 and len(self.enemies_list.sprite_list) == 0:
                 self.wave_is_happening = False
-                arcade.unschedule(self.add_enemy)
-                self.next_wave_duration += 3.0
-                self.current_wave_time = 0.0
-                # print("Next wave will last for " + str(self.next_wave_duration))
 
         # underwater enemy hiding
         for enemy in self.enemies_list:
@@ -853,6 +948,15 @@ class GameWindow(arcade.Window):
         self.towers_list.on_update(delta_time)
         self.projectiles_list.update()
         self.projectiles_list.on_update(delta_time)
+
+        # check for loss condition
+        if self.population <= 0:
+            self.paused = True
+            self.game_state = 'lost'
+        # check for win condition
+        elif self.wave_number >= len(self.wave_list) and not self.wave_is_happening:
+            self.paused = True
+            self.game_state = 'won'
         return ret
     
     def perform_impact(self, projectile: Projectile):
@@ -872,12 +976,8 @@ class GameWindow(arcade.Window):
         if symbol == arcade.key.ESCAPE:
             if self.paused:
                 self.paused = False
-                if self.wave_is_happening:
-                    arcade.schedule(self.add_enemy, interval=2.0)
             else:
                 self.paused = True
-                if self.wave_is_happening:
-                    arcade.unschedule(self.add_enemy)
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
         if self.paused:
@@ -891,8 +991,10 @@ class GameWindow(arcade.Window):
         if (MAP_WIDTH-ATK_BUTT_HEIGHT < x < MAP_WIDTH) and (INFO_BAR_HEIGHT < y < CHIN_HEIGHT):
             if not self.wave_is_happening:
                 self.wave_is_happening = True
-                self.is_air_wave = randint(0, 1)
-                arcade.schedule(self.add_enemy, interval=2.0)
+                self.current_wave_time = 0.0
+                self.wave_number += 1
+                self.enemies_left_to_spawn = len(self.wave_list[self.wave_number-1].enemies_list)
+                self.next_enemy_index = 0
         # Shop tab change
         elif (x > MAP_WIDTH) and (y >= SHOP_TOPS[0]): 
             if x <= MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)/3:
@@ -940,38 +1042,6 @@ class GameWindow(arcade.Window):
             for tower in self.towers_list.sprite_list:
                 tower.do_show_range = ((tower.left < x < tower.right) and (tower.bottom < y < tower.top))
         return ret
-
-    def add_enemy(self, delta_time : float):
-        if self.is_air_wave:
-            rnd = randint(0,10)
-            if rnd < 4.5:
-                enemy = TinyBird()
-            elif rnd < 6.5:
-                enemy = SmallShip()
-            elif rnd < 8.5:
-                enemy = MediumDragon()
-            else:
-                enemy = BigDragon()
-            enemy.bottom = SCREEN_HEIGHT
-            enemy.left = randint(0, floor(MAP_WIDTH-enemy.width))
-            enemy.velocity = (0, -1)
-        else:
-            rnd = randint(0,10)
-            if rnd < 4.5:
-                enemy = TinyBoat()
-            elif rnd < 6.5:
-                enemy = SmallSnake()
-            elif rnd < 8.5:
-                enemy = MediumBoat()
-            else:
-                enemy = BigWhale()
-            enemy.bottom = SCREEN_HEIGHT
-            enemy.center_x, _ = cell_centerxy(i=0, j=4)
-            enemy.velocity = (0, -1)
-            enemy.calc_path(map=self.map_cells)
-            # ANCHOR
-        self.enemies_list.append(enemy)
-        self.all_sprites.append(enemy)
 
     def unselect_all_shop_items(self):
         for m in range(0, 3):
@@ -1035,9 +1105,11 @@ if __name__ == "__main__":
 # TODO next step :
 
 # Roadmap items : 
+# catapult visual improvements
+# better tower targeting priorities that don't just rely on y-position
 # find a bolder but narrower font for text
 # vfx for exploding
-# wave system overhaul
+# wave system compatible with infinite free-play
 # next wave preview
 # smoother trajectories for floating enemies
 # shop challenges to unlock more towers
