@@ -8,7 +8,7 @@ from grid import *
 from enemies import *
 from towers import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.1.1 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.1.2 Dev"
 
 
 class ShopItem():
@@ -135,7 +135,8 @@ class GameWindow(arcade.Window):
         self.assets = {
             "locked_shop_item" : arcade.load_texture("images/locked.png"), 
             "attack_button" : arcade.load_texture('./images/NextWaveButton.png'),
-            "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png')
+            "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png'),
+            "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png')
         }
 
     def setup(self):
@@ -371,7 +372,9 @@ class GameWindow(arcade.Window):
                 )
         # attack button
         texture = self.assets['attack_button']
-        if self.hover_target == 'attack_button' and not self.paused: # light up the texture
+        if self.wave_is_happening:
+            texture = self.assets['attack_button_grey']
+        elif self.hover_target == 'attack_button' and not self.paused:
             texture = self.assets['attack_button_lit']
         arcade.draw_scaled_texture_rectangle(
             center_x = MAP_WIDTH - 5 - ATK_BUTT_HEIGHT/2,
@@ -797,13 +800,15 @@ if __name__ == "__main__":
     app.setup()
     arcade.run()
 
-# TODO next step : attack button greys out during wave
+# TODO next step :
 
 # Roadmap items : 
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
 # smoother trajectories for floating enemies
 # shop challenges to unlock more towers
+# map / play-type selector view
+# multiple map support
 # massive texture overhaul
 # 2x2 towers
 # enchants
