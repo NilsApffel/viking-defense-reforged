@@ -96,7 +96,7 @@ class FloatingEnemy(Enemy):
         # set own targeting priority vis-a-vis towers
         # priority mostly depends on how many steps are left on the path to your target
         # if your priority is lower than other enemies', towers will try to shoot you first
-        self.priority = self.center_y + 500 * (len(self.path_to_follow) - self.next_path_step)
+        self.priority = self.center_y + 1000 * (len(self.path_to_follow) - self.next_path_step)
         super().on_update(delta_time)
 
     def calc_path(self, map):

@@ -2,8 +2,8 @@ import arcade
 from enemies import *
 
 class Explosion(arcade.Sprite):
-    def __init__(self, filename: str = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.2, 
-                    scale_increase_rate: float = 4.0, center_x: float = 0, center_y: float = 0):
+    def __init__(self, filename: str = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.15, 
+                    scale_increase_rate: float = 5.0, center_x: float = 0, center_y: float = 0):
         self.max_lifetime = lifetime_seconds
         self.elapsed_lifetime = 0.0
         self.scale_increase_rate = scale_increase_rate

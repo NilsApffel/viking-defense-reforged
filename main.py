@@ -86,7 +86,11 @@ class GameWindow(arcade.Window):
         self.effects_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()
         self.paused = False
-        self.assets = {"locked_shop_item" : arcade.load_texture("images/locked.png")}
+        self.assets = {
+            "locked_shop_item" : arcade.load_texture("images/locked.png"), 
+            "attack_button" : arcade.load_texture('./images/NextWaveButton.png'),
+            "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png')
+        }
 
     def setup(self):
         arcade.set_background_color(arcade.color.ORANGE)
@@ -103,6 +107,7 @@ class GameWindow(arcade.Window):
         self.load_shop_items() # first index is page, second is position in page
         self.current_shop_tab = 0
         self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
+        self.hover_target = '' # used to store what UI element is being moused over, if any
         self.load_map("./files/map1.txt")
         self.load_waves("./files/map1CampaignWaves.csv")
 
@@ -284,27 +289,31 @@ class GameWindow(arcade.Window):
             bottom = 0,
             color=arcade.color.ORANGE
         )
+        # Wave previews
+        for k in range(2):
+            # background 
+            arcade.draw_lrtb_rectangle_filled(
+                left   = 15+(WAVE_VIEWER_WIDTH+15)*k, 
+                right  = 15+(WAVE_VIEWER_WIDTH+15)*k + WAVE_VIEWER_WIDTH,
+                top    = CHIN_HEIGHT - 10,
+                bottom = INFO_BAR_HEIGHT + 2,
+                color=arcade.color.BEIGE
+            )
         # attack button
-        arcade.draw_lrtb_rectangle_filled(
-            left   = MAP_WIDTH - ATK_BUTT_HEIGHT, 
-            right  = MAP_WIDTH,
-            top    = CHIN_HEIGHT,
-            bottom = INFO_BAR_HEIGHT,
-            color=arcade.color.RED
-        )
-        arcade.draw_text(
-            text="START\nNEXT\nWAVE",
-            start_x = MAP_WIDTH - ATK_BUTT_HEIGHT,
-            start_y = CHIN_HEIGHT - ATK_BUTT_HEIGHT/3,
-            font_size = 14,
-            width = ATK_BUTT_HEIGHT,
-            align = "center"
+        texture = self.assets['attack_button']
+        if self.hover_target == 'attack_button' and not self.paused: # light up the texture
+            texture = self.assets['attack_button_lit']
+        arcade.draw_scaled_texture_rectangle(
+            center_x = MAP_WIDTH - 5 - ATK_BUTT_HEIGHT/2,
+            center_y = INFO_BAR_HEIGHT + 2 + ATK_BUTT_HEIGHT/2,
+            scale = 1.0,
+            texture = texture
         )
         # info bar
         arcade.draw_text(
             text="Population: " + str(self.population),
             start_x = MAP_WIDTH/2,
-            start_y = 0,
+            start_y = 3,
             font_size = 14,
             width = MAP_WIDTH/4,
             align = "left"
@@ -312,7 +321,7 @@ class GameWindow(arcade.Window):
         arcade.draw_text(
             text="Money: " + str(self.money),
             start_x = MAP_WIDTH*0.75,
-            start_y = 0,
+            start_y = 3,
             font_size = 14,
             width = MAP_WIDTH/4,
             align = "right"
@@ -647,7 +656,7 @@ class GameWindow(arcade.Window):
             # were we trying to place a new tower ?
             self.attempt_tower_place(x, y)  
         # Next Wave Start Button
-        if (MAP_WIDTH-ATK_BUTT_HEIGHT < x < MAP_WIDTH) and (INFO_BAR_HEIGHT < y < CHIN_HEIGHT):
+        if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
             if not self.wave_is_happening:
                 self.wave_is_happening = True
                 self.current_wave_time = 0.0
@@ -700,6 +709,11 @@ class GameWindow(arcade.Window):
             # loop over towers to show any relevant ranges
             for tower in self.towers_list.sprite_list:
                 tower.do_show_range = ((tower.left < x < tower.right) and (tower.bottom < y < tower.top))
+        # check if we should light up any UI elements
+        if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
+            self.hover_target = 'attack_button'
+        else:
+            self.hover_target = ''
         return ret
 
     def unselect_all_shop_items(self):
@@ -713,12 +727,11 @@ if __name__ == "__main__":
     app.setup()
     arcade.run()
 
-# TODO next step :
+# TODO next step : next wave preview
 
 # Roadmap items : 
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
-# next wave preview
 # smoother trajectories for floating enemies
 # shop challenges to unlock more towers
 # massive texture overhaul
