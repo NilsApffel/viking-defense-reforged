@@ -51,6 +51,12 @@ class Wave():
             self.enemies_list.append((modifier, rnk, type2))
         for k in range(q3):
             self.enemies_list.append((modifier, rnk, type3))
+
+        self.quantities = [q1]
+        if q2 > 0:
+            self.quantities += [q2]
+            if q3 > 0:
+                self.quantities += [q3]
         
     def spawn(self, enemy_index: int) -> Enemy:
         enemy_type_name = self.enemies_list[enemy_index][2]
@@ -73,7 +79,47 @@ class Wave():
             elif 'big' in enemy_type_name:
                 enemy = BigWhale()
         return enemy
+
+    def describe(self) -> str:
+        sizes_str = ''
+        types_str = ''
+        modifiers_str = ''
+
+        # how many of what is in sub-wave 1 ?
+        sizes_str += str(self.quantities[0]) + ' '
+        name1 = self.enemies_list[0][2]
+        sizes_str += name1.split(' ')[0].upper()
+        if 'flying' in name1:
+            types_str += 'Flying'
+        elif ('BIG' in sizes_str) or ('SMALL' in sizes_str):
+            types_str += 'Underwater'
+        else:
+            types_str += 'Floating'
         
+        # how is sub-wave 2 different ?
+        if len(self.quantities) > 1:
+            sizes_str += ' & ' + str(self.quantities[1]) + ' '
+            name2 = self.enemies_list[self.quantities[0]][2] # first enemy of the second sub-wave
+            sizes_str += name2.split(' ')[0].upper()
+            if not ('Flying' in types_str):
+                if (not ('Underwater' in types_str)) and (('big' in name2) or ('small' in name2)):
+                    types_str += ' & Underwater'
+                if (not ('Floating' in types_str)) and (('tiny' in name2) or ('medium' in name2)):
+                    types_str += ' & Floating'
+
+        # how is sub-wave 3 different ?
+        if len(self.quantities) > 2:
+            sizes_str += ' & ' + str(self.quantities[2]) + ' '
+            name3 = self.enemies_list[self.quantities[1]][2] # first enemy of the second sub-wave
+            sizes_str += name3.split(' ')[0].upper()
+            if not ('Flying' in types_str):
+                if (not ('Underwater' in types_str)) and (('big' in name3) or ('small' in name3)):
+                    types_str += ' & Underwater'
+                if (not ('Floating' in types_str)) and (('tiny' in name3) or ('medium' in name3)):
+                    types_str += ' & Floating'
+
+        total = sizes_str + '\n' + types_str + '\n' + modifiers_str
+        return total
 
 class GameWindow(arcade.Window):
     def __init__(self):
@@ -233,7 +279,7 @@ class GameWindow(arcade.Window):
     # draw sub-methods used to make self.on_draw more legible
     def draw_map(self):
         # individual cells
-        for i in range(len(self.map_cells)):
+        for i in range(len(self.map_cells)-1):
             for j in range(len(self.map_cells[i])):
                 l, r, t, b = cell_lrtb(i, j)
                 c = cell_color(self.map_cells[i][j].terrain_type)
@@ -299,6 +345,30 @@ class GameWindow(arcade.Window):
                 bottom = INFO_BAR_HEIGHT + 2,
                 color=arcade.color.BEIGE
             )
+            if self.wave_number+1-k < len(self.wave_list):
+                # wave title
+                arcade.draw_text(
+                    text = 'Attack #'+str(self.wave_number+2-k)+'/'+str(len(self.wave_list)),
+                    start_x = 17+(WAVE_VIEWER_WIDTH+15)*k,
+                    start_y = CHIN_HEIGHT - 28,
+                    color = arcade.color.PURPLE,
+                    font_size = 11,
+                    width = WAVE_VIEWER_WIDTH,
+                    bold = True, 
+                    # font_name = "Agency FB" 
+                )
+                # wave content
+                arcade.draw_text(
+                    text = self.wave_list[self.wave_number+1-k].describe(),
+                    start_x = 17+(WAVE_VIEWER_WIDTH+15)*k,
+                    start_y = CHIN_HEIGHT - 45,
+                    color = arcade.color.BLACK,
+                    font_size = 10,
+                    width = WAVE_VIEWER_WIDTH,
+                    bold = True,
+                    multiline = True,
+                    # font_name = "Agency FB" 
+                )
         # attack button
         texture = self.assets['attack_button']
         if self.hover_target == 'attack_button' and not self.paused: # light up the texture
@@ -727,7 +797,7 @@ if __name__ == "__main__":
     app.setup()
     arcade.run()
 
-# TODO next step : next wave preview
+# TODO next step : attack button greys out during wave
 
 # Roadmap items : 
 # vfx for enemies exploding
