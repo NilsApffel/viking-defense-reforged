@@ -4,7 +4,7 @@ from grid import *
 from pathfind import find_path
 
 class Enemy(arcade.Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, speed: float = 0.8,
                     reward: float = 30, is_flying: bool = True, can_hide: bool = False):
         super().__init__(filename, scale)
         self.current_health = health
@@ -14,6 +14,11 @@ class Enemy(arcade.Sprite):
         self.is_flying = is_flying
         self.is_hidden = False
         self.can_hide = can_hide
+        self.rank = 1
+        self.modifier = ''
+        self.regen_rate = 0.0
+        self.speed = speed
+        self.velocity = (0, -speed)
 
     def draw_health_bar(self):
         barheight = 4
@@ -32,12 +37,35 @@ class Enemy(arcade.Sprite):
             color=arcade.color.GREEN)
 
     def take_damage_give_money(self, damage: float):
-        self.current_health -= damage
+        if 'shield' in self.modifier.lower():
+            self.current_health -= damage/2 
+        else:
+            self.current_health -= damage
         if self.current_health <= 0:
             self.remove_from_sprite_lists()
             return self.reward
         return 0
+    
+    def set_rank(self, rank:int):
+        old_rank = self.rank
+        self.rank = rank
+        self.max_health *= rank/old_rank
+        self.current_health *= rank/old_rank
 
+    def set_modifier(self, modifier: str):
+        old_modifier = self.modifier
+        self.modifier = modifier
+        if ('fast' in modifier) and not ('fast' in old_modifier):
+            self.speed *= 1.5
+            self.velocity = (self.velocity[0]*1.5, self.velocity[1]*1.5)
+        if ('regen' in modifier) and not ('regen' in old_modifier):
+            self.regen_rate = self.max_health / 60
+
+    def on_update(self, delta_time: float = 1 / 60):
+        if 'regen' in self.modifier.lower():
+            self.current_health += self.regen_rate * delta_time
+            self.current_health = min(self.current_health, self.max_health)
+        return super().on_update(delta_time)
 
 class FlyingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
@@ -70,12 +98,11 @@ class BigDragon(FlyingEnemy):
 
 class FloatingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                    reward: float = 30, speed: float = 1, can_hide: bool = False):
-        super().__init__(filename=filename, scale=scale, health=health, 
+                    reward: float = 30, speed: float = 0.8, can_hide: bool = False):
+        super().__init__(filename=filename, scale=scale, health=health, speed=speed,
                             reward=reward, is_flying=False, can_hide=can_hide)
         self.path_to_follow = None
         self.next_path_step = 0
-        self.speed = speed
 
     def on_update(self, delta_time: float=None):
         # follow path steps
@@ -112,7 +139,7 @@ class FloatingEnemy(Enemy):
 
 class UnderwaterEnemy(FloatingEnemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                    reward: float = 30, speed: float = 1, sumberged_texture_filename: str = None):
+                    reward: float = 30, speed: float = 0.8, sumberged_texture_filename: str = None):
         super().__init__(filename=filename, scale=scale, health=health, 
                             reward=reward, speed=speed, can_hide=True)
         self.append_texture(arcade.load_texture(sumberged_texture_filename))

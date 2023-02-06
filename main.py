@@ -8,7 +8,7 @@ from grid import *
 from enemies import *
 from towers import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.1.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.1.3 Dev"
 
 
 class ShopItem():
@@ -78,6 +78,8 @@ class Wave():
                 enemy = MediumBoat()
             elif 'big' in enemy_type_name:
                 enemy = BigWhale()
+        enemy.set_rank(self.enemies_list[enemy_index][1])
+        enemy.set_modifier(self.enemies_list[enemy_index][0])
         return enemy
 
     def describe(self) -> str:
@@ -95,6 +97,14 @@ class Wave():
             types_str += 'Underwater'
         else:
             types_str += 'Floating'
+
+        rank = self.enemies_list[0][1]
+        modifier = self.enemies_list[0][0]
+        if  rank > 1:
+            modifiers_str += 'Rank ' + str(rank)
+            if modifier:
+                modifiers_str += ', '
+        modifiers_str += modifier
         
         # how is sub-wave 2 different ?
         if len(self.quantities) > 1:
@@ -155,8 +165,8 @@ class GameWindow(arcade.Window):
         self.current_shop_tab = 0
         self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
         self.hover_target = '' # used to store what UI element is being moused over, if any
-        self.load_map("./files/map1.txt")
-        self.load_waves("./files/map1CampaignWaves.csv")
+        self.load_map("./files/map2.txt")
+        self.load_waves("./files/map2CampaignWaves.csv")
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -627,7 +637,6 @@ class GameWindow(arcade.Window):
                 if random() < delta_time: # decide to spawn new enemy
                     new_enemy = self.wave_list[self.wave_number-1].spawn(self.next_enemy_index)
                     new_enemy.bottom = SCREEN_HEIGHT
-                    new_enemy.velocity = (0, -1)
                     if new_enemy.is_flying:
                         new_enemy.left = randint(0, floor(MAP_WIDTH-new_enemy.width))
                     else:
@@ -673,6 +682,10 @@ class GameWindow(arcade.Window):
                         if tower.cooldown_remaining < 0.0:
                             tower.cooldown_remaining = 0.0
                     break # only do this for the first enemy each tower can see
+            else: # tower did not see any enemy (break was not reached)
+                tower.cooldown_remaining -= delta_time
+                if tower.cooldown_remaining < 0.0:
+                    tower.cooldown_remaining = 0.0
 
         # move and delete sprites if needed
         self.enemies_list.update()
@@ -800,9 +813,11 @@ if __name__ == "__main__":
     app.setup()
     arcade.run()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
+# modifiers have a visual, possibly by overriding enemy.on_draw()
+# "sell tower" ability
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
 # smoother trajectories for floating enemies
