@@ -66,6 +66,30 @@ class Enemy(arcade.Sprite):
             self.current_health += self.regen_rate * delta_time
             self.current_health = min(self.current_health, self.max_health)
         return super().on_update(delta_time)
+    
+    def draw_effects(self):
+        if self.is_flying:
+            shield_size = max(self.width, self.height*0.6) + 4
+            vertical_offset = 2
+        else:
+            shield_size = max(self.width, self.height) + 4
+            vertical_offset = 0
+        shield_scale = shield_size / 64
+
+        if 'ice shield' in self.modifier:
+            effect_texture = ICE_SHIELD_TEXTURE
+        elif 'fire shield' in self.modifier:
+            effect_texture = FIRE_SHIELD_TEXTURE
+        elif 'regen' in self.modifier:
+            effect_texture = REGEN_TEXTURE
+
+        arcade.draw_scaled_texture_rectangle(
+            center_x=self.center_x, 
+            center_y=self.center_y + vertical_offset, 
+            texture=effect_texture, 
+            scale=shield_scale
+        )
+
 
 class FlyingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):

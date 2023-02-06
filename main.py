@@ -8,7 +8,7 @@ from grid import *
 from enemies import *
 from towers import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.1.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.1.4 Dev"
 
 
 class ShopItem():
@@ -149,7 +149,7 @@ class GameWindow(arcade.Window):
             "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png')
         }
 
-    def setup(self):
+    def setup(self, map_number: int = 1):
         arcade.set_background_color(arcade.color.ORANGE)
         self.game_state = 'playing'
         self.wave_number = 0
@@ -165,8 +165,8 @@ class GameWindow(arcade.Window):
         self.current_shop_tab = 0
         self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
         self.hover_target = '' # used to store what UI element is being moused over, if any
-        self.load_map("./files/map2.txt")
-        self.load_waves("./files/map2CampaignWaves.csv")
+        self.load_map("./files/map"+str(map_number)+".txt")
+        self.load_waves("./files/map"+str(map_number)+"CampaignWaves.csv")
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -263,6 +263,7 @@ class GameWindow(arcade.Window):
         self.projectiles_list.draw()
 
         for enemy in self.enemies_list.sprite_list:
+            enemy.draw_effects()
             enemy.draw_health_bar()
             
         for tower in self.towers_list.sprite_list:
@@ -810,20 +811,21 @@ class GameWindow(arcade.Window):
 
 if __name__ == "__main__":
     app = GameWindow()
-    app.setup()
+    app.setup(map_number=1)
     arcade.run()
 
 # TODO next step : 
 
 # Roadmap items : 
-# modifiers have a visual, possibly by overriding enemy.on_draw()
+# read through https://api.arcade.academy/en/latest/gui/index.html to search for better buttons
 # "sell tower" ability
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
 # smoother trajectories for floating enemies
 # shop challenges to unlock more towers
 # map / play-type selector view
-# multiple map support
+# more maps
+# more towers
 # massive texture overhaul
 # 2x2 towers
 # enchants
