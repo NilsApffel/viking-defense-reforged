@@ -76,6 +76,7 @@ class Enemy(arcade.Sprite):
             vertical_offset = 0
         shield_scale = shield_size / 64
 
+        effect_texture = None
         if 'ice shield' in self.modifier:
             effect_texture = ICE_SHIELD_TEXTURE
         elif 'fire shield' in self.modifier:
@@ -83,12 +84,13 @@ class Enemy(arcade.Sprite):
         elif 'regen' in self.modifier:
             effect_texture = REGEN_TEXTURE
 
-        arcade.draw_scaled_texture_rectangle(
-            center_x=self.center_x, 
-            center_y=self.center_y + vertical_offset, 
-            texture=effect_texture, 
-            scale=shield_scale
-        )
+        if effect_texture:
+            arcade.draw_scaled_texture_rectangle(
+                center_x=self.center_x, 
+                center_y=self.center_y + vertical_offset, 
+                texture=effect_texture, 
+                scale=shield_scale
+            )
 
 
 class FlyingEnemy(Enemy):

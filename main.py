@@ -8,7 +8,7 @@ from grid import *
 from enemies import *
 from towers import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.1.4 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.1.5 Dev"
 
 
 class ShopItem():
@@ -174,7 +174,7 @@ class GameWindow(arcade.Window):
                         thumbnail="images/tower_round_converted.png", scale = 0.3,
                         cost=100, tower=WatchTower()), 
                 ShopItem(is_unlocked=True, is_unlockable=False, # real but should be locked
-                        thumbnail="images/catapult_cool.png", scale = 0.6,
+                        thumbnail="images/catapult_cool.png", scale = 1,
                         cost=200, tower=Catapult()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
@@ -202,9 +202,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/question.png", scale = 0.3,
                         cost=1000, tower=Tower())
             ], [ # start Buildings
-                ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
-                        cost=300, tower=Tower()), 
+                ShopItem(is_unlocked=False, is_unlockable=True, # real
+                        thumbnail="images/ThorTempleThumb.png", scale = 1,
+                        cost=300, tower=TempleOfThor()), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
                         cost=500, tower=Tower()), 
@@ -298,6 +298,8 @@ class GameWindow(arcade.Window):
                 arcade.draw_lrtb_rectangle_filled(left=l, right=r, top=t, bottom=b, color=c)
 
     def draw_range(self, tower):
+        if tower.is_2x2:
+            return
         arcade.draw_circle_filled(
             center_x=tower.center_x,
             center_y=tower.center_y,
@@ -327,7 +329,22 @@ class GameWindow(arcade.Window):
         i, j = nearest_cell_ij(x, y)
         left, right, top, bottom = cell_lrtb(i, j)
         is_spot_available = ((self.map_cells[i][j].terrain_type == "ground") and 
-                                (not self.map_cells[i][j].is_occupied))
+                                    (not self.map_cells[i][j].is_occupied))
+
+        if fake_tower.is_2x2:
+            fake_tower.center_x += CELL_SIZE/2
+            fake_tower.center_y -= CELL_SIZE/2
+            right += CELL_SIZE
+            bottom -= CELL_SIZE
+            for ii in range(i, i+2):
+                for jj in range(j, j+2):
+                    if ((0 <= ii <= 14) and (0 <= jj <= 14)):
+                        if ((self.map_cells[ii][jj].terrain_type != "ground") or 
+                                (self.map_cells[ii][jj].is_occupied)):
+                            is_spot_available = False
+                    else:
+                        is_spot_available = False  
+            
         if is_spot_available:
             outline_color = arcade.color.GREEN
         else:
@@ -486,8 +503,8 @@ class GameWindow(arcade.Window):
             shop_item = (self.shop_listlist[self.current_shop_tab][k])
             if shop_item.is_unlocked:
                 arcade.draw_scaled_texture_rectangle( # draw the thumbnail
-                    center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 2, 
-                    center_y = 7 + SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2,
+                    center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 2 + 0.5, 
+                    center_y = 7 + SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2 + 0.5,
                     texture = shop_item.thumbnail,
                     scale = shop_item.scale
                 )
@@ -768,27 +785,52 @@ class GameWindow(arcade.Window):
         return super().on_mouse_press(x, y, button, modifiers)
 
     def attempt_tower_place(self, x:float, y:float):
+        # check if a tower is selected and is affordable
+        is_item_buyable = False
+        for k in range(0, 5):
+            shop_item = self.shop_listlist[self.current_shop_tab][k]
+            is_item_buyable = (shop_item.actively_selected and self.money >= shop_item.cost)
+            if is_item_buyable:
+                break
+        if not is_item_buyable:
+            return
+        # if we reach this line, then there exists a selected, affordable ShopItem named shop_item
+                
         # check if area is OK to place towers 
         i, j = nearest_cell_ij(x, y)
         center_x, center_y = nearest_cell_centerxy(x, y)
         is_spot_available = ((self.map_cells[i][j].terrain_type == "ground") and 
                                 (not self.map_cells[i][j].is_occupied))
+        if shop_item.tower.is_2x2: # additional checks for large towers
+            center_x += CELL_SIZE/2
+            center_y -= CELL_SIZE/2
+            for ii in range(i, i+2):
+                for jj in range(j, j+2):
+                    if ((0 <= ii <= 14) and (0 <= jj <= 14)):
+                        if ((self.map_cells[ii][jj].terrain_type != "ground") or 
+                                (self.map_cells[ii][jj].is_occupied)):
+                            is_spot_available = False
+                    else:
+                        is_spot_available = False 
         if not is_spot_available:
             return
+        # if we reach this line, it means shop_item is a selected and affordable tower that is
+        # hovering over an available location
+        
+        # buy and place the shop_item
+        self.money -= shop_item.cost
+        new_tower = shop_item.tower.make_another()
+        new_tower.center_x = center_x
+        new_tower.center_y = center_y
+        self.towers_list.append(new_tower)
+        self.all_sprites.append(new_tower)
+        self.map_cells[i][j].is_occupied = True
+        if new_tower.is_2x2:
+            self.map_cells[i+1][j].is_occupied = True
+            self.map_cells[i][j+1].is_occupied = True
+            self.map_cells[i+1][j+1].is_occupied = True
 
-        # check if a tower is selected and is affordable
-        for k in range(0, 5):
-            shop_item = self.shop_listlist[self.current_shop_tab][k]
-            is_item_buyable = (shop_item.actively_selected and self.money >= shop_item.cost)
-            if is_item_buyable:
-                # buy and place it
-                self.money -= shop_item.cost
-                new_tower = shop_item.tower.make_another()
-                new_tower.center_x = center_x
-                new_tower.center_y = center_y
-                self.towers_list.append(new_tower)
-                self.all_sprites.append(new_tower)
-                self.map_cells[i][j].is_occupied = True
+        
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
@@ -817,7 +859,6 @@ if __name__ == "__main__":
 # TODO next step : 
 
 # Roadmap items : 
-# read through https://api.arcade.academy/en/latest/gui/index.html to search for better buttons
 # "sell tower" ability
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
@@ -827,7 +868,6 @@ if __name__ == "__main__":
 # more maps
 # more towers
 # massive texture overhaul
-# 2x2 towers
 # enchants
 # special abilities
 # floating enemies re-calc their path when a platform is placed

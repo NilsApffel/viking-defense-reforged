@@ -1,4 +1,5 @@
 import arcade
+from copy import deepcopy
 from enemies import *
 
 class Explosion(arcade.Sprite):
@@ -74,7 +75,7 @@ class Tower(arcade.Sprite):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
                     range: float = 100, damage: float = 5, do_show_range: bool = False, 
                     name: str = None, description: str = None, can_see_types: list = None, 
-                    has_rotating_top: bool = False):
+                    has_rotating_top: bool = False, is_2x2: bool = False):
         super().__init__(filename=filename, scale=scale)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
@@ -95,6 +96,7 @@ class Tower(arcade.Sprite):
         self.target_y = SCREEN_HEIGHT * 100000
         self.animation_ontime_remaining = 0
         self.does_rotate = has_rotating_top
+        self.is_2x2 = is_2x2
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
@@ -233,3 +235,32 @@ class OakTreeTower(Tower):
         )
         return 0, [leaf] # damage will be dealt by projectile
 
+
+class BigBuilding(Tower):
+    def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 120, 
+                    name: str = None, description: str = None, 
+                    unlocked_rune_indxs: list = None, 
+                    unlocked_power_indxs: list = None):
+        super().__init__(filename=filename, scale=scale, cooldown=cooldown, 
+                            name=name, description=description, is_2x2=True)
+        if unlocked_rune_indxs is None:
+            self.unlocked_rune_indxs = []
+        else:
+            self.unlocked_rune_indxs = deepcopy(unlocked_rune_indxs)
+        if unlocked_power_indxs is None:
+            self.unlocked_power_indxs = []
+        else:
+            self.unlocked_power_indxs = deepcopy(unlocked_power_indxs)
+        
+
+class TempleOfThor(BigBuilding):
+    def __init__(self):
+        super().__init__(filename="images/TempleOfThor.png", scale=1.0, cooldown=120, 
+                            name="Temple of Thor", 
+                            description="Grants Mjolnir ability\nGrants Raidho rune", 
+                            unlocked_rune_indxs=[0], 
+                            unlocked_power_indxs=[0])
+
+    def make_another(self):
+        return TempleOfThor()
+    
