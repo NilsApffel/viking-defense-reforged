@@ -120,7 +120,7 @@ class Wave():
         # how is sub-wave 3 different ?
         if len(self.quantities) > 2:
             sizes_str += ' & ' + str(self.quantities[2]) + ' '
-            name3 = self.enemies_list[self.quantities[1]][2] # first enemy of the second sub-wave
+            name3 = self.enemies_list[-1][2] # last enemy of the last sub-wave
             sizes_str += name3.split(' ')[0].upper()
             if not ('Flying' in types_str):
                 if (not ('Underwater' in types_str)) and (('big' in name3) or ('small' in name3)):
@@ -236,6 +236,14 @@ class GameWindow(arcade.Window):
             last_rowlist.append(GridCell(terrain_type="shallow", cellnum=m))
         map_listlist.append(last_rowlist)
         self.map_cells = map_listlist
+
+        # check which cells are safe for spawning floating enemies
+        self.spawnable_cell_js = []
+        for j in range(len(self.map_cells[0])):
+            if ((self.map_cells[0][j].terrain_type == "shallow") or 
+                (self.map_cells[0][j].terrain_type == "deep")):
+                self.spawnable_cell_js.append(j)
+
 
     def load_waves(self, filename):
         self.wave_list = []
@@ -658,7 +666,10 @@ class GameWindow(arcade.Window):
                     if new_enemy.is_flying:
                         new_enemy.left = randint(0, floor(MAP_WIDTH-new_enemy.width))
                     else:
-                        new_enemy.center_x, _ = cell_centerxy(i=0, j=randint(0,4))
+                        test_j = 99
+                        while not (test_j in self.spawnable_cell_js):
+                            test_j = randint(0, len(self.map_cells[0]))
+                        new_enemy.center_x, _ = cell_centerxy(i=0, j=test_j)
                         new_enemy.calc_path(map=self.map_cells)
                     self.enemies_list.append(new_enemy)
                     self.all_sprites.append(new_enemy)
@@ -829,8 +840,6 @@ class GameWindow(arcade.Window):
             self.map_cells[i+1][j].is_occupied = True
             self.map_cells[i][j+1].is_occupied = True
             self.map_cells[i+1][j+1].is_occupied = True
-
-        
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
