@@ -1,3 +1,6 @@
+import os, sys
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
 import arcade
 from random import randint, random
 from math import floor, sqrt

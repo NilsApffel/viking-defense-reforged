@@ -1,0 +1,3 @@
+build instructions : 
+cd Documents\GitHub\viking-defense-reforged
+pyinstaller main.py --onefile --windowed --add-data "images;images" --add-data "files;files"
