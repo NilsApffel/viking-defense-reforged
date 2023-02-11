@@ -8,7 +8,7 @@ from grid import *
 from enemies import *
 from towers import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.1.5 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.1.6 Dev"
 
 
 class ShopItem():
@@ -135,7 +135,6 @@ class GameWindow(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
         arcade.set_background_color(arcade.color.ORANGE)
-
         self.enemies_list = arcade.SpriteList()
         self.towers_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
@@ -146,16 +145,23 @@ class GameWindow(arcade.Window):
             "locked_shop_item" : arcade.load_texture("images/locked.png"), 
             "attack_button" : arcade.load_texture('./images/NextWaveButton.png'),
             "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png'),
-            "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png')
+            "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png'),
+            "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png')
         }
+        self.maps_beaten = 2
 
     def setup(self, map_number: int = 1):
         arcade.set_background_color(arcade.color.ORANGE)
+        self.wave_is_happening = False
+        self.hover_target = '' # used to store what UI element is being moused over, if any
+        if map_number == 0: # level select screen
+            self.game_state = 'level select'
+            self.paused = True
+            return
         self.game_state = 'playing'
         self.wave_number = 0
         self.money = 500
         self.population = 10
-        self.wave_is_happening = False
         self.enemies_left_to_spawn = 0
         self.next_enemy_index = 0
         self.current_wave_time = 0.0
@@ -164,9 +170,13 @@ class GameWindow(arcade.Window):
         self.load_shop_items() # first index is page, second is position in page
         self.current_shop_tab = 0
         self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
-        self.hover_target = '' # used to store what UI element is being moused over, if any
         self.load_map("./files/map"+str(map_number)+".txt")
         self.load_waves("./files/map"+str(map_number)+"CampaignWaves.csv")
+        self.enemies_list = arcade.SpriteList()
+        self.towers_list = arcade.SpriteList()
+        self.projectiles_list = arcade.SpriteList()
+        self.effects_list = arcade.SpriteList()
+        self.all_sprites = arcade.SpriteList()
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -244,7 +254,6 @@ class GameWindow(arcade.Window):
                 (self.map_cells[0][j].terrain_type == "deep")):
                 self.spawnable_cell_js.append(j)
 
-
     def load_waves(self, filename):
         self.wave_list = []
         with open(filename, mode='r', newline='') as csvfile:
@@ -265,6 +274,9 @@ class GameWindow(arcade.Window):
 
     def on_draw(self): 
         arcade.start_render()
+        if self.game_state == 'level select':
+            self.draw_level_select()
+            return   
         self.draw_map()
         self.towers_list.draw()
         self.enemies_list.draw()
@@ -588,6 +600,7 @@ class GameWindow(arcade.Window):
         popup_color = arcade.color.ASH_GREY
         popup_title = 'Paused'
         popup_subtext = 'Press Esc to resume'
+        popup_subsubtext = 'Press SPACE to exit'
         if self.game_state == 'won':
             popup_color = arcade.color.FERN_GREEN
             popup_title = 'You Win !'
@@ -621,13 +634,53 @@ class GameWindow(arcade.Window):
         )
         arcade.draw_text(
             text=popup_subtext,
-            start_x = self.width/2 - 100,
-            start_y = self.height/2 - 10,
+            start_x = self.width/2 - 125,
+            start_y = self.height/2 - 15,
             font_size = 16,
-            width = 200,
+            width = 250,
             align = "center"
         )
+        arcade.draw_text(
+            text=popup_subsubtext,
+            start_x = self.width/2 - 100,
+            start_y = self.height/2 - 35,
+            font_size = 12,
+            width = 200,
+            align = "center", 
+            italic = True
+        )
 
+    def draw_level_select(self):
+        arcade.draw_scaled_texture_rectangle(
+            center_x=SCREEN_WIDTH/2, 
+            center_y=SCREEN_HEIGHT/2,
+            texture=self.assets["level_select_screen"], 
+            scale=1.0
+        ) 
+        for k in range(5):
+            campaign_mode_label = "LOCKED"
+            if k <= self.maps_beaten:
+                campaign_mode_label = "PLAY"
+            if ("start campaign" in self.hover_target) and (self.hover_target[-1] == str(k+1)):
+                arcade.draw_lrtb_rectangle_outline(
+                    left = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                    right= LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH,
+                    top=313,
+                    bottom= 278, 
+                    color=arcade.color.BLACK,
+                    border_width=3
+                )
+            arcade.draw_text(
+                text = campaign_mode_label, 
+                start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                start_y = 284,
+                color = arcade.color.BLACK,
+                font_size = 20,
+                width = LEVEL_WIDTH,
+                align = "center", 
+                bold = True
+            )
+                
     def on_update(self, delta_time: float):
         if self.paused or self.game_state == 'won' or self.game_state == 'lost':
             self.paused = True
@@ -761,8 +814,20 @@ class GameWindow(arcade.Window):
                 self.paused = False
             else:
                 self.paused = True
+        elif self.paused and symbol == arcade.key.SPACE: 
+            # return to level select
+            self.setup(map_number=0)
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
+        if self.game_state == 'level select':
+            # check if we pressed a "play" button for any map
+            if 278 <= y <= 313:
+                for k in range(5):
+                    left  = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k
+                    right = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH
+                    if left <= x <= right: 
+                        if k <= self.maps_beaten:
+                            self.setup(map_number=k+1) 
         if self.paused:
             return
         if (x > MAP_WIDTH) or (y < CHIN_HEIGHT): # we did not just place a tower
@@ -843,6 +908,17 @@ class GameWindow(arcade.Window):
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
+        if self.game_state == "level select":
+            self.hover_target = ''
+            # check if we are over a "play" button for any map
+            if 278 <= y <= 313:
+                for k in range(5):
+                    left  = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k
+                    right = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH
+                    if left <= x <= right: 
+                        if k <= self.maps_beaten:
+                            self.hover_target = "start campaign " + str(k+1)
+            return ret
         if not self.shop_item_selected:
             # loop over towers to show any relevant ranges
             for tower in self.towers_list.sprite_list:
@@ -862,13 +938,15 @@ class GameWindow(arcade.Window):
 
 if __name__ == "__main__":
     app = GameWindow()
-    app.setup(map_number=1)
+    app.setup(map_number=0)
     arcade.run()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
+# packaging into an executable
 # "sell tower" ability
+# score calculation and saving
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
 # smoother trajectories for floating enemies
