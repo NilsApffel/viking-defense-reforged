@@ -11,12 +11,13 @@ from grid import *
 from enemies import *
 from towers import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.1.6 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.1.7 Dev"
 
 
 class ShopItem():
     def __init__(self, is_unlocked: bool = False, is_unlockable: bool = False, thumbnail: str = None, 
-                    scale: float = 1.0, cost: float = 100, tower: Tower = None) -> None:
+                    scale: float = 1.0, cost: float = 100, tower: Tower = None, 
+                    quest: str = None, quest_thresh: int = 10, quest_var_name: str = None) -> None:
         self.is_unlocked = is_unlocked
         self.is_unlockable = is_unlockable
         if thumbnail is None:
@@ -28,6 +29,16 @@ class ShopItem():
         if self.tower is None:
             self.tower = InstaAirTower()
         self.actively_selected = False
+        if quest is None:
+            self.quest = "Not yet implemented"
+        else:
+            self.quest = quest
+        self.quest_thresh = quest_thresh
+        self.quest_progress = 0
+        if quest_var_name is None:
+            self.quest_var_name = "_"
+        else:
+            self.quest_var_name = quest_var_name
 
 
 class Wave():
@@ -183,54 +194,75 @@ class GameWindow(arcade.Window):
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
-                ShopItem(is_unlocked=True, is_unlockable=False, # real
+                ShopItem(is_unlocked=True, is_unlockable=False, 
                         thumbnail="images/tower_round_converted.png", scale = 0.3,
                         cost=100, tower=WatchTower()), 
-                ShopItem(is_unlocked=True, is_unlockable=False, # real but should be locked
+                ShopItem(is_unlocked=False, is_unlockable=True, # real
                         thumbnail="images/catapult_cool.png", scale = 1,
-                        cost=200, tower=Catapult()), 
+                        cost=200, tower=Catapult(), quest="Destroy 10 enemies", 
+                        quest_thresh=10, quest_var_name="enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=500, tower=Tower()), 
+                        cost=500, tower=Tower(), quest="Destroy 25 flying enemies", 
+                        quest_thresh=25, quest_var_name="flying enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=650, tower=Tower()), 
+                        cost=650, tower=Tower(), quest="Place 10 platforms", 
+                        quest_thresh=10, quest_var_name="platforms placed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=1000, tower=Tower())
+                        cost=1000, tower=Tower(), quest="Inflame 20 enemies", 
+                        quest_thresh=20, quest_var_name="enemies inflamed")
             ], [ # start Sacred towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
                         thumbnail="images/simple_tree.png", scale = 0.3,
                         cost=120, tower=OakTreeTower()), 
                 ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=180, tower=Tower()), 
+                        cost=180, tower=Tower(), quest="Plant 5 Sacred Oaks", 
+                        quest_thresh=5, quest_var_name="current oaks"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=400, tower=Tower()), 
+                        cost=400, tower=Tower(), quest="Destroy 4 enemies with 1 mjolnir", 
+                        quest_thresh=4, quest_var_name="max mjolnir kills"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=650, tower=Tower()), 
+                        cost=650, tower=Tower(), quest="Destroy 3 submerged enemies", 
+                        quest_thresh=3, quest_var_name="submerged enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=1000, tower=Tower())
+                        cost=1000, tower=Tower(), quest="Freeze 20 enemies", 
+                        quest_thresh=20, quest_var_name="enemies frozen")
             ], [ # start Buildings
                 ShopItem(is_unlocked=False, is_unlockable=True, # real
                         thumbnail="images/ThorTempleThumb.png", scale = 1,
-                        cost=300, tower=TempleOfThor()), 
+                        cost=300, tower=TempleOfThor(), quest="Destroy 20 enemies", 
+                        quest_thresh=20, quest_var_name="enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=500, tower=Tower()), 
+                        cost=500, tower=Tower(), quest="Build 15 structures", 
+                        quest_thresh=15, quest_var_name="current structures"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=700, tower=Tower()), 
+                        cost=700, tower=Tower(), quest="Enchant 12 towers with runes", 
+                        quest_thresh=12, quest_var_name="current enchanted towers"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=1200, tower=Tower()), 
+                        cost=1200, tower=Tower(), quest="Reach 3000 gold", 
+                        quest_thresh=3000, quest_var_name="current gold"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
-                        cost=1500, tower=Tower())
+                        cost=1500, tower=Tower(), quest="Build 3 temples", 
+                        quest_thresh=3, quest_var_name="current temples")
             ]]
+        
+        self.quest_tracker = {
+            "enemies killed": 0, "flying enemies killed": 0, "submerged enemies killed": 0,
+            "enemies inflamed": 0, "enemies frozen": 0, "platforms placed": 0,
+            "max mjolnir kills": 0, "current oaks": 0, "current temples": 0, 
+            "current structures": 0, "current enchanted towers": 0, "current gold": 0, 
+            "_" : None # tracker used for pre-unlocked towers
+        }
 
     def load_map(self, filename):
         with open(filename, mode="r") as mapfile:
@@ -584,11 +616,21 @@ class GameWindow(arcade.Window):
                     bold = True
                 )
                 arcade.draw_text( # tower quest
-                    "Not yet implemented", 
+                    shop_item.quest, 
                     start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
                     start_y = SHOP_TOPS[k] - 28, 
                     color = arcade.color.BLACK, 
                     font_size = 10,
+                )
+                arcade.draw_text( # quest progress
+                    str(shop_item.quest_progress) + '/' + str(shop_item.quest_thresh), 
+                    start_x = MAP_WIDTH + 100, 
+                    start_y = SHOP_BOTTOMS[k] + 4, 
+                    color = arcade.color.BLACK, 
+                    font_size = 12,
+                    bold = True, 
+                    align="right", 
+                    width=115
                 )
             else : 
                 arcade.draw_scaled_texture_rectangle( # draw the little lock
@@ -759,9 +801,17 @@ class GameWindow(arcade.Window):
                         dmg, projlist = tower.attack(enemy)
                         earnings = enemy.take_damage_give_money(dmg)
                         self.money += earnings
-                        for proj in projlist:
+                        # deal with projectiles created by tower.attack()
+                        for proj in projlist: 
                             self.projectiles_list.append(proj)
                             self.all_sprites.append(proj)
+                        # increment quest trackers
+                        if earnings > 0:
+                            self.quest_tracker["enemies killed"] += 1
+                            if enemy.is_flying:
+                                self.quest_tracker["flying enemies killed"] += 1
+                            elif enemy.is_hidden:
+                                self.quest_tracker["submerged enemies killed"] += 1
                     else : # not ready to fire
                         tower.cooldown_remaining -= delta_time
                         if tower.cooldown_remaining < 0.0:
@@ -771,6 +821,8 @@ class GameWindow(arcade.Window):
                 tower.cooldown_remaining -= delta_time
                 if tower.cooldown_remaining < 0.0:
                     tower.cooldown_remaining = 0.0
+
+        self.update_quests()
 
         # move and delete sprites if needed
         self.enemies_list.update()
@@ -798,11 +850,25 @@ class GameWindow(arcade.Window):
                 if arcade.get_distance_between_sprites(projectile, enemy) < projectile.splash_radius:
                     earnings = enemy.take_damage_give_money(damage=projectile.damage)
                     self.money += earnings
+                    # increment quest trackers
+                    if earnings > 0:
+                        self.quest_tracker["enemies killed"] += 1
+                        if enemy.is_flying:
+                            self.quest_tracker["flying enemies killed"] += 1
+                        elif enemy.is_hidden:
+                            self.quest_tracker["submerged enemies killed"] += 1
         else:
             if projectile.target is None:
                 return
             earnings = projectile.target.take_damage_give_money(projectile.damage)
             self.money += earnings
+            # increment quest trackers
+            if earnings > 0:
+                self.quest_tracker["enemies killed"] += 1
+                if projectile.target.is_flying:
+                    self.quest_tracker["flying enemies killed"] += 1
+                elif projectile.target.is_hidden:
+                    self.quest_tracker["submerged enemies killed"] += 1
         if not (projectile.impact_effect is None):
             explosion = deepcopy(projectile.impact_effect)
             explosion.center_x = projectile.target_x
@@ -909,6 +975,33 @@ class GameWindow(arcade.Window):
             self.map_cells[i][j+1].is_occupied = True
             self.map_cells[i+1][j+1].is_occupied = True
 
+    def update_quests(self):
+        # 1. update the state-based quests in the self.quest_tracker
+        # (event-based quests are updated wherever the relevant events happen)
+        temples = 0
+        oaks = 0
+        for tower in self.towers_list.sprite_list:
+            if "temple" in tower.name.lower():
+                temples += 1
+            elif tower.name == "Sacred Oak":
+                oaks += 1
+        self.quest_tracker["current oaks"] = oaks
+        self.quest_tracker["current_temples"] = temples
+        self.quest_tracker["current structures"] = len(self.towers_list.sprite_list)
+        self.quest_tracker["current gold"] = self.money
+
+        # 2. use self.quest_tracker to update each shopitem and perform unlocks
+        for shop_list in self.shop_listlist:
+            for k, shop_item in enumerate(shop_list):
+                if shop_item.is_unlockable:
+                    shop_item.quest_progress = self.quest_tracker[shop_item.quest_var_name]
+                    if ((shop_item.quest_progress >= shop_item.quest_thresh) and 
+                        not(shop_item.tower.name == "Example Tower")):
+                        shop_item.is_unlocked = True
+                        shop_item.is_unlockable = False
+                        if k < len(shop_list) - 1: # there exists a next item
+                            shop_list[k+1].is_unlockable = True
+
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
         if self.game_state == "level select":
@@ -944,21 +1037,22 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
-# packaging into an executable
+# separate more parts of on_update into dedicated functions
+# dedicated files for Wave and ShopItem
 # "sell tower" ability
+# mjolnir ability
 # score calculation and saving
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
+# free-play mode
 # smoother trajectories for floating enemies
-# shop challenges to unlock more towers
-# map / play-type selector view
 # more maps
 # more towers
 # massive texture overhaul
 # enchants
-# special abilities
+# platform ability
 # floating enemies re-calc their path when a platform is placed
 # info box with tower stats
