@@ -33,10 +33,26 @@ class GameWindow(arcade.Window):
             "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png'),
             "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png')
         }
-        self.maps_beaten = 2
+        self.read_score_file()
+
+    def read_score_file(self):
+        self.best_waves = []
+        maps_unlocked = 0
+        with open("./files/scores.csv", mode='r') as scorefile:
+            score_reader = csv.reader(scorefile, delimiter=',', quotechar='|')
+            next(score_reader) # skip header
+            for map_data in score_reader:
+                is_map_unlocked = (map_data[1] == "True")
+                most_waves_survived = int(map_data[3])
+                self.best_waves.append(most_waves_survived)
+                if is_map_unlocked:
+                    maps_unlocked += 1
+        self.maps_beaten = maps_unlocked - 1
 
     def setup(self, map_number: int = 1):
         arcade.set_background_color(arcade.color.ORANGE)
+        self.map_number = map_number
+        self.read_score_file()
         self.wave_is_happening = False
         self.hover_target = '' # used to store what UI element is being moused over, if any
         if map_number == 0: # level select screen
@@ -523,7 +539,7 @@ class GameWindow(arcade.Window):
         elif self.game_state == 'lost':
             popup_color = arcade.color.DARK_RED
             popup_title = 'Game Over'
-            popup_subtext = 'Waves survived: '+str(self.wave_number)
+            popup_subtext = 'Waves survived: '+str(self.wave_number-1)
 
         arcade.draw_lrtb_rectangle_filled( # dim screen
             left   = 0, 
@@ -576,6 +592,14 @@ class GameWindow(arcade.Window):
             campaign_mode_label = "LOCKED"
             if k <= self.maps_beaten:
                 campaign_mode_label = "PLAY"
+            else:
+                arcade.draw_lrtb_rectangle_filled(
+                    left = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + 5,
+                    right= LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH - 2,
+                    top=435,
+                    bottom= 320, 
+                    color=arcade.make_transparent_color(arcade.color.DIM_GRAY, transparency=230.0)
+                )
             if ("start campaign" in self.hover_target) and (self.hover_target[-1] == str(k+1)):
                 arcade.draw_lrtb_rectangle_outline(
                     left = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
@@ -594,6 +618,17 @@ class GameWindow(arcade.Window):
                 width = LEVEL_WIDTH,
                 align = "center", 
                 bold = True
+            )
+            arcade.draw_text(
+                text = "Waves survived:\n" + str(self.best_waves[k]), 
+                start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                start_y = 215,
+                color = arcade.color.BLACK,
+                font_size = 11,
+                width = LEVEL_WIDTH,
+                align = "center", 
+                bold = True, 
+                multiline = True
             )
                 
     def on_update(self, delta_time: float):
@@ -635,10 +670,12 @@ class GameWindow(arcade.Window):
         if self.population <= 0:
             self.paused = True
             self.game_state = 'lost'
+            self.update_score_file(self.map_number, self.wave_number-1, did_win=False)
         # check for win condition
         elif self.wave_number >= len(self.wave_list) and not self.wave_is_happening:
             self.paused = True
             self.game_state = 'won'
+            self.update_score_file(self.map_number, self.wave_number, did_win=True)
 
         return ret
     
@@ -749,6 +786,27 @@ class GameWindow(arcade.Window):
             self.effects_list.append(explosion)
             self.all_sprites.append(explosion)
         projectile.remove_from_sprite_lists()
+
+    def update_score_file(self, map_number: int, waves_survived: int, did_win: bool):
+        # read the entire file
+        scores_listlist = []
+        with open("./files/scores.csv", mode='r') as scorefile:
+            score_reader = csv.reader(scorefile, delimiter=',', quotechar='|')
+            for map_data in score_reader:
+                scores_listlist.append(map_data)
+
+        # overwrite the relevant waves_survived, and possibly the is_unlocked of the next map
+        if waves_survived > int(scores_listlist[map_number][3]):
+            scores_listlist[map_number][3] = str(waves_survived)
+        if did_win:
+            scores_listlist[map_number][2] = True
+            if map_number < len(scores_listlist)-1:
+                scores_listlist[map_number+1][1] = True
+
+        # write file
+        with open("./files/scores.csv", mode='w') as scorefile:
+            score_writer = csv.writer(scorefile, delimiter=',', quotechar='|', lineterminator='\n')
+            score_writer.writerows(scores_listlist)
 
     def on_key_press(self, symbol: int, modifiers: int):
         if symbol == arcade.key.ESCAPE:
@@ -914,7 +972,7 @@ if __name__ == "__main__":
 # Roadmap items : 
 # "sell tower" ability
 # mjolnir ability
-# score calculation and saving
+# score calculation
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
 # free-play mode

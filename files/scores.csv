@@ -1,0 +1,6 @@
+map_number,is_campaign_unlocked,is_freeplay_unlocked,max_waves_survived,max_score
+1,True,False,0,0
+2,False,False,0,0
+3,False,False,0,0
+4,False,False,0,0
+5,False,False,0,0
