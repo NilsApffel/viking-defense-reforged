@@ -10,140 +10,11 @@ from constants import *
 from grid import *
 from enemies import *
 from towers import *
+from waves import Wave
+from shop import ShopItem
 
 SCREEN_TITLE = "Viking Defense Reforged v0.1.7 Dev"
 
-
-class ShopItem():
-    def __init__(self, is_unlocked: bool = False, is_unlockable: bool = False, thumbnail: str = None, 
-                    scale: float = 1.0, cost: float = 100, tower: Tower = None, 
-                    quest: str = None, quest_thresh: int = 10, quest_var_name: str = None) -> None:
-        self.is_unlocked = is_unlocked
-        self.is_unlockable = is_unlockable
-        if thumbnail is None:
-            thumbnail = "images/question.png"
-        self.thumbnail = arcade.load_texture(thumbnail)
-        self.scale = scale
-        self.cost = cost
-        self.tower = tower
-        if self.tower is None:
-            self.tower = InstaAirTower()
-        self.actively_selected = False
-        if quest is None:
-            self.quest = "Not yet implemented"
-        else:
-            self.quest = quest
-        self.quest_thresh = quest_thresh
-        self.quest_progress = 0
-        if quest_var_name is None:
-            self.quest_var_name = "_"
-        else:
-            self.quest_var_name = quest_var_name
-
-
-class Wave():
-    def __init__(self, number, modifier, rank, type1, quant1, type2, quant2, type3, quant3) -> None:
-        self.number = int(number)
-        rnk = int(rank)
-        try:
-            q1 = int(quant1)
-        except:
-            q1 = 0
-        try:
-            q2 = int(quant2)
-        except:
-            q2 = 0
-        try:
-            q3 = int(quant3)
-        except:
-            q3 = 0
-        
-        self.enemies_list = []
-        for k in range(q1):
-            self.enemies_list.append((modifier, rnk, type1))
-        for k in range(q2):
-            self.enemies_list.append((modifier, rnk, type2))
-        for k in range(q3):
-            self.enemies_list.append((modifier, rnk, type3))
-
-        self.quantities = [q1]
-        if q2 > 0:
-            self.quantities += [q2]
-            if q3 > 0:
-                self.quantities += [q3]
-        
-    def spawn(self, enemy_index: int) -> Enemy:
-        enemy_type_name = self.enemies_list[enemy_index][2]
-        if 'flying' in enemy_type_name:
-            if 'tiny' in enemy_type_name:
-                enemy = TinyBird()
-            elif 'small' in enemy_type_name:
-                enemy = SmallShip()
-            elif 'medium' in enemy_type_name:
-                enemy = MediumDragon()
-            elif 'big' in enemy_type_name:
-                enemy = BigDragon()
-        else:
-            if 'tiny' in enemy_type_name:
-                enemy = TinyBoat()
-            elif 'small' in enemy_type_name:
-                enemy = SmallSnake()
-            elif 'medium' in enemy_type_name:
-                enemy = MediumBoat()
-            elif 'big' in enemy_type_name:
-                enemy = BigWhale()
-        enemy.set_rank(self.enemies_list[enemy_index][1])
-        enemy.set_modifier(self.enemies_list[enemy_index][0])
-        return enemy
-
-    def describe(self) -> str:
-        sizes_str = ''
-        types_str = ''
-        modifiers_str = ''
-
-        # how many of what is in sub-wave 1 ?
-        sizes_str += str(self.quantities[0]) + ' '
-        name1 = self.enemies_list[0][2]
-        sizes_str += name1.split(' ')[0].upper()
-        if 'flying' in name1:
-            types_str += 'Flying'
-        elif ('BIG' in sizes_str) or ('SMALL' in sizes_str):
-            types_str += 'Underwater'
-        else:
-            types_str += 'Floating'
-
-        rank = self.enemies_list[0][1]
-        modifier = self.enemies_list[0][0]
-        if  rank > 1:
-            modifiers_str += 'Rank ' + str(rank)
-            if modifier:
-                modifiers_str += ', '
-        modifiers_str += modifier
-        
-        # how is sub-wave 2 different ?
-        if len(self.quantities) > 1:
-            sizes_str += ' & ' + str(self.quantities[1]) + ' '
-            name2 = self.enemies_list[self.quantities[0]][2] # first enemy of the second sub-wave
-            sizes_str += name2.split(' ')[0].upper()
-            if not ('Flying' in types_str):
-                if (not ('Underwater' in types_str)) and (('big' in name2) or ('small' in name2)):
-                    types_str += ' & Underwater'
-                if (not ('Floating' in types_str)) and (('tiny' in name2) or ('medium' in name2)):
-                    types_str += ' & Floating'
-
-        # how is sub-wave 3 different ?
-        if len(self.quantities) > 2:
-            sizes_str += ' & ' + str(self.quantities[2]) + ' '
-            name3 = self.enemies_list[-1][2] # last enemy of the last sub-wave
-            sizes_str += name3.split(' ')[0].upper()
-            if not ('Flying' in types_str):
-                if (not ('Underwater' in types_str)) and (('big' in name3) or ('small' in name3)):
-                    types_str += ' & Underwater'
-                if (not ('Floating' in types_str)) and (('tiny' in name3) or ('medium' in name3)):
-                    types_str += ' & Floating'
-
-        total = sizes_str + '\n' + types_str + '\n' + modifiers_str
-        return total
 
 class GameWindow(arcade.Window):
     def __init__(self):
@@ -178,7 +49,6 @@ class GameWindow(arcade.Window):
         self.population = 10
         self.enemies_left_to_spawn = 0
         self.next_enemy_index = 0
-        self.current_wave_time = 0.0
         self.is_air_wave = False
         self.paused = False
         self.load_shop_items() # first index is page, second is position in page
@@ -733,7 +603,6 @@ class GameWindow(arcade.Window):
         ret = super().on_update(delta_time)
 
         # check if any shop item is selected
-        # NOTE this logic could be done somewhere else...
         self.shop_item_selected = 0
         for n, item in enumerate(self.shop_listlist[self.current_shop_tab]):
             if item.actively_selected:
@@ -747,15 +616,52 @@ class GameWindow(arcade.Window):
             if dist_from_target < proj.speed/2:
                 self.perform_impact(proj)
 
+        self.perform_enemy_actions()
+        self.perform_tower_attacks(delta_time=delta_time)
+        self.update_wave_progress(delta_time=delta_time)
+        self.update_quests()
+
+        # move and delete sprites if needed
+        self.enemies_list.update()
+        self.enemies_list.on_update(delta_time) 
+        self.towers_list.update()
+        self.towers_list.on_update(delta_time)
+        self.projectiles_list.update()
+        self.projectiles_list.on_update(delta_time)
+        self.effects_list.update()
+        self.effects_list.on_update(delta_time)
+
+        # check for loss condition
+        if self.population <= 0:
+            self.paused = True
+            self.game_state = 'lost'
+        # check for win condition
+        elif self.wave_number >= len(self.wave_list) and not self.wave_is_happening:
+            self.paused = True
+            self.game_state = 'won'
+
+        return ret
+    
+    def perform_enemy_actions(self):
         # check if any enemies get kills
         for enemy in self.enemies_list.sprite_list:
             if enemy.center_y <= CHIN_HEIGHT - 0.4*CELL_SIZE:
                 self.population -= 1
                 enemy.remove_from_sprite_lists()
 
-        # wave management
+        # underwater enemy hiding
+        for enemy in self.enemies_list: 
+            if enemy.can_hide:
+                i, j = nearest_cell_ij(enemy.center_x, enemy.center_y)
+                if self.map_cells[i][j].terrain_type == "deep":
+                    enemy.is_hidden = True
+                    enemy.set_texture(1)
+                else:
+                    enemy.is_hidden = False
+                    enemy.set_texture(0)
+    
+    def update_wave_progress(self, delta_time: float):
         if self.wave_is_happening:
-            self.current_wave_time += delta_time
             # spawn next enemy, if needed, and decrement enemies_left_to_spawn
             if self.enemies_left_to_spawn > 0:
                 if random() < delta_time: # decide to spawn new enemy
@@ -777,18 +683,7 @@ class GameWindow(arcade.Window):
             elif self.enemies_left_to_spawn == 0 and len(self.enemies_list.sprite_list) == 0:
                 self.wave_is_happening = False
 
-        # underwater enemy hiding
-        for enemy in self.enemies_list:
-            if enemy.can_hide:
-                i, j = nearest_cell_ij(enemy.center_x, enemy.center_y)
-                if self.map_cells[i][j].terrain_type == "deep":
-                    enemy.is_hidden = True
-                    enemy.set_texture(1)
-                else:
-                    enemy.is_hidden = False
-                    enemy.set_texture(0)
-
-        # tower attacks
+    def perform_tower_attacks(self, delta_time: float):
         # sort enemies by increasing priority (low priority will be attacked first)
         self.enemies_list.sort(key= lambda enmy : enmy.priority)
         for tower in self.towers_list.sprite_list:  
@@ -822,28 +717,6 @@ class GameWindow(arcade.Window):
                 if tower.cooldown_remaining < 0.0:
                     tower.cooldown_remaining = 0.0
 
-        self.update_quests()
-
-        # move and delete sprites if needed
-        self.enemies_list.update()
-        self.enemies_list.on_update(delta_time) 
-        self.towers_list.update()
-        self.towers_list.on_update(delta_time)
-        self.projectiles_list.update()
-        self.projectiles_list.on_update(delta_time)
-        self.effects_list.update()
-        self.effects_list.on_update(delta_time)
-
-        # check for loss condition
-        if self.population <= 0:
-            self.paused = True
-            self.game_state = 'lost'
-        # check for win condition
-        elif self.wave_number >= len(self.wave_list) and not self.wave_is_happening:
-            self.paused = True
-            self.game_state = 'won'
-        return ret
-    
     def perform_impact(self, projectile: Projectile):
         if projectile.do_splash_damage:
             for enemy in self.enemies_list.sprite_list:
@@ -908,7 +781,6 @@ class GameWindow(arcade.Window):
         if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
             if not self.wave_is_happening:
                 self.wave_is_happening = True
-                self.current_wave_time = 0.0
                 self.wave_number += 1
                 self.enemies_left_to_spawn = len(self.wave_list[self.wave_number-1].enemies_list)
                 self.next_enemy_index = 0
@@ -1040,8 +912,6 @@ if __name__ == "__main__":
 # TODO next step : 
 
 # Roadmap items : 
-# separate more parts of on_update into dedicated functions
-# dedicated files for Wave and ShopItem
 # "sell tower" ability
 # mjolnir ability
 # score calculation and saving
