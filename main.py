@@ -13,7 +13,7 @@ from towers import *
 from waves import Wave
 from shop import ShopItem
 
-SCREEN_TITLE = "Viking Defense Reforged v0.1.7 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.2.0 Dev"
 
 
 class GameWindow(arcade.Window):
@@ -225,6 +225,7 @@ class GameWindow(arcade.Window):
 
         self.draw_chin_menu()
         self.draw_shop()
+        self.draw_info_box()
 
         if self.paused: 
             self.draw_pause_menu()
@@ -526,6 +527,79 @@ class GameWindow(arcade.Window):
                     scale = 0.2
                 )
  
+    def draw_info_box(self):
+        arcade.draw_lrtb_rectangle_filled( # background
+            left = MAP_WIDTH + 12,
+            right = SCREEN_WIDTH - 12,
+            top = SHOP_BOTTOMS[-1] - 68,
+            bottom = SHOP_BOTTOMS[-1] - 172, 
+            color = arcade.color.BEIGE
+        )
+        # shop item, if relevant
+        if 'shop' in self.hover_target:
+            k = int(self.hover_target.split(':')[-1])
+            if k < 9:
+                tower = self.shop_listlist[self.current_shop_tab][k].tower
+                arcade.draw_text( # tower name
+                    tower.name, 
+                    start_x = MAP_WIDTH + 14, 
+                    start_y = SHOP_BOTTOMS[-1] - 88, 
+                    color = arcade.color.PURPLE, 
+                    font_size = 12,
+                    bold = True
+                )
+                arcade.draw_text( # tower damage
+                    tower.describe_damage(), 
+                    start_x = MAP_WIDTH + 14, 
+                    start_y = SHOP_BOTTOMS[-1] - 104, 
+                    width = SCREEN_WIDTH - MAP_WIDTH - 28,
+                    color = arcade.color.BLACK, 
+                    font_size = 12,
+                    multiline = True, 
+                    font_name="Agency FB" 
+                ) 
+                arcade.draw_text( # tower description
+                    tower.description, 
+                    start_x = MAP_WIDTH + 14, 
+                    start_y = SHOP_BOTTOMS[-1] - 146, 
+                    width = SCREEN_WIDTH - MAP_WIDTH - 28,
+                    color = arcade.color.BLACK, 
+                    font_size = 12,
+                    multiline = True, 
+                    font_name="Agency FB" 
+                ) 
+        elif 'tower' in self.hover_target:
+            k = int(self.hover_target.split(':')[-1])
+            tower = self.towers_list.sprite_list[k]
+            arcade.draw_text( # tower name
+                tower.name, 
+                start_x = MAP_WIDTH + 14, 
+                start_y = SHOP_BOTTOMS[-1] - 88, 
+                color = arcade.color.PURPLE, 
+                font_size = 12,
+                bold = True
+            )
+            arcade.draw_text( # tower damage
+                tower.describe_damage(), 
+                start_x = MAP_WIDTH + 14, 
+                start_y = SHOP_BOTTOMS[-1] - 104, 
+                width = SCREEN_WIDTH - MAP_WIDTH - 28,
+                color = arcade.color.BLACK, 
+                font_size = 12,
+                multiline = True, 
+                font_name="Agency FB" 
+            ) 
+            arcade.draw_text( # tower description
+                tower.description, 
+                start_x = MAP_WIDTH + 14, 
+                start_y = SHOP_BOTTOMS[-1] - 146, 
+                width = SCREEN_WIDTH - MAP_WIDTH - 28,
+                color = arcade.color.BLACK, 
+                font_size = 12,
+                multiline = True, 
+                font_name="Agency FB" 
+            ) 
+
     def draw_pause_menu(self):
 
         popup_color = arcade.color.ASH_GREY
@@ -855,7 +929,8 @@ class GameWindow(arcade.Window):
             for k in range(0, 5):
                 shop_item = self.shop_listlist[self.current_shop_tab][k]
                 if SHOP_BOTTOMS[k] <= y <= SHOP_TOPS[k]:
-                    shop_item.actively_selected = True
+                    if shop_item.is_unlocked:
+                        shop_item.actively_selected = True
 
         return super().on_mouse_press(x, y, button, modifiers)
 
@@ -934,8 +1009,9 @@ class GameWindow(arcade.Window):
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
+        self.hover_target = ''
+
         if self.game_state == "level select":
-            self.hover_target = ''
             # check if we are over a "play" button for any map
             if 278 <= y <= 313:
                 for k in range(5):
@@ -945,15 +1021,32 @@ class GameWindow(arcade.Window):
                         if k <= self.maps_beaten:
                             self.hover_target = "start campaign " + str(k+1)
             return ret
+        
         if not self.shop_item_selected:
             # loop over towers to show any relevant ranges
-            for tower in self.towers_list.sprite_list:
+            for k, tower in enumerate(self.towers_list.sprite_list):
                 tower.do_show_range = ((tower.left < x < tower.right) and (tower.bottom < y < tower.top))
+                if tower.do_show_range:
+                    self.hover_target = 'tower:'+str(k)
+
         # check if we should light up any UI elements
         if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
             self.hover_target = 'attack_button'
-        else:
-            self.hover_target = ''
+
+        # set hover_target for use by the info box
+        # 1. check if we are hovering over a shop item
+        if self.hover_target == '':
+            if (x > MAP_WIDTH) and (y >= SHOP_BOTTOMS[-1]): 
+                for k in range(0, 5):
+                    shop_item = self.shop_listlist[self.current_shop_tab][k]
+                    if SHOP_BOTTOMS[k] <= y <= SHOP_TOPS[k]:
+                        if shop_item.is_unlockable or shop_item.is_unlocked:
+                            self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(k)
+        # 2. check if we already have an item selected
+        if self.hover_target == '':
+            if 0 < self.shop_item_selected < 9:
+                self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(self.shop_item_selected-1)
+
         return ret
 
     def unselect_all_shop_items(self):
@@ -967,7 +1060,7 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
 # "sell tower" ability

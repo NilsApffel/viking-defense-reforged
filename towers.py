@@ -75,7 +75,8 @@ class Tower(arcade.Sprite):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
                     range: float = 100, damage: float = 5, do_show_range: bool = False, 
                     name: str = None, description: str = None, can_see_types: list = None, 
-                    has_rotating_top: bool = False, is_2x2: bool = False):
+                    has_rotating_top: bool = False, is_2x2: bool = False, 
+                    constant_attack: bool = False):
         super().__init__(filename=filename, scale=scale)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
@@ -97,6 +98,7 @@ class Tower(arcade.Sprite):
         self.animation_ontime_remaining = 0
         self.does_rotate = has_rotating_top
         self.is_2x2 = is_2x2
+        self.do_constant_attack = constant_attack
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
@@ -137,6 +139,12 @@ class Tower(arcade.Sprite):
 
     def draw_shoot_animation(self):
         pass
+
+    def describe_damage(self):
+        if self.do_constant_attack:
+            return 'Damage: ' + str(self.damage) + ' per second\n'
+        else:
+            return 'Damage: ' + str(self.damage) + '\nReload: ' + str(self.cooldown) + ' seconds'
 
 
 class InstaAirTower(Tower):
@@ -251,6 +259,9 @@ class BigBuilding(Tower):
             self.unlocked_power_indxs = []
         else:
             self.unlocked_power_indxs = deepcopy(unlocked_power_indxs)
+
+    def describe_damage(self):
+        return ''
         
 
 class TempleOfThor(BigBuilding):
