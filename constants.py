@@ -1,4 +1,5 @@
 import arcade
+from pathlib import Path
 
 # there's probably a better way than gloabl variables to handle all this sizing...
 SCREEN_WIDTH = 700
@@ -22,3 +23,7 @@ MAP_TARGET_J = 7
 ICE_SHIELD_TEXTURE = arcade.load_texture('./images/iceshield.png')
 FIRE_SHIELD_TEXTURE = arcade.load_texture('./images/fireshield.png')
 REGEN_TEXTURE = arcade.load_texture('./images/regen.png')
+
+home_folder = Path.home()
+SCORE_FOLDER = home_folder.joinpath('./AppData/Local/viking-defense-refoged/')
+SCORE_FILE = SCORE_FOLDER.joinpath('./scores.csv')

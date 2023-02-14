@@ -38,7 +38,12 @@ class GameWindow(arcade.Window):
     def read_score_file(self):
         self.best_waves = []
         maps_unlocked = 0
-        with open("./files/scores.csv", mode='r') as scorefile:
+        if not os.path.exists(SCORE_FILE):
+            # print(SCORE_FILE, "does not appear to exist, assuming this is a new install of the game")
+            self.maps_beaten = 0
+            self.best_waves = [0] * 5
+            return
+        with open(SCORE_FILE, mode='r') as scorefile:
             score_reader = csv.reader(scorefile, delimiter=',', quotechar='|')
             next(score_reader) # skip header
             for map_data in score_reader:
@@ -864,7 +869,13 @@ class GameWindow(arcade.Window):
     def update_score_file(self, map_number: int, waves_survived: int, did_win: bool):
         # read the entire file
         scores_listlist = []
-        with open("./files/scores.csv", mode='r') as scorefile:
+        file_to_open = SCORE_FILE
+        if not os.path.exists(SCORE_FILE):
+            print(SCORE_FILE, "does not appear to exist, will create a new one")
+            # read the score file that is inside the executable (corresponding to a brand new game)
+            file_to_open = "./files/scores.csv"
+        
+        with open(file_to_open, mode='r') as scorefile:
             score_reader = csv.reader(scorefile, delimiter=',', quotechar='|')
             for map_data in score_reader:
                 scores_listlist.append(map_data)
@@ -877,8 +888,10 @@ class GameWindow(arcade.Window):
             if map_number < len(scores_listlist)-1:
                 scores_listlist[map_number+1][1] = True
 
+        if not os.path.isdir(SCORE_FOLDER):
+            os.makedirs(SCORE_FOLDER)
         # write file
-        with open("./files/scores.csv", mode='w') as scorefile:
+        with open(SCORE_FILE, mode='w') as scorefile:
             score_writer = csv.writer(scorefile, delimiter=',', quotechar='|', lineterminator='\n')
             score_writer.writerows(scores_listlist)
 
