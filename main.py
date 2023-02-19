@@ -13,22 +13,25 @@ from towers import *
 from waves import Wave
 from shop import ShopItem
 
-SCREEN_TITLE = "Viking Defense Reforged v0.2.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.2.3 Dev"
 
 
-def draw_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
+def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
+    """Creates and returns a list of 5 arcade.Text objects with the given properties. 
+    When drawn together, these 5 objects create an outlined text effect."""
     black = arcade.color.BLACK
-    arcade.draw_text(text, start_x=start_x-1, start_y=start_y, font_size=font_size, 
-                     font_name=font_name, color=black) 
-    arcade.draw_text(text, start_x=start_x+1, start_y=start_y, font_size=font_size, 
-                     font_name=font_name, color=black) 
-    arcade.draw_text(text, start_x=start_x, start_y=start_y-1, font_size=font_size, 
-                     font_name=font_name, color=black) 
-    arcade.draw_text(text, start_x=start_x, start_y=start_y+1, font_size=font_size, 
-                     font_name=font_name, color=black) 
-    arcade.draw_text(text, start_x=start_x, start_y=start_y, font_size=font_size, 
-                     font_name=font_name) 
-
+    text_objects_list = [
+        arcade.Text(text, start_x=start_x-1, start_y=start_y, font_size=font_size, 
+                        font_name=font_name, color=black), 
+        arcade.Text(text, start_x=start_x+1, start_y=start_y, font_size=font_size, 
+                        font_name=font_name, color=black),
+        arcade.Text(text, start_x=start_x, start_y=start_y-1, font_size=font_size, 
+                        font_name=font_name, color=black),
+        arcade.Text(text, start_x=start_x, start_y=start_y+1, font_size=font_size, 
+                        font_name=font_name, color=black),
+        arcade.Text(text, start_x=start_x, start_y=start_y, font_size=font_size, 
+                        font_name=font_name)]
+    return text_objects_list
 
 class GameWindow(arcade.Window):
     def __init__(self):
@@ -50,6 +53,7 @@ class GameWindow(arcade.Window):
             "sell_coin_icon" : arcade.load_texture('./images/coin.png')
         }
         self.read_score_file()
+        self.init_text()
 
     def read_score_file(self):
         self.best_waves = []
@@ -216,6 +220,163 @@ class GameWindow(arcade.Window):
                     quant3=row[8]
                 ))
 
+    def init_text(self):
+        """Initializes all text objects in order to avoid ever using draw_text, which has 
+        terrible performance"""
+
+        # 1. Permanently static text using outlined font
+        combat_tab = init_outlined_text(
+            "COMBAT", 
+            start_x = MAP_WIDTH + 6, 
+            start_y = SCREEN_HEIGHT - 19, 
+            font_size = 13,
+            font_name="impact"
+        )
+        sacred_tab = init_outlined_text(
+            "SACRED", 
+            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3 + 8, 
+            start_y = SCREEN_HEIGHT - 19, 
+            font_size = 13,
+            font_name="impact"
+        )
+        building_tab = init_outlined_text(
+            "BUILDING", 
+            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3 + 3, 
+            start_y = SCREEN_HEIGHT - 19, 
+            font_size = 13,
+            font_name="impact"
+        )
+        activities_title = init_outlined_text(
+            text = "ABILITIES",
+            font_name= "impact",
+            start_x = MAP_WIDTH + 80,
+            start_y= 48,
+            font_size = 13
+        )
+        self.multi_layer_text = {"combat_tab": combat_tab, 
+                                    "sacred_tab": sacred_tab,
+                                    "building_tab": building_tab,
+                                    "abilities_title": activities_title}
+        
+        # 2. Info box text
+        title_text = arcade.Text(
+            '', 
+            start_x = MAP_WIDTH + 14, 
+            start_y = SHOP_BOTTOMS[-1] - 88, 
+            color = arcade.color.PURPLE, 
+            font_size = 12,
+            bold = True
+        )
+        stats_text = arcade.Text(
+            '', 
+            start_x = MAP_WIDTH + 14, 
+            start_y = SHOP_BOTTOMS[-1] - 104, 
+            width = SCREEN_WIDTH - MAP_WIDTH - 28,
+            color = arcade.color.BLACK, 
+            font_size = 12,
+            multiline = True, 
+            font_name="Agency FB" 
+        ) 
+        description_text = arcade.Text( 
+            '', 
+            start_x = MAP_WIDTH + 14, 
+            start_y = SHOP_BOTTOMS[-1] - 146, 
+            width = SCREEN_WIDTH - MAP_WIDTH - 28,
+            color = arcade.color.BLACK, 
+            font_size = 12,
+            multiline = True, 
+            font_name="Agency FB" 
+        ) 
+        self.info_box_text = [title_text, stats_text, description_text]
+
+        # 3. Next wave previews
+        self.wave_previews_text = []
+        for k in range(2):
+            wave_title = arcade.Text(
+                text = '',
+                start_x = 17+(WAVE_VIEWER_WIDTH+15)*k,
+                start_y = CHIN_HEIGHT - 28,
+                color = arcade.color.PURPLE,
+                font_size = 11,
+                width = WAVE_VIEWER_WIDTH,
+                bold = True, 
+                # font_name = "Agency FB" 
+            )
+            wave_content = arcade.Text(
+                text = '',
+                start_x = 17+(WAVE_VIEWER_WIDTH+15)*k,
+                start_y = CHIN_HEIGHT - 45,
+                color = arcade.color.BLACK,
+                font_size = 10,
+                width = WAVE_VIEWER_WIDTH,
+                bold = True,
+                multiline = True,
+                # font_name = "Agency FB" 
+            )
+            self.wave_previews_text.append([wave_title, wave_content])
+
+        # 4. Misc chin menu items
+        self.population_counter_text = arcade.Text(
+            text="Population: " ,
+            start_x = MAP_WIDTH/2,
+            start_y = 3,
+            font_size = 14,
+            width = MAP_WIDTH/4,
+            align = "left"
+        )
+        self.money_counter_text = arcade.Text(
+            text="Money: ",
+            start_x = MAP_WIDTH*0.75,
+            start_y = 3,
+            font_size = 14,
+            width = MAP_WIDTH/4,
+            align = "right"
+        )
+
+        # 5. Shop
+        self.shop_text = []
+        for k in range(5):
+            name = arcade.Text(
+                '', 
+                start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
+                start_y = SHOP_TOPS[k] - 15, 
+                color = arcade.color.PURPLE, 
+                font_size = 12,
+                bold = True
+            )
+            description = arcade.Text(
+                '', 
+                start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
+                start_y = SHOP_TOPS[k] - 34, 
+                width = 200,
+                color = arcade.color.BLACK, 
+                font_size = 12,
+                multiline = True, 
+                # may require using e.g. arcade.load_font('./agencyfb.ttf') 
+                # for cross-platform compatibility
+                font_name="Agency FB" 
+            ) 
+            price = arcade.Text(
+                '', 
+                start_x = MAP_WIDTH + 4, 
+                start_y = SHOP_BOTTOMS[k] + 10, 
+                color = arcade.color.BLACK, 
+                font_size = 12,
+                bold = True
+            )
+            quest_progress = arcade.Text( 
+                '', 
+                start_x = MAP_WIDTH + 100, 
+                start_y = SHOP_BOTTOMS[k] + 4, 
+                color = arcade.color.BLACK, 
+                font_size = 12,
+                bold = True, 
+                align="right", 
+                width=115
+            )
+            self.shop_text.append({'name': name, 'description': description, 
+                                   'price': price, 'quest progress': quest_progress})
+
     def on_draw(self): 
         arcade.start_render()
         if self.game_state == 'level select':
@@ -346,30 +507,16 @@ class GameWindow(arcade.Window):
                 bottom = INFO_BAR_HEIGHT + 2,
                 color=arcade.color.BEIGE
             )
+            # add preview of waves, if there are still waves left
             if self.wave_number+1-k < len(self.wave_list):
-                # wave title
-                arcade.draw_text(
-                    text = 'Attack #'+str(self.wave_number+2-k)+'/'+str(len(self.wave_list)),
-                    start_x = 17+(WAVE_VIEWER_WIDTH+15)*k,
-                    start_y = CHIN_HEIGHT - 28,
-                    color = arcade.color.PURPLE,
-                    font_size = 11,
-                    width = WAVE_VIEWER_WIDTH,
-                    bold = True, 
-                    # font_name = "Agency FB" 
-                )
-                # wave content
-                arcade.draw_text(
-                    text = self.wave_list[self.wave_number+1-k].describe(),
-                    start_x = 17+(WAVE_VIEWER_WIDTH+15)*k,
-                    start_y = CHIN_HEIGHT - 45,
-                    color = arcade.color.BLACK,
-                    font_size = 10,
-                    width = WAVE_VIEWER_WIDTH,
-                    bold = True,
-                    multiline = True,
-                    # font_name = "Agency FB" 
-                )
+                self.wave_previews_text[k][0].text = 'Attack #'+str(self.wave_number+2-k)+'/'+str(len(self.wave_list))
+                self.wave_previews_text[k][1].text = self.wave_list[self.wave_number+1-k].describe()
+            else:
+                self.wave_previews_text[k][0].text = ''
+                self.wave_previews_text[k][1].text = ''
+            for txt in self.wave_previews_text[k]:
+                txt.draw()
+                
         # attack button
         texture = self.assets['attack_button']
         if self.wave_is_happening:
@@ -383,22 +530,10 @@ class GameWindow(arcade.Window):
             texture = texture
         )
         # info bar
-        arcade.draw_text(
-            text="Population: " + str(self.population),
-            start_x = MAP_WIDTH/2,
-            start_y = 3,
-            font_size = 14,
-            width = MAP_WIDTH/4,
-            align = "left"
-        )
-        arcade.draw_text(
-            text="Money: " + str(self.money),
-            start_x = MAP_WIDTH*0.75,
-            start_y = 3,
-            font_size = 14,
-            width = MAP_WIDTH/4,
-            align = "right"
-        )
+        self.population_counter_text.text = "Population: " + str(self.population)
+        self.population_counter_text.draw()
+        self.money_counter_text.text = "Money: " + str(self.money)
+        self.money_counter_text.draw()
 
     def draw_shop(self): 
         # backround
@@ -415,6 +550,7 @@ class GameWindow(arcade.Window):
             bottom = 0,
             color=shop_background_color
         )
+
         # shop tabs
         arcade.draw_lrtb_rectangle_filled( # combat towers
             left  = MAP_WIDTH,
@@ -423,26 +559,12 @@ class GameWindow(arcade.Window):
             bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
             color = arcade.color.ORANGE
         )
-        draw_outlined_text( 
-            "COMBAT", 
-            start_x = MAP_WIDTH + 6, 
-            start_y = SCREEN_HEIGHT - 19, 
-            font_size = 13,
-            font_name="impact"
-        )
         arcade.draw_lrtb_rectangle_filled( # sacred towers
             left  = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3,
             right = SCREEN_WIDTH - (SCREEN_WIDTH-MAP_WIDTH)*1/3,
             top    = SCREEN_HEIGHT,
             bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
             color = arcade.color.PALE_BLUE
-        )
-        draw_outlined_text( 
-            "SACRED", 
-            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3 + 8, 
-            start_y = SCREEN_HEIGHT - 19, 
-            font_size = 13,
-            font_name="impact"
         )
         arcade.draw_lrtb_rectangle_filled( # buildings
             left  = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3,
@@ -451,13 +573,13 @@ class GameWindow(arcade.Window):
             bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
             color = arcade.color.SADDLE_BROWN
         )
-        draw_outlined_text( 
-            "BUILDING", 
-            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3 + 3, 
-            start_y = SCREEN_HEIGHT - 19, 
-            font_size = 13,
-            font_name="impact"
-        )
+        for txt in self.multi_layer_text['combat_tab']:
+            txt.draw()
+        for txt in self.multi_layer_text['sacred_tab']:
+            txt.draw()
+        for txt in self.multi_layer_text['building_tab']:
+            txt.draw()
+
         # empty shop slots
         for k in range(0, 5):
             # background
@@ -477,34 +599,12 @@ class GameWindow(arcade.Window):
                     texture = shop_item.thumbnail,
                     scale = shop_item.scale
                 )
-                arcade.draw_text( # tower name
-                    shop_item.tower.name, 
-                    start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
-                    start_y = SHOP_TOPS[k] - 15, 
-                    color = arcade.color.PURPLE, 
-                    font_size = 12,
-                    bold = True
-                )
-                arcade.draw_text( # tower description
-                    shop_item.tower.description, 
-                    start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
-                    start_y = SHOP_TOPS[k] - 34, 
-                    width = 200,
-                    color = arcade.color.BLACK, 
-                    font_size = 12,
-                    multiline = True, 
-                    # may require using e.g. arcade.load_font('./agencyfb.ttf') 
-                    # for cross-platform compatibility
-                    font_name="Agency FB" 
-                ) 
-                arcade.draw_text( # tower price
-                    str(shop_item.cost), 
-                    start_x = MAP_WIDTH + 4, 
-                    start_y = SHOP_BOTTOMS[k] + 10, 
-                    color = arcade.color.BLACK, 
-                    font_size = 12,
-                    bold = True
-                )
+                self.shop_text[k]['name'].text = shop_item.tower.name
+                self.shop_text[k]['description'].text = shop_item.tower.description
+                self.shop_text[k]['price'].text = str(shop_item.cost)
+                self.shop_text[k]['quest progress'].text = ''
+                for txt in self.shop_text[k].values():
+                    txt.draw()
                 if shop_item.actively_selected:
                     arcade.draw_lrtb_rectangle_outline(
                         left = MAP_WIDTH + 2,
@@ -521,31 +621,12 @@ class GameWindow(arcade.Window):
                     texture = self.assets["locked_shop_item"],
                     scale = 0.2
                 )
-                arcade.draw_text( # tower name
-                    "Task: " + shop_item.tower.name, 
-                    start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
-                    start_y = SHOP_TOPS[k] - 15, 
-                    color = arcade.color.BLACK, 
-                    font_size = 12,
-                    bold = True
-                )
-                arcade.draw_text( # tower quest
-                    shop_item.quest, 
-                    start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
-                    start_y = SHOP_TOPS[k] - 28, 
-                    color = arcade.color.BLACK, 
-                    font_size = 10,
-                )
-                arcade.draw_text( # quest progress
-                    str(shop_item.quest_progress) + '/' + str(shop_item.quest_thresh), 
-                    start_x = MAP_WIDTH + 100, 
-                    start_y = SHOP_BOTTOMS[k] + 4, 
-                    color = arcade.color.BLACK, 
-                    font_size = 12,
-                    bold = True, 
-                    align="right", 
-                    width=115
-                )
+                self.shop_text[k]['name'].text = "Task: " + shop_item.tower.name
+                self.shop_text[k]['description'].text = shop_item.quest
+                self.shop_text[k]['price'].text = ''
+                self.shop_text[k]['quest progress'].text = str(shop_item.quest_progress) + '/' + str(shop_item.quest_thresh)
+                for txt in self.shop_text[k].values():
+                    txt.draw()
             else : 
                 arcade.draw_scaled_texture_rectangle( # draw the little lock
                     center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 2, 
@@ -567,85 +648,27 @@ class GameWindow(arcade.Window):
             k = int(self.hover_target.split(':')[-1])
             if k < 9:
                 tower = self.shop_listlist[self.current_shop_tab][k].tower
-                arcade.draw_text( # tower name
-                    tower.name, 
-                    start_x = MAP_WIDTH + 14, 
-                    start_y = SHOP_BOTTOMS[-1] - 88, 
-                    color = arcade.color.PURPLE, 
-                    font_size = 12,
-                    bold = True
-                )
-                arcade.draw_text( # tower damage
-                    tower.describe_damage(), 
-                    start_x = MAP_WIDTH + 14, 
-                    start_y = SHOP_BOTTOMS[-1] - 104, 
-                    width = SCREEN_WIDTH - MAP_WIDTH - 28,
-                    color = arcade.color.BLACK, 
-                    font_size = 12,
-                    multiline = True, 
-                    font_name="Agency FB" 
-                ) 
-                arcade.draw_text( # tower description
-                    tower.description, 
-                    start_x = MAP_WIDTH + 14, 
-                    start_y = SHOP_BOTTOMS[-1] - 146, 
-                    width = SCREEN_WIDTH - MAP_WIDTH - 28,
-                    color = arcade.color.BLACK, 
-                    font_size = 12,
-                    multiline = True, 
-                    font_name="Agency FB" 
-                ) 
+                self.info_box_text[0].text = tower.name
+                self.info_box_text[1].text = tower.describe_damage()
+                self.info_box_text[2].text = tower.description
         elif 'tower' in self.hover_target:
             k = int(self.hover_target.split(':')[-1])
             tower = self.towers_list.sprite_list[k]
-            arcade.draw_text( # tower name
-                tower.name, 
-                start_x = MAP_WIDTH + 14, 
-                start_y = SHOP_BOTTOMS[-1] - 88, 
-                color = arcade.color.PURPLE, 
-                font_size = 12,
-                bold = True
-            )
-            arcade.draw_text( # tower damage
-                tower.describe_damage(), 
-                start_x = MAP_WIDTH + 14, 
-                start_y = SHOP_BOTTOMS[-1] - 104, 
-                width = SCREEN_WIDTH - MAP_WIDTH - 28,
-                color = arcade.color.BLACK, 
-                font_size = 12,
-                multiline = True, 
-                font_name="Agency FB" 
-            ) 
-            arcade.draw_text( # tower description
-                tower.description, 
-                start_x = MAP_WIDTH + 14, 
-                start_y = SHOP_BOTTOMS[-1] - 146, 
-                width = SCREEN_WIDTH - MAP_WIDTH - 28,
-                color = arcade.color.BLACK, 
-                font_size = 12,
-                multiline = True, 
-                font_name="Agency FB" 
-            ) 
+            self.info_box_text[0].text = tower.name
+            self.info_box_text[1].text = tower.describe_damage()
+            self.info_box_text[2].text = tower.description
         elif 'ability' in self.hover_target:
             k = int(self.hover_target.split(':')[-1])
-            arcade.draw_text( # ability name
-                ABILITY_NAMES[k], 
-                start_x = MAP_WIDTH + 14, 
-                start_y = SHOP_BOTTOMS[-1] - 88, 
-                color = arcade.color.PURPLE, 
-                font_size = 12,
-                bold = True
-            )
-            arcade.draw_text( # ability description
-                ABILITY_DESCRIPTIONS[k], 
-                start_x = MAP_WIDTH + 14, 
-                start_y = SHOP_BOTTOMS[-1] - 104, 
-                width = SCREEN_WIDTH - MAP_WIDTH - 28,
-                color = arcade.color.BLACK, 
-                font_size = 12,
-                multiline = True, 
-                font_name="Agency FB" 
-            ) 
+            self.info_box_text[0].text = ABILITY_NAMES[k]
+            self.info_box_text[1].text = ABILITY_DESCRIPTIONS[k]
+            self.info_box_text[2].text = ''
+        else:
+            self.info_box_text[0].text = ''
+            self.info_box_text[1].text = ''
+            self.info_box_text[2].text = ''
+
+        for txt in self.info_box_text:
+            txt.draw()
         
     def draw_abilities_bar(self):
         arcade.draw_scaled_texture_rectangle(
@@ -654,13 +677,9 @@ class GameWindow(arcade.Window):
             texture = self.assets["abilities_bar"],
             scale = 1.0 
         )
-        draw_outlined_text(
-            text = "ABILITIES",
-            font_name= "impact",
-            start_x = MAP_WIDTH + 80,
-            start_y= 48,
-            font_size = 13
-        )
+        for txt in self.multi_layer_text['abilities_title']:
+            txt.draw()
+
         # test of the lrtb coords of different ability buttons
         if self.ability_selected > 0:
             k = self.ability_selected - 1
@@ -1216,10 +1235,9 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next step : fix info box causing noticeable slow-down of game loop
+# TODO next step : 
 
 # Roadmap items : 
-# "sell tower" ability
 # mjolnir ability
 # score calculation
 # vfx for enemies exploding
