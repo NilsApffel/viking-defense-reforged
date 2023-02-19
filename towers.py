@@ -73,7 +73,7 @@ class Projectile(arcade.Sprite):
 
 class Tower(arcade.Sprite):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
-                    range: float = 100, damage: float = 5, do_show_range: bool = False, 
+                    range: float = 100, damage: float = 5, 
                     name: str = None, description: str = None, can_see_types: list = None, 
                     has_rotating_top: bool = False, is_2x2: bool = False, 
                     constant_attack: bool = False):
@@ -82,7 +82,6 @@ class Tower(arcade.Sprite):
         self.cooldown_remaining = 0.0
         self.range = range
         self.damage = damage
-        self.do_show_range = False
         self.name = name
         if self.name is None:
             self.name = "Example Tower"

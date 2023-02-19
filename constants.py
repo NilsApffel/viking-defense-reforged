@@ -34,3 +34,5 @@ ABILITY_DESCRIPTIONS = ["Dismantles tower or building. You get a refund.\n\nRefu
                         "Not implemented", 
                         "Not implemented", 
                         "Not implemented"]
+
+is_debug = False

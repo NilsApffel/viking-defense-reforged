@@ -13,7 +13,7 @@ from towers import *
 from waves import Wave
 from shop import ShopItem
 
-SCREEN_TITLE = "Viking Defense Reforged v0.2.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.2.4 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -391,11 +391,12 @@ class GameWindow(arcade.Window):
             enemy.draw_effects()
             enemy.draw_health_bar()
             
-        for tower in self.towers_list.sprite_list:
-            if tower.do_show_range and not self.paused:
-                self.draw_range(tower)
-            if tower.animation_ontime_remaining > 0:
-                tower.draw_shoot_animation()
+        if not self.paused:
+            for k, tower in enumerate(self.towers_list.sprite_list):
+                if self.hover_target == "tower:"+str(k):
+                    self.draw_range(tower)
+                if tower.animation_ontime_remaining > 0:
+                    tower.draw_shoot_animation()
 
         self.effects_list.draw()
 
@@ -798,6 +799,9 @@ class GameWindow(arcade.Window):
             )
                 
     def on_update(self, delta_time: float):
+        if is_debug and not self.paused:
+            print('hover target :', self.hover_target)
+
         if self.paused or self.game_state == 'won' or self.game_state == 'lost':
             self.paused = True
             return
@@ -1213,10 +1217,9 @@ class GameWindow(arcade.Window):
             return ret
         
         # 5. Are we mousing over a tower sprite on the map ?
-        if (CHIN_HEIGHT < x) and (y < MAP_WIDTH):
+        if (x < MAP_WIDTH) and (CHIN_HEIGHT < y):
             for k, tower in enumerate(self.towers_list.sprite_list):
-                tower.do_show_range = ((tower.left < x < tower.right) and (tower.bottom < y < tower.top))
-                if tower.do_show_range:
+                if ((tower.left < x < tower.right) and (tower.bottom < y < tower.top)):
                     self.hover_target = 'tower:'+str(k)
                     return ret
                 
@@ -1235,10 +1238,11 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next step : 
+# TODO next step : map 4
 
 # Roadmap items : 
 # mjolnir ability
+# abilities and shop items get highlighted on mouse-over
 # score calculation
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
@@ -1250,4 +1254,3 @@ if __name__ == "__main__":
 # enchants
 # platform ability
 # floating enemies re-calc their path when a platform is placed
-# info box with tower stats
