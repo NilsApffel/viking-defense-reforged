@@ -13,7 +13,21 @@ from towers import *
 from waves import Wave
 from shop import ShopItem
 
-SCREEN_TITLE = "Viking Defense Reforged v0.2.0 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.2.2 Dev"
+
+
+def draw_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
+    black = arcade.color.BLACK
+    arcade.draw_text(text, start_x=start_x-1, start_y=start_y, font_size=font_size, 
+                     font_name=font_name, color=black) 
+    arcade.draw_text(text, start_x=start_x+1, start_y=start_y, font_size=font_size, 
+                     font_name=font_name, color=black) 
+    arcade.draw_text(text, start_x=start_x, start_y=start_y-1, font_size=font_size, 
+                     font_name=font_name, color=black) 
+    arcade.draw_text(text, start_x=start_x, start_y=start_y+1, font_size=font_size, 
+                     font_name=font_name, color=black) 
+    arcade.draw_text(text, start_x=start_x, start_y=start_y, font_size=font_size, 
+                     font_name=font_name) 
 
 
 class GameWindow(arcade.Window):
@@ -31,7 +45,9 @@ class GameWindow(arcade.Window):
             "attack_button" : arcade.load_texture('./images/NextWaveButton.png'),
             "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png'),
             "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png'),
-            "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png')
+            "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png'),
+            "abilities_bar" : arcade.load_texture('./images/Abilities.png'),
+            "sell_coin_icon" : arcade.load_texture('./images/coin.png')
         }
         self.read_score_file()
 
@@ -75,6 +91,8 @@ class GameWindow(arcade.Window):
         self.load_shop_items() # first index is page, second is position in page
         self.current_shop_tab = 0
         self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
+        self.ability_selected = 0 # 0 if none selected, otherwise index+1 of selection
+        self.abilities_unlocked = [True, False, False, False, False]
         self.load_map("./files/map"+str(map_number)+".txt")
         self.load_waves("./files/map"+str(map_number)+"CampaignWaves.csv")
         self.enemies_list = arcade.SpriteList()
@@ -220,17 +238,24 @@ class GameWindow(arcade.Window):
 
         self.effects_list.draw()
 
-        if ((self.shop_item_selected and not self.paused) and 
-                (self._mouse_x <= MAP_WIDTH and self._mouse_y >= CHIN_HEIGHT)):
-            self.preview_tower_placement(
-                x=self._mouse_x, 
-                y=self._mouse_y, 
-                tower_shopitem=self.shop_listlist[self.current_shop_tab][self.shop_item_selected-1]
-            )
+        if ((not self.paused) and (self._mouse_x <= MAP_WIDTH and self._mouse_y >= CHIN_HEIGHT)):
+            if self.shop_item_selected:
+                self.preview_tower_placement(
+                    x=self._mouse_x, 
+                    y=self._mouse_y, 
+                    tower_shopitem=self.shop_listlist[self.current_shop_tab][self.shop_item_selected-1]
+                )
+            elif self.ability_selected == 1: # 'sell tower' is selected
+                arcade.draw_scaled_texture_rectangle(
+                    center_x=self._mouse_x,
+                    center_y=self._mouse_y,
+                    texture=self.assets['sell_coin_icon'],
+                )
 
         self.draw_chin_menu()
         self.draw_shop()
         self.draw_info_box()
+        self.draw_abilities_bar()
 
         if self.paused: 
             self.draw_pause_menu()
@@ -398,13 +423,12 @@ class GameWindow(arcade.Window):
             bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
             color = arcade.color.ORANGE
         )
-        arcade.draw_text( 
+        draw_outlined_text( 
             "COMBAT", 
-            start_x = MAP_WIDTH + 0, 
-            start_y = SCREEN_HEIGHT - 15, 
-            color = arcade.color.WHITE, 
-            font_size = 11,
-            bold = True
+            start_x = MAP_WIDTH + 6, 
+            start_y = SCREEN_HEIGHT - 19, 
+            font_size = 13,
+            font_name="impact"
         )
         arcade.draw_lrtb_rectangle_filled( # sacred towers
             left  = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3,
@@ -413,13 +437,12 @@ class GameWindow(arcade.Window):
             bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
             color = arcade.color.PALE_BLUE
         )
-        arcade.draw_text( 
+        draw_outlined_text( 
             "SACRED", 
-            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3 + 0, 
-            start_y = SCREEN_HEIGHT - 15, 
-            color = arcade.color.WHITE, 
-            font_size = 11,
-            bold = True
+            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3 + 8, 
+            start_y = SCREEN_HEIGHT - 19, 
+            font_size = 13,
+            font_name="impact"
         )
         arcade.draw_lrtb_rectangle_filled( # buildings
             left  = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3,
@@ -428,13 +451,12 @@ class GameWindow(arcade.Window):
             bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
             color = arcade.color.SADDLE_BROWN
         )
-        arcade.draw_text( 
+        draw_outlined_text( 
             "BUILDING", 
-            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3 + 0, 
-            start_y = SCREEN_HEIGHT - 15, 
-            color = arcade.color.WHITE, 
-            font_size = 11,
-            bold = True
+            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3 + 3, 
+            start_y = SCREEN_HEIGHT - 19, 
+            font_size = 13,
+            font_name="impact"
         )
         # empty shop slots
         for k in range(0, 5):
@@ -604,6 +626,52 @@ class GameWindow(arcade.Window):
                 multiline = True, 
                 font_name="Agency FB" 
             ) 
+        elif 'ability' in self.hover_target:
+            k = int(self.hover_target.split(':')[-1])
+            arcade.draw_text( # ability name
+                ABILITY_NAMES[k], 
+                start_x = MAP_WIDTH + 14, 
+                start_y = SHOP_BOTTOMS[-1] - 88, 
+                color = arcade.color.PURPLE, 
+                font_size = 12,
+                bold = True
+            )
+            arcade.draw_text( # ability description
+                ABILITY_DESCRIPTIONS[k], 
+                start_x = MAP_WIDTH + 14, 
+                start_y = SHOP_BOTTOMS[-1] - 104, 
+                width = SCREEN_WIDTH - MAP_WIDTH - 28,
+                color = arcade.color.BLACK, 
+                font_size = 12,
+                multiline = True, 
+                font_name="Agency FB" 
+            ) 
+        
+    def draw_abilities_bar(self):
+        arcade.draw_scaled_texture_rectangle(
+            center_x = floor((SCREEN_WIDTH - MAP_WIDTH) / 2) + MAP_WIDTH + 0.5,
+            center_y = 24.5,
+            texture = self.assets["abilities_bar"],
+            scale = 1.0 
+        )
+        draw_outlined_text(
+            text = "ABILITIES",
+            font_name= "impact",
+            start_x = MAP_WIDTH + 80,
+            start_y= 48,
+            font_size = 13
+        )
+        # test of the lrtb coords of different ability buttons
+        if self.ability_selected > 0:
+            k = self.ability_selected - 1
+            arcade.draw_lrtb_rectangle_outline(
+                left = MAP_WIDTH + 7 + k*42,
+                right = MAP_WIDTH + 7 + k*42 + 40,
+                top = 44,
+                bottom = 4,
+                color = arcade.color.BLUE,
+                border_width = 2
+            )
 
     def draw_pause_menu(self):
 
@@ -906,6 +974,7 @@ class GameWindow(arcade.Window):
             self.setup(map_number=0)
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
+        # 0. Deal with level selection and paused state
         if self.game_state == 'level select':
             # check if we pressed a "play" button for any map
             if 278 <= y <= 313:
@@ -915,21 +984,29 @@ class GameWindow(arcade.Window):
                     if left <= x <= right: 
                         if k <= self.maps_beaten:
                             self.setup(map_number=k+1) 
+                            return super().on_mouse_press(x, y, button, modifiers)
         if self.paused:
             return
+        
+        # 1. Deal with tower placement and abilities
         if (x > MAP_WIDTH) or (y < CHIN_HEIGHT): # we did not just place a tower
-            self.unselect_all_shop_items()
+            self.unselect_all_items()
         else: # we clicked inside the map
-            # were we trying to place a new tower ?
-            self.attempt_tower_place(x, y)  
-        # Next Wave Start Button
+            # were we trying to place / sell a tower ?
+            if not self.ability_selected:
+                self.attempt_tower_place(x, y)  
+            elif self.ability_selected == 1:
+                self.attempt_tower_sell(x, y)
+            
+        # 2. Deal with button clicks 
+        # 2.1 Next Wave Start Button
         if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
             if not self.wave_is_happening:
                 self.wave_is_happening = True
                 self.wave_number += 1
                 self.enemies_left_to_spawn = len(self.wave_list[self.wave_number-1].enemies_list)
                 self.next_enemy_index = 0
-        # Shop tab change
+        # 2.2 Shop tab change
         elif (x > MAP_WIDTH) and (y >= SHOP_TOPS[0]): 
             if x <= MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)/3:
                 self.current_shop_tab = 0
@@ -937,13 +1014,21 @@ class GameWindow(arcade.Window):
                 self.current_shop_tab = 2
             else:
                 self.current_shop_tab = 1
-        # Shop item selection
+        # 2.3 Shop item selection
         elif (x > MAP_WIDTH) and (y >= SHOP_BOTTOMS[-1]): 
             for k in range(0, 5):
                 shop_item = self.shop_listlist[self.current_shop_tab][k]
                 if SHOP_BOTTOMS[k] <= y <= SHOP_TOPS[k]:
                     if shop_item.is_unlocked:
                         shop_item.actively_selected = True
+        # 2.4 Ability selection 
+        elif (MAP_WIDTH < x) and (4 <= y <= 44): 
+            for k in range(0, 5):
+                left = MAP_WIDTH + 7 + k*42
+                right = MAP_WIDTH + 7 + k*42 + 40
+                if left <= x <= right:
+                    if self.abilities_unlocked[k]:
+                        self.ability_selected = k+1
 
         return super().on_mouse_press(x, y, button, modifiers)
 
@@ -993,6 +1078,46 @@ class GameWindow(arcade.Window):
             self.map_cells[i][j+1].is_occupied = True
             self.map_cells[i+1][j+1].is_occupied = True
 
+    def attempt_tower_sell(self, x: float, y: float):
+        i, j = nearest_cell_ij(x, y)
+        if not self.map_cells[i][j].is_occupied:
+            return
+        
+        # if we reach this line, then the cell is occupied by a 1x1 or 2x2 tower
+        for tower in self.towers_list.sprite_list:
+            if tower.is_2x2: # we'll deal with 2x2 towers later
+                continue
+            ti, tj = nearest_cell_ij(tower.center_x, tower.center_y)
+            if (i == ti) and (j == tj):
+                # found the tower
+                price = self.find_tower_price(tower.name)
+                self.money += int(floor(price/2))
+                self.map_cells[i][j].is_occupied = False
+                tower.remove_from_sprite_lists()
+                return
+            
+        # if we reach this line, then the cell is occupied by a 2x2 tower
+        for tower in self.towers_list.sprite_list:
+            if not tower.is_2x2:
+                continue
+            ti, tj = nearest_cell_ij(tower.center_x-CELL_SIZE/2, tower.center_y+CELL_SIZE/2)
+            if (ti <= i <= ti+1) and (tj <= j <= tj+1):
+                # found the tower
+                price = self.find_tower_price(tower.name)
+                self.money += int(floor(price/2))
+                self.map_cells[ti][tj].is_occupied = False
+                self.map_cells[ti+1][tj].is_occupied = False
+                self.map_cells[ti][tj+1].is_occupied = False
+                self.map_cells[ti+1][tj+1].is_occupied = False
+                tower.remove_from_sprite_lists()
+                return
+
+    def find_tower_price(self, tower_name):
+        for shop_list in self.shop_listlist:
+            for shop_item in shop_list:
+                if shop_item.tower.name == tower_name:
+                    return shop_item.cost
+
     def update_quests(self):
         # 1. update the state-based quests in the self.quest_tracker
         # (event-based quests are updated wherever the relevant events happen)
@@ -1024,6 +1149,7 @@ class GameWindow(arcade.Window):
         ret = super().on_mouse_motion(x, y, dx, dy)
         self.hover_target = ''
 
+        # 0. Deal with level select screen
         if self.game_state == "level select":
             # check if we are over a "play" button for any map
             if 278 <= y <= 313:
@@ -1034,38 +1160,55 @@ class GameWindow(arcade.Window):
                         if k <= self.maps_beaten:
                             self.hover_target = "start campaign " + str(k+1)
             return ret
+
+        # 1. Are we hovering over a shop item ?
+        if (x > MAP_WIDTH) and (y >= SHOP_BOTTOMS[-1]): 
+            for k in range(0, 5):
+                shop_item = self.shop_listlist[self.current_shop_tab][k]
+                if SHOP_BOTTOMS[k] <= y <= SHOP_TOPS[k]:
+                    if shop_item.is_unlockable or shop_item.is_unlocked:
+                        self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(k)
+                        return ret
         
-        if not self.shop_item_selected:
-            # loop over towers to show any relevant ranges
+        # 2. Are we hovering over an ability ?
+        if (MAP_WIDTH < x) and (4 <= y <= 44):
+            for k in range(5):
+                left = MAP_WIDTH + 7 + k*42
+                right = MAP_WIDTH + 7 + k*42 + 40
+                if left <= x <= right:
+                    if self.abilities_unlocked[k]:
+                        self.hover_target = 'ability:' + str(k)
+                        return ret
+                
+        # 3. Are we hovering over the attack button ?
+        if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
+            self.hover_target = 'attack_button'
+            return ret
+
+        # 4. Is there a shopitem or ability previously selected ?
+        if 0 < self.shop_item_selected < 9:
+            self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(self.shop_item_selected-1)
+            return ret
+        if 0 < self.ability_selected < 9:
+            self.hover_target = 'ability:' + str(self.ability_selected-1)
+            return ret
+        
+        # 5. Are we mousing over a tower sprite on the map ?
+        if (CHIN_HEIGHT < x) and (y < MAP_WIDTH):
             for k, tower in enumerate(self.towers_list.sprite_list):
                 tower.do_show_range = ((tower.left < x < tower.right) and (tower.bottom < y < tower.top))
                 if tower.do_show_range:
                     self.hover_target = 'tower:'+str(k)
-
-        # check if we should light up any UI elements
-        if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
-            self.hover_target = 'attack_button'
-
-        # set hover_target for use by the info box
-        # 1. check if we are hovering over a shop item
-        if self.hover_target == '':
-            if (x > MAP_WIDTH) and (y >= SHOP_BOTTOMS[-1]): 
-                for k in range(0, 5):
-                    shop_item = self.shop_listlist[self.current_shop_tab][k]
-                    if SHOP_BOTTOMS[k] <= y <= SHOP_TOPS[k]:
-                        if shop_item.is_unlockable or shop_item.is_unlocked:
-                            self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(k)
-        # 2. check if we already have an item selected
-        if self.hover_target == '':
-            if 0 < self.shop_item_selected < 9:
-                self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(self.shop_item_selected-1)
-
+                    return ret
+                
         return ret
 
-    def unselect_all_shop_items(self):
+    def unselect_all_items(self):
         for m in range(0, 3):
             for shop_item in self.shop_listlist[m]:
                 shop_item.actively_selected = False
+        self.ability_selected = 0
+        self.shop_item_selected = 0
 
 
 if __name__ == "__main__":
@@ -1073,7 +1216,7 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next step :
+# TODO next step : fix info box causing noticeable slow-down of game loop
 
 # Roadmap items : 
 # "sell tower" ability

@@ -27,3 +27,10 @@ REGEN_TEXTURE = arcade.load_texture('./images/regen.png')
 home_folder = Path.home()
 SCORE_FOLDER = home_folder.joinpath('./AppData/Local/viking-defense-refoged/')
 SCORE_FILE = SCORE_FOLDER.joinpath('./scores.csv')
+
+ABILITY_NAMES = ["Dismantle", "Mjolnir"] + ["Not implemented"]*3
+ABILITY_DESCRIPTIONS = ["Dismantles tower or building. You get a refund.\n\nRefund : 50%", 
+                        "Not implemented", 
+                        "Not implemented", 
+                        "Not implemented", 
+                        "Not implemented"]
