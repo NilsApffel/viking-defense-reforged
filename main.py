@@ -13,7 +13,7 @@ from towers import *
 from waves import Wave
 from shop import ShopItem
 
-SCREEN_TITLE = "Viking Defense Reforged v0.2.4 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.2.5 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1238,7 +1238,7 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next step : map 4
+# TODO next step :
 
 # Roadmap items : 
 # mjolnir ability

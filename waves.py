@@ -84,7 +84,11 @@ class Wave():
             sizes_str += ' & ' + str(self.quantities[1]) + ' '
             name2 = self.enemies_list[self.quantities[0]][2] # first enemy of the second sub-wave
             sizes_str += name2.split(' ')[0].upper()
-            if not ('Flying' in types_str):
+
+            if ('flying' in name2):
+                if (not ('Flying' in types_str)):
+                    types_str += ' & Flying'
+            else:
                 if (not ('Underwater' in types_str)) and (('big' in name2) or ('small' in name2)):
                     types_str += ' & Underwater'
                 if (not ('Floating' in types_str)) and (('tiny' in name2) or ('medium' in name2)):
@@ -95,7 +99,10 @@ class Wave():
             sizes_str += ' & ' + str(self.quantities[2]) + ' '
             name3 = self.enemies_list[-1][2] # last enemy of the last sub-wave
             sizes_str += name3.split(' ')[0].upper()
-            if not ('Flying' in types_str):
+            if ('flying' in name3):
+                if (not ('Flying' in types_str)):
+                    types_str += ' & Flying'
+            else:
                 if (not ('Underwater' in types_str)) and (('big' in name3) or ('small' in name3)):
                     types_str += ' & Underwater'
                 if (not ('Floating' in types_str)) and (('tiny' in name3) or ('medium' in name3)):
