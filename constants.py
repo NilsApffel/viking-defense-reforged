@@ -30,7 +30,7 @@ SCORE_FILE = SCORE_FOLDER.joinpath('./scores.csv')
 
 ABILITY_NAMES = ["Dismantle", "Mjolnir"] + ["Not implemented"]*3
 ABILITY_DESCRIPTIONS = ["Dismantles tower or building. You get a refund.\n\nRefund : 50%", 
-                        "Not implemented", 
+                        "Thor's legendary hammer. Damages all enemies in range.\nDamage: 100\nCooldown: 2 min", 
                         "Not implemented", 
                         "Not implemented", 
                         "Not implemented"]

@@ -30,7 +30,6 @@ class Projectile(arcade.Sprite):
         self.target = target
         self.target_x = target_x
         self.target_y = target_y
-        self.can_be_deleted = False
         self.has_static_target = (target is None)
         self.damage = damage
         self.do_splash_damage = do_splash_damage

@@ -12,8 +12,9 @@ from enemies import *
 from towers import *
 from waves import Wave
 from shop import ShopItem
+from abilities import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.2.5 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.2.6 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -49,11 +50,11 @@ class GameWindow(arcade.Window):
             "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png'),
             "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png'),
             "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png'),
-            "abilities_bar" : arcade.load_texture('./images/Abilities.png'),
-            "sell_coin_icon" : arcade.load_texture('./images/coin.png')
+            "abilities_bar" : arcade.load_texture('./images/Abilities.png')
         }
         self.read_score_file()
         self.init_text()
+        self.abilities_list = [SellTowerAbility(), MjolnirAbility(), None, None, None]
 
     def read_score_file(self):
         self.best_waves = []
@@ -407,12 +408,9 @@ class GameWindow(arcade.Window):
                     y=self._mouse_y, 
                     tower_shopitem=self.shop_listlist[self.current_shop_tab][self.shop_item_selected-1]
                 )
-            elif self.ability_selected == 1: # 'sell tower' is selected
-                arcade.draw_scaled_texture_rectangle(
-                    center_x=self._mouse_x,
-                    center_y=self._mouse_y,
-                    texture=self.assets['sell_coin_icon'],
-                )
+            elif self.ability_selected:
+                k = self.ability_selected - 1
+                self.abilities_list[k].preview(x=self._mouse_x, y=self._mouse_y)
 
         self.draw_chin_menu()
         self.draw_shop()
@@ -681,6 +679,13 @@ class GameWindow(arcade.Window):
         for txt in self.multi_layer_text['abilities_title']:
             txt.draw()
 
+        for k in range(5):
+            if self.abilities_unlocked[k]:
+                self.abilities_list[k].draw_icon(
+                    x = MAP_WIDTH + 7 + k*42 + 20.5,
+                    y = 24.5
+                )
+
         # test of the lrtb coords of different ability buttons
         if self.ability_selected > 0:
             k = self.ability_selected - 1
@@ -800,7 +805,7 @@ class GameWindow(arcade.Window):
                 
     def on_update(self, delta_time: float):
         if is_debug and not self.paused:
-            print('hover target :', self.hover_target)
+            pass
 
         if self.paused or self.game_state == 'won' or self.game_state == 'lost':
             self.paused = True
@@ -825,6 +830,7 @@ class GameWindow(arcade.Window):
         self.perform_tower_attacks(delta_time=delta_time)
         self.update_wave_progress(delta_time=delta_time)
         self.update_quests()
+        self.update_abilities(delta_time=delta_time)
 
         # move and delete sprites if needed
         self.enemies_list.update()
@@ -849,6 +855,18 @@ class GameWindow(arcade.Window):
 
         return ret
     
+    def update_abilities(self, delta_time: float):
+        # update cooldowns
+        for ability in self.abilities_list:
+            if not (ability is None):
+                ability.on_update(delta_time)
+        # update unlocks
+        thor_temples = 0
+        for tower in self.towers_list.sprite_list:
+            if tower.name == "Temple of Thor":
+                thor_temples += 1
+        self.abilities_unlocked[1] = (thor_temples > 0) or is_debug
+
     def perform_enemy_actions(self):
         # check if any enemies get kills
         for enemy in self.enemies_list.sprite_list:
@@ -926,17 +944,27 @@ class GameWindow(arcade.Window):
 
     def perform_impact(self, projectile: Projectile):
         if projectile.do_splash_damage:
-            for enemy in self.enemies_list.sprite_list:
-                if arcade.get_distance_between_sprites(projectile, enemy) < projectile.splash_radius:
+            projectile_kills = 0
+            current_enemies = len(self.enemies_list.sprite_list)
+            for k in range(current_enemies):
+                enemy = self.enemies_list.sprite_list[current_enemies-1-k]
+                dx = (enemy.center_x-projectile.target_x)
+                dy = (enemy.center_y-projectile.target_y)
+                dist = sqrt(dx**2 + dy**2)
+                if dist <= projectile.splash_radius:
                     earnings = enemy.take_damage_give_money(damage=projectile.damage)
                     self.money += earnings
                     # increment quest trackers
                     if earnings > 0:
+                        projectile_kills += 1
                         self.quest_tracker["enemies killed"] += 1
                         if enemy.is_flying:
                             self.quest_tracker["flying enemies killed"] += 1
                         elif enemy.is_hidden:
                             self.quest_tracker["submerged enemies killed"] += 1
+            if projectile.damage == 100: # this is a mjolnir
+                if projectile_kills > self.quest_tracker["max mjolnir kills"]:
+                    self.quest_tracker["max mjolnir kills"] = projectile_kills
         else:
             if projectile.target is None:
                 return
@@ -1020,6 +1048,12 @@ class GameWindow(arcade.Window):
                 self.attempt_tower_place(x, y)  
             elif self.ability_selected == 1:
                 self.attempt_tower_sell(x, y)
+            elif self.ability_selected == 2:
+                if self.abilities_list[1].cooldown_remaining <= 0.01:
+                    mjolnir = self.abilities_list[1].trigger(x, y)
+                    self.projectiles_list.append(mjolnir)
+                    self.all_sprites.append(mjolnir)
+                    self.ability_selected = 0
             
         # 2. Deal with button clicks 
         # 2.1 Next Wave Start Button
@@ -1050,7 +1084,7 @@ class GameWindow(arcade.Window):
                 left = MAP_WIDTH + 7 + k*42
                 right = MAP_WIDTH + 7 + k*42 + 40
                 if left <= x <= right:
-                    if self.abilities_unlocked[k]:
+                    if self.abilities_unlocked[k] and self.abilities_list[k].cooldown_remaining < 0.01:
                         self.ability_selected = k+1
 
         return super().on_mouse_press(x, y, button, modifiers)
@@ -1238,10 +1272,10 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
-# mjolnir ability
+# high quality mjolnir explosion
 # abilities and shop items get highlighted on mouse-over
 # score calculation
 # vfx for enemies exploding
