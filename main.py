@@ -1,21 +1,21 @@
-import os, sys
+import csv, os, sys
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
 import arcade
 from random import randint, random
 from math import floor, sqrt
 from copy import deepcopy
-import csv
+from abilities import MjolnirAbility, SellTowerAbility
 from constants import *
 from grid import *
-from enemies import *
-from towers import *
-from waves import Wave
+from projectiles import Projectile
+from runes import Raidho
 from shop import ShopItem
-from abilities import *
-from runes import *
+from towers import Tower, WatchTower, Catapult, OakTreeTower, TempleOfThor
+from waves import Wave
 
-SCREEN_TITLE = "Viking Defense Reforged v0.2.7 Dev"
+
+SCREEN_TITLE = "Viking Defense Reforged v0.2.8 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -705,6 +705,8 @@ class GameWindow(arcade.Window):
             self.info_box_text[0].text = tower.name
             self.info_box_text[1].text = tower.describe_damage()
             self.info_box_text[2].text = tower.description
+            if not (tower.rune is None):
+                tower.rune.draw_icon(x=SCREEN_WIDTH-30, y=SHOP_BOTTOMS[-1]-86)
         elif 'rune' in self.hover_target:
             k = int(self.hover_target.split(':')[-1])
             self.info_box_text[0].text = RUNE_NAMES[k]
@@ -726,7 +728,7 @@ class GameWindow(arcade.Window):
 
         for txt in self.info_box_text:
             txt.draw()
-        
+    
     def draw_abilities_bar(self):
         arcade.draw_scaled_texture_rectangle(
             center_x = floor((SCREEN_WIDTH - MAP_WIDTH) / 2) + MAP_WIDTH + 0.5,
@@ -861,7 +863,7 @@ class GameWindow(arcade.Window):
                 multiline = True
             )
                 
-    def on_update(self, delta_time: float):
+    def on_update(self, delta_time: float = 1/30):
         if self.paused or self.game_state == 'won' or self.game_state == 'lost':
             self.paused = True
             return
@@ -885,7 +887,7 @@ class GameWindow(arcade.Window):
         self.perform_tower_attacks(delta_time=delta_time)
         self.update_wave_progress(delta_time=delta_time)
         self.update_quests()
-        self.update_abilities(delta_time=delta_time)
+        self.update_abilities_and_runes(delta_time=delta_time)
 
         # move and delete sprites if needed
         self.enemies_list.update()
@@ -910,7 +912,7 @@ class GameWindow(arcade.Window):
 
         return ret
     
-    def update_abilities(self, delta_time: float):
+    def update_abilities_and_runes(self, delta_time: float):
         # update cooldowns
         for ability in self.abilities_list:
             if not (ability is None):
@@ -921,6 +923,7 @@ class GameWindow(arcade.Window):
             if tower.name == "Temple of Thor":
                 thor_temples += 1
         self.abilities_unlocked[1] = (thor_temples > 0) or is_debug
+        self.runes_unlocked[0] = (thor_temples > 0) or is_debug
 
     def perform_enemy_actions(self):
         # check if any enemies get kills
@@ -1022,6 +1025,7 @@ class GameWindow(arcade.Window):
                     self.quest_tracker["max mjolnir kills"] = projectile_kills
         else:
             if projectile.target is None:
+                projectile.remove_from_sprite_lists()
                 return
             earnings = projectile.target.take_damage_give_money(projectile.damage)
             self.money += earnings
@@ -1373,22 +1377,21 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next steps : raidho completion :
-# - tower mouse-over displays its enchant
-# - tower projectiles become homing
-# - tower projectiles become re-targeting
-# - rune is unlocked by buying a Temple of Thor
+# TODO next steps : performance and graphics fixes
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # stop using shop_item.actively_selected, use self.shop_item_selected for everything
 # organize the zones way better instead of having tons of hard-coded variables
+# investigate glitch where projectiles are not drawn, chin background is not drawn, and 
+# leftmost wave preview box's background is not drawn.
 # high quality mjolnir explosion
 # abilities and shop items get highlighted on mouse-over
 # score calculation
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
 # free-play mode
+# radiho towers' projectiles become re-targeting
 # smoother trajectories for floating enemies
 # more maps
 # more towers

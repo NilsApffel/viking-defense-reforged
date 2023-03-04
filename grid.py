@@ -1,5 +1,5 @@
 import arcade
-from constants import *
+from constants import CELL_SIZE, SCREEN_HEIGHT
 
 class GridCell():
     def __init__(self, terrain_type: str = None, cellnum: int = -1) -> None:

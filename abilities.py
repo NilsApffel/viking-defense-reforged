@@ -1,5 +1,5 @@
 import arcade
-from constants import *
+from constants import CELL_SIZE, CHIN_HEIGHT, MAP_WIDTH
 from towers import Projectile, Explosion
 
 class Ability():

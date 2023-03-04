@@ -1,84 +1,18 @@
 import arcade
-from math import sqrt, atan2, pi
-from constants import MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, ASSETS
+from math import atan2, pi
+from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS
 from copy import deepcopy
 from enemies import Enemy
+from explosions import Explosion
+from projectiles import Projectile
 from runes import Rune
-
-class Explosion(arcade.Sprite):
-    def __init__(self, filename: str = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.15, 
-                    scale_increase_rate: float = 5.0, center_x: float = 0, center_y: float = 0):
-        self.max_lifetime = lifetime_seconds
-        self.elapsed_lifetime = 0.0
-        self.scale_increase_rate = scale_increase_rate
-        super().__init__(filename=filename, scale=starting_scale, center_x=center_x, center_y=center_y)
-
-    def on_update(self, delta_time: float = 1 / 60):
-        self.scale += self.scale_increase_rate * delta_time
-        self.elapsed_lifetime += delta_time
-        if self.elapsed_lifetime > self.max_lifetime:
-            self.remove_from_sprite_lists()
-        return super().on_update(delta_time)
-
-
-class Projectile(arcade.Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, speed: float = 2.0,
-                    center_x: float = 0, center_y: float = 0, angle: float = 0, angle_rate: float = 0,
-                    target: Enemy = None, target_x: float = None, target_y: float = None, 
-                    damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10, 
-                    impact_effect: Explosion = None):
-        super().__init__(filename=filename, scale=scale, center_x=center_x, center_y=center_y, angle=angle)
-        self.speed = speed
-        self.angle_rate = angle_rate
-        self.target = target
-        self.target_x = target_x
-        self.target_y = target_y
-        self.has_static_target = (target is None)
-        self.damage = damage
-        self.do_splash_damage = do_splash_damage
-        self.splash_radius = splash_radius
-        self.impact_effect = impact_effect
-
-        if not self.has_static_target:
-            self.target_x = self.target.center_x
-            self.target_y = self.target.center_y
-        # calc velocity based on target
-        dx = self.target_x - self.center_x
-        dy = self.target_y - self.center_y
-        norm = sqrt(dx*dx + dy*dy)
-        if norm == 0:
-            norm = 0.001
-        self.velocity = (self.speed*dx/norm, self.speed*dy/norm)
-
-    def on_update(self, delta_time: float):
-        if not self.has_static_target:
-            if self.target.current_health > 0:
-                self.target_x = self.target.center_x
-                self.target_y = self.target.center_y
-                # calc velocity based on target
-                dx = self.target_x - self.center_x
-                dy = self.target_y - self.center_y
-                norm = sqrt(dx*dx + dy*dy)
-                if norm == 0:
-                    norm = 0.001
-                self.velocity = (self.speed*dx/norm, self.speed*dy/norm)
-            else:
-                self.target=None
-                self.has_static_target = True
-        self.angle += self.angle_rate*delta_time
-        # print(norm, "away from target with speed", self.velocity)
-        if ((self.center_x > MAP_WIDTH + 20) or (self.center_x < -20) or 
-                (self.center_y > SCREEN_HEIGHT + 20) or (self.center_y < CHIN_HEIGHT - 20)):
-            self.remove_from_sprite_lists()
-        return super().on_update(delta_time)
-
 
 class Tower(arcade.Sprite):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
                     range: float = 100, damage: float = 5, 
                     name: str = None, description: str = None, can_see_types: list = None, 
                     has_rotating_top: bool = False, is_2x2: bool = False, 
-                    constant_attack: bool = False):
+                    constant_attack: bool = False, projectiles_are_homing: bool = False):
         super().__init__(filename=filename, scale=scale)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
@@ -101,6 +35,7 @@ class Tower(arcade.Sprite):
         self.is_2x2 = is_2x2
         self.do_constant_attack = constant_attack
         self.rune = None
+        self.projectiles_are_homing = projectiles_are_homing
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
@@ -173,8 +108,10 @@ class Tower(arcade.Sprite):
             self.cooldown = clean_tower.cooldown
             self.range = clean_tower.range
             self.damage = clean_tower.damage
+            self.projectiles_are_homing = clean_tower.projectiles_are_homing
         self.rune = rune
-
+        if rune.name == 'raidho':
+            self.projectiles_are_homing = True
 
 
 class InstaAirTower(Tower):
@@ -243,10 +180,12 @@ class Catapult(Tower):
         cannonball = Projectile(
             filename="images/cannonball.png", scale=0.3, speed=2.5, angle_rate=0,
             center_x=self.center_x, center_y=self.center_y, 
+            target=enemy if self.projectiles_are_homing else None,
             target_x=enemy.center_x, target_y=enemy.center_y, 
             damage=self.damage, do_splash_damage=True, splash_radius=32, 
-            impact_effect=Explosion(filename='./images/cannonball-explosion.png')
+            impact_effect=Explosion(filename='./images/cannonball-explosion.png'), 
         )
+            
         return 0, [cannonball] # damage will be dealt by projectile
 
     # TODO : add rotation of top of the tower, an un-moving base, 
@@ -259,7 +198,8 @@ class OakTreeTower(Tower):
         super().__init__(filename="images/Oak_32x32_transparent.png", scale=1.0, cooldown=2.0, 
                             range=112, damage=5, name="Sacred Oak", 
                             description="Fires at flying\nHoming", 
-                            can_see_types=['flying'])
+                            can_see_types=['flying'], 
+                            projectiles_are_homing=True)
 
     def make_another(self):
         return OakTreeTower()

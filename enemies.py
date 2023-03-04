@@ -1,5 +1,6 @@
 import arcade
 from math import sqrt, atan2, pi
+from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE
 from grid import *
 from pathfind import find_path
 
