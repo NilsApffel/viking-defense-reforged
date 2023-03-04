@@ -35,4 +35,16 @@ ABILITY_DESCRIPTIONS = ["Dismantles tower or building. You get a refund.\n\nRefu
                         "Not implemented", 
                         "Not implemented"]
 
+RUNE_NAMES = ["Raidho"]  + ["Not implemented"]*6
+RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting ability."+
+                     "\n\nInsert to a tower",
+                     "Not implemented", 
+                     "Not implemented", 
+                     "Not implemented", 
+                     "Not implemented", 
+                     "Not implemented", 
+                     "Not implemented"]
+
+ASSETS = {'raidho-r': arcade.load_texture('./images/raidho-r.png')}
+
 is_debug = False

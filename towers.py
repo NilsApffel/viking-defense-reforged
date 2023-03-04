@@ -1,6 +1,9 @@
 import arcade
+from math import sqrt, atan2, pi
+from constants import MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, ASSETS
 from copy import deepcopy
-from enemies import *
+from enemies import Enemy
+from runes import Rune
 
 class Explosion(arcade.Sprite):
     def __init__(self, filename: str = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.15, 
@@ -97,11 +100,23 @@ class Tower(arcade.Sprite):
         self.does_rotate = has_rotating_top
         self.is_2x2 = is_2x2
         self.do_constant_attack = constant_attack
+        self.rune = None
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
     def make_another(self): 
         return Tower()
+
+    def draw_runes(self):
+        if self.rune is None:
+            return
+        if self.rune.name == 'raidho':
+            arcade.draw_scaled_texture_rectangle(
+                center_x=self.center_x+10,
+                center_y=self.center_y-10,
+                texture=ASSETS['raidho-r'],
+                scale=1.0,
+            )
 
     def on_update(self, delta_time: float = 1 / 60):
         if self.does_rotate:
@@ -143,6 +158,23 @@ class Tower(arcade.Sprite):
             return 'Damage: ' + str(self.damage) + ' per second\n'
         else:
             return 'Damage: ' + str(self.damage) + '\nReload: ' + str(self.cooldown) + ' seconds'
+
+    def has_rune(self, rune_name: str):
+        if (not (self.rune is None)) and (self.rune.name == rune_name):
+            return True
+        return False
+
+    def set_rune(self, rune: Rune):
+        if self.has_rune(rune.name):
+            return 
+        if (not (self.rune is None)):
+            # we need to clear our current rune's effects
+            clean_tower = self.make_another()
+            self.cooldown = clean_tower.cooldown
+            self.range = clean_tower.range
+            self.damage = clean_tower.damage
+        self.rune = rune
+
 
 
 class InstaAirTower(Tower):

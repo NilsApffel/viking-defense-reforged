@@ -13,8 +13,9 @@ from towers import *
 from waves import Wave
 from shop import ShopItem
 from abilities import *
+from runes import *
 
-SCREEN_TITLE = "Viking Defense Reforged v0.2.6 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.2.7 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -50,11 +51,13 @@ class GameWindow(arcade.Window):
             "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png'),
             "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png'),
             "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png'),
+            "runes_bar" : arcade.load_texture('./images/Runes.png'),
             "abilities_bar" : arcade.load_texture('./images/Abilities.png')
         }
         self.read_score_file()
         self.init_text()
         self.abilities_list = [SellTowerAbility(), MjolnirAbility(), None, None, None]
+        self.runes_list = [Raidho(), None, None, None, None, None, None]
 
     def read_score_file(self):
         self.best_waves = []
@@ -96,7 +99,9 @@ class GameWindow(arcade.Window):
         self.load_shop_items() # first index is page, second is position in page
         self.current_shop_tab = 0
         self.shop_item_selected = 0 # 0 if none selected, otherwise index+1 of selection
+        self.rune_selected = 0 # 0 if none selected, otherwise index+1 of selection
         self.ability_selected = 0 # 0 if none selected, otherwise index+1 of selection
+        self.runes_unlocked = [False, False, False, False, False, False, False]
         self.abilities_unlocked = [True, False, False, False, False]
         self.load_map("./files/map"+str(map_number)+".txt")
         self.load_waves("./files/map"+str(map_number)+"CampaignWaves.csv")
@@ -247,7 +252,14 @@ class GameWindow(arcade.Window):
             font_size = 13,
             font_name="impact"
         )
-        activities_title = init_outlined_text(
+        runes_title = init_outlined_text(
+            text = "RUNES",
+            font_name= "impact",
+            start_x = MAP_WIDTH + 80,
+            start_y= 220,
+            font_size = 13
+        )
+        abilities_title = init_outlined_text(
             text = "ABILITIES",
             font_name= "impact",
             start_x = MAP_WIDTH + 80,
@@ -257,7 +269,8 @@ class GameWindow(arcade.Window):
         self.multi_layer_text = {"combat_tab": combat_tab, 
                                     "sacred_tab": sacred_tab,
                                     "building_tab": building_tab,
-                                    "abilities_title": activities_title}
+                                    "runes_title": runes_title,
+                                    "abilities_title": abilities_title}
         
         # 2. Info box text
         title_text = arcade.Text(
@@ -384,14 +397,18 @@ class GameWindow(arcade.Window):
             self.draw_level_select()
             return   
         self.draw_map()
-        self.towers_list.draw()
-        self.enemies_list.draw()
-        self.projectiles_list.draw()
 
+        self.towers_list.draw()
+        for tower in self.towers_list.sprite_list:
+            tower.draw_runes()
+
+        self.enemies_list.draw()
         for enemy in self.enemies_list.sprite_list:
             enemy.draw_effects()
             enemy.draw_health_bar()
-            
+
+        self.projectiles_list.draw()
+
         if not self.paused:
             for k, tower in enumerate(self.towers_list.sprite_list):
                 if self.hover_target == "tower:"+str(k):
@@ -408,12 +425,16 @@ class GameWindow(arcade.Window):
                     y=self._mouse_y, 
                     tower_shopitem=self.shop_listlist[self.current_shop_tab][self.shop_item_selected-1]
                 )
+            elif self.rune_selected:
+                k = self.rune_selected - 1
+                self.runes_list[k].preview(x=self._mouse_x, y=self._mouse_y)
             elif self.ability_selected:
                 k = self.ability_selected - 1
                 self.abilities_list[k].preview(x=self._mouse_x, y=self._mouse_y)
 
         self.draw_chin_menu()
         self.draw_shop()
+        self.draw_runes_bar()
         self.draw_info_box()
         self.draw_abilities_bar()
 
@@ -634,6 +655,34 @@ class GameWindow(arcade.Window):
                     scale = 0.2
                 )
  
+    def draw_runes_bar(self):
+        arcade.draw_scaled_texture_rectangle(
+            center_x = floor((SCREEN_WIDTH - MAP_WIDTH) / 2) + MAP_WIDTH + 0.5,
+            center_y = 200.5,
+            texture = self.assets["runes_bar"],
+            scale = 1.0 
+        )
+        for txt in self.multi_layer_text['runes_title']:
+            txt.draw()
+
+        for k in range(7):
+            if self.runes_unlocked[k]:
+                self.runes_list[k].draw_icon(
+                    x = MAP_WIDTH + 7 + k*30 + 12.5,
+                    y = 200.5
+                )
+
+        if self.rune_selected > 0:
+            k = self.rune_selected - 1
+            arcade.draw_lrtb_rectangle_outline(
+                left = MAP_WIDTH + 5 + k*30,
+                right = MAP_WIDTH + 5 + k*30 + 29,
+                top = 215,
+                bottom = 186,
+                color = arcade.color.BLUE,
+                border_width = 2
+            )
+
     def draw_info_box(self):
         arcade.draw_lrtb_rectangle_filled( # background
             left = MAP_WIDTH + 12,
@@ -656,10 +705,19 @@ class GameWindow(arcade.Window):
             self.info_box_text[0].text = tower.name
             self.info_box_text[1].text = tower.describe_damage()
             self.info_box_text[2].text = tower.description
+        elif 'rune' in self.hover_target:
+            k = int(self.hover_target.split(':')[-1])
+            self.info_box_text[0].text = RUNE_NAMES[k]
+            self.info_box_text[1].text = RUNE_DESCRIPTIONS[k]
+            self.info_box_text[2].text = ''
         elif 'ability' in self.hover_target:
             k = int(self.hover_target.split(':')[-1])
             self.info_box_text[0].text = ABILITY_NAMES[k]
             self.info_box_text[1].text = ABILITY_DESCRIPTIONS[k]
+            self.info_box_text[2].text = ''
+        elif is_debug:
+            self.info_box_text[0].text = self.hover_target
+            self.info_box_text[1].text = ''
             self.info_box_text[2].text = ''
         else:
             self.info_box_text[0].text = ''
@@ -804,9 +862,6 @@ class GameWindow(arcade.Window):
             )
                 
     def on_update(self, delta_time: float):
-        if is_debug and not self.paused:
-            pass
-
         if self.paused or self.game_state == 'won' or self.game_state == 'lost':
             self.paused = True
             return
@@ -1039,21 +1094,24 @@ class GameWindow(arcade.Window):
         if self.paused:
             return
         
-        # 1. Deal with tower placement and abilities
+        # 1. Deal with tower placement, runes, and abilities
         if (x > MAP_WIDTH) or (y < CHIN_HEIGHT): # we did not just place a tower
             self.unselect_all_items()
         else: # we clicked inside the map
             # were we trying to place / sell a tower ?
-            if not self.ability_selected:
+            if self.shop_item_selected > 0:
                 self.attempt_tower_place(x, y)  
-            elif self.ability_selected == 1:
-                self.attempt_tower_sell(x, y)
-            elif self.ability_selected == 2:
-                if self.abilities_list[1].cooldown_remaining <= 0.01:
-                    mjolnir = self.abilities_list[1].trigger(x, y)
-                    self.projectiles_list.append(mjolnir)
-                    self.all_sprites.append(mjolnir)
-                    self.ability_selected = 0
+            elif self.rune_selected > 0:
+                self.attempt_tower_enchant(x, y)
+            elif self.ability_selected > 0:
+                if self.ability_selected == 1:
+                    self.attempt_tower_sell(x, y)
+                elif self.ability_selected == 2:
+                    if self.abilities_list[1].cooldown_remaining <= 0.01:
+                        mjolnir = self.abilities_list[1].trigger(x, y)
+                        self.projectiles_list.append(mjolnir)
+                        self.all_sprites.append(mjolnir)
+                        self.ability_selected = 0
             
         # 2. Deal with button clicks 
         # 2.1 Next Wave Start Button
@@ -1078,7 +1136,15 @@ class GameWindow(arcade.Window):
                 if SHOP_BOTTOMS[k] <= y <= SHOP_TOPS[k]:
                     if shop_item.is_unlocked:
                         shop_item.actively_selected = True
-        # 2.4 Ability selection 
+        # 2.4 Rune selection 
+        elif (MAP_WIDTH < x) and (186 <= y <= 215):
+            for k in range(7):
+                left = MAP_WIDTH + 5 + k*30
+                right = MAP_WIDTH + 5 + k*30 + 29
+                if left <= x <= right:
+                    if self.runes_unlocked[k]:
+                        self.rune_selected = k+1
+        # 2.5 Ability selection 
         elif (MAP_WIDTH < x) and (4 <= y <= 44): 
             for k in range(0, 5):
                 left = MAP_WIDTH + 7 + k*42
@@ -1169,6 +1235,27 @@ class GameWindow(arcade.Window):
                 tower.remove_from_sprite_lists()
                 return
 
+    def attempt_tower_enchant(self, x: float, y: float):
+        if not self.rune_selected:
+            return
+        if self.money < self.runes_list[self.rune_selected-1].cost:
+            return
+        rune = self.runes_list[self.rune_selected-1].make_another()
+        i, j = nearest_cell_ij(x, y)
+        if not self.map_cells[i][j].is_occupied:
+            return
+        
+        # if we reach this line, then the cell is occupied by a 1x1 or 2x2 tower
+        for tower in self.towers_list.sprite_list:
+            if tower.is_2x2: # 2x2 towers are un-enchantable so skip this
+                continue
+            ti, tj = nearest_cell_ij(tower.center_x, tower.center_y)
+            if (i == ti) and (j == tj):
+                # found the tower
+                if not tower.has_rune(rune.name):
+                    self.money -= rune.cost
+                    tower.set_rune(rune)
+            
     def find_tower_price(self, tower_name):
         for shop_list in self.shop_listlist:
             for shop_item in shop_list:
@@ -1227,7 +1314,17 @@ class GameWindow(arcade.Window):
                         self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(k)
                         return ret
         
-        # 2. Are we hovering over an ability ?
+        # 2. Are we hovering over a rune ?
+        if (MAP_WIDTH < x) and (186 <= y <= 215):
+            for k in range(7):
+                left = MAP_WIDTH + 5 + k*30
+                right = MAP_WIDTH + 5 + k*30 + 29
+                if left <= x <= right:
+                    if self.runes_unlocked[k]:
+                        self.hover_target = 'rune:' + str(k)
+                        return ret
+                    
+        # 3. Are we hovering over an ability ?
         if (MAP_WIDTH < x) and (4 <= y <= 44):
             for k in range(5):
                 left = MAP_WIDTH + 7 + k*42
@@ -1237,20 +1334,23 @@ class GameWindow(arcade.Window):
                         self.hover_target = 'ability:' + str(k)
                         return ret
                 
-        # 3. Are we hovering over the attack button ?
+        # 4. Are we hovering over the attack button ?
         if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
             self.hover_target = 'attack_button'
             return ret
 
-        # 4. Is there a shopitem or ability previously selected ?
+        # 5. Is there a shopitem or rune or ability previously selected ?
         if 0 < self.shop_item_selected < 9:
             self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(self.shop_item_selected-1)
+            return ret
+        if 0 < self.rune_selected < 9:
+            self.hover_target = 'rune:' + str(self.rune_selected-1)
             return ret
         if 0 < self.ability_selected < 9:
             self.hover_target = 'ability:' + str(self.ability_selected-1)
             return ret
         
-        # 5. Are we mousing over a tower sprite on the map ?
+        # 6. Are we mousing over a tower sprite on the map ?
         if (x < MAP_WIDTH) and (CHIN_HEIGHT < y):
             for k, tower in enumerate(self.towers_list.sprite_list):
                 if ((tower.left < x < tower.right) and (tower.bottom < y < tower.top)):
@@ -1263,6 +1363,7 @@ class GameWindow(arcade.Window):
         for m in range(0, 3):
             for shop_item in self.shop_listlist[m]:
                 shop_item.actively_selected = False
+        self.rune_selected = 0
         self.ability_selected = 0
         self.shop_item_selected = 0
 
@@ -1272,9 +1373,16 @@ if __name__ == "__main__":
     app.setup(map_number=0)
     arcade.run()
 
-# TODO next step : 
+# TODO next steps : raidho completion :
+# - tower mouse-over displays its enchant
+# - tower projectiles become homing
+# - tower projectiles become re-targeting
+# - rune is unlocked by buying a Temple of Thor
 
 # Roadmap items : 
+# cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
+# stop using shop_item.actively_selected, use self.shop_item_selected for everything
+# organize the zones way better instead of having tons of hard-coded variables
 # high quality mjolnir explosion
 # abilities and shop items get highlighted on mouse-over
 # score calculation
