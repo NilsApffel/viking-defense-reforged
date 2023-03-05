@@ -15,7 +15,7 @@ from towers import Tower, WatchTower, Catapult, OakTreeTower, TempleOfThor
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.2.8 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.3.0 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -44,15 +44,13 @@ class GameWindow(arcade.Window):
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()
+        self.shape_list = arcade.ShapeElementList()
         self.paused = False
         self.assets = {
-            "locked_shop_item" : arcade.load_texture("images/locked.png"), 
             "attack_button" : arcade.load_texture('./images/NextWaveButton.png'),
             "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png'),
             "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png'),
             "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png'),
-            "runes_bar" : arcade.load_texture('./images/Runes.png'),
-            "abilities_bar" : arcade.load_texture('./images/Abilities.png'), 
             'info_box' : arcade.load_texture('./images/info_box.png'),
             'chin_menu' : arcade.load_texture('./images/chin_menu.png'),
             'shop_buildings' : arcade.load_texture('./images/shop_buildings.png'),
@@ -90,6 +88,7 @@ class GameWindow(arcade.Window):
     def setup(self, map_number: int = 1):
         arcade.set_background_color(arcade.color.ORANGE)
         self.map_number = map_number
+        self.map_image = None
         self.read_score_file()
         self.wave_is_happening = False
         self.hover_target = '' # used to store what UI element is being moused over, if any
@@ -112,18 +111,19 @@ class GameWindow(arcade.Window):
         self.ability_selected = 0 # 0 if none selected, otherwise index+1 of selection
         self.runes_unlocked = [False, False, False, False, False, False, False]
         self.abilities_unlocked = [True, False, False, False, False]
+        self.shape_list = arcade.ShapeElementList()
         self.load_map("./files/map"+str(map_number)+".txt")
         self.load_waves("./files/map"+str(map_number)+"CampaignWaves.csv")
         self.enemies_list = arcade.SpriteList()
         self.towers_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
-        self.all_sprites = arcade.SpriteList()
+        self.all_sprites = arcade.SpriteList()    
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/tower_round_converted.png", scale = 0.3,
+                        thumbnail="images/WatchtowerThumb.png", scale = 1,
                         cost=100, tower=WatchTower()), 
                 ShopItem(is_unlocked=False, is_unlockable=True, # real
                         thumbnail="images/catapult_cool.png", scale = 1,
@@ -143,7 +143,7 @@ class GameWindow(arcade.Window):
                         quest_thresh=20, quest_var_name="enemies inflamed")
             ], [ # start Sacred towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/simple_tree.png", scale = 0.3,
+                        thumbnail="images/SacredOakThumb.png", scale = 1,
                         cost=120, tower=OakTreeTower()), 
                 ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
@@ -217,6 +217,27 @@ class GameWindow(arcade.Window):
                 (self.map_cells[0][j].terrain_type == "deep")):
                 self.spawnable_cell_js.append(j)
 
+        # Create the objects needed to quickly draw the map from scratch
+        # see https://api.arcade.academy/en/latest/examples/shape_list_demo.html#shape-list-demo
+        points_list = []
+        colors_list = []
+        for i in range(len(self.map_cells)-1):
+            for j in range(len(self.map_cells[i])):
+                l, r, t, b = cell_lrtb(i, j)
+                c = cell_color(self.map_cells[i][j].terrain_type)
+                points_list.append((l,t))
+                points_list.append((r+1,t))
+                points_list.append((r+1,b-1))
+                points_list.append((l,b-1))
+                for m in range(4):
+                    colors_list.append(c)
+        shape = arcade.create_rectangles_filled_with_colors(points_list, colors_list)
+        self.shape_list.append(shape)
+
+        # load the map image, if it exists
+        if self.map_number > 0 and not is_debug:
+            self.map_image = arcade.load_texture('./images/map'+str(self.map_number)+'.png')
+
     def load_waves(self, filename):
         self.wave_list = []
         with open(filename, mode='r', newline='') as csvfile:
@@ -240,46 +261,7 @@ class GameWindow(arcade.Window):
         terrible performance"""
 
         # 1. Permanently static text using outlined font
-        combat_tab = init_outlined_text(
-            "COMBAT", 
-            start_x = MAP_WIDTH + 6, 
-            start_y = SCREEN_HEIGHT - 19, 
-            font_size = 13,
-            font_name="impact"
-        )
-        sacred_tab = init_outlined_text(
-            "SACRED", 
-            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3 + 8, 
-            start_y = SCREEN_HEIGHT - 19, 
-            font_size = 13,
-            font_name="impact"
-        )
-        building_tab = init_outlined_text(
-            "BUILDING", 
-            start_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3 + 3, 
-            start_y = SCREEN_HEIGHT - 19, 
-            font_size = 13,
-            font_name="impact"
-        )
-        runes_title = init_outlined_text(
-            text = "RUNES",
-            font_name= "impact",
-            start_x = MAP_WIDTH + 80,
-            start_y= 220,
-            font_size = 13
-        )
-        abilities_title = init_outlined_text(
-            text = "ABILITIES",
-            font_name= "impact",
-            start_x = MAP_WIDTH + 80,
-            start_y= 48,
-            font_size = 13
-        )
-        self.multi_layer_text = {"combat_tab": combat_tab, 
-                                    "sacred_tab": sacred_tab,
-                                    "building_tab": building_tab,
-                                    "runes_title": runes_title,
-                                    "abilities_title": abilities_title}
+        self.multi_layer_text = {}
         
         # 2. Info box text
         title_text = arcade.Text(
@@ -361,7 +343,7 @@ class GameWindow(arcade.Window):
         for k in range(5):
             name = arcade.Text(
                 '', 
-                start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
+                start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 10, 
                 start_y = SHOP_TOPS[k] - 15, 
                 color = arcade.color.PURPLE, 
                 font_size = 12,
@@ -369,7 +351,7 @@ class GameWindow(arcade.Window):
             )
             description = arcade.Text(
                 '', 
-                start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 4, 
+                start_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE + 11, 
                 start_y = SHOP_TOPS[k] - 34, 
                 width = 200,
                 color = arcade.color.BLACK, 
@@ -381,8 +363,8 @@ class GameWindow(arcade.Window):
             ) 
             price = arcade.Text(
                 '', 
-                start_x = MAP_WIDTH + 4, 
-                start_y = SHOP_BOTTOMS[k] + 10, 
+                start_x = MAP_WIDTH + 11, 
+                start_y = SHOP_BOTTOMS[k] + 7, 
                 color = arcade.color.BLACK, 
                 font_size = 12,
                 bold = True
@@ -446,9 +428,7 @@ class GameWindow(arcade.Window):
 
         self.draw_chin_menu()
         self.draw_shop()
-        self.draw_runes_bar()
-        self.draw_info_box()
-        self.draw_abilities_bar()
+        self.draw_corner_menu()
 
         if self.paused: 
             self.draw_pause_menu()
@@ -457,12 +437,21 @@ class GameWindow(arcade.Window):
     
     # draw sub-methods used to make self.on_draw more legible
     def draw_map(self):
-        # individual cells
-        for i in range(len(self.map_cells)-1):
-            for j in range(len(self.map_cells[i])):
-                l, r, t, b = cell_lrtb(i, j)
-                c = cell_color(self.map_cells[i][j].terrain_type)
-                arcade.draw_lrtb_rectangle_filled(left=l, right=r, top=t, bottom=b, color=c)
+        if self.map_number > 0 and not is_debug:
+            arcade.draw_scaled_texture_rectangle(
+                center_x=MAP_WIDTH/2,
+                center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
+                texture=self.map_image
+            )
+        else:
+            # draw the map using colored rectangles representing terrain type of each cell
+            self.shape_list.draw()
+        # individual cells (too slow, deprecated)
+        # for i in range(len(self.map_cells)-1):
+        #     for j in range(len(self.map_cells[i])):
+        #         l, r, t, b = cell_lrtb(i, j)
+        #         c = cell_color(self.map_cells[i][j].terrain_type)
+        #         arcade.draw_lrtb_rectangle_filled(left=l, right=r, top=t, bottom=b, color=c)
 
     def draw_range(self, tower):
         if tower.is_2x2:
@@ -561,65 +550,27 @@ class GameWindow(arcade.Window):
 
     def draw_shop(self): 
         # backround
+        center_x = MAP_WIDTH + SHOP_WIDTH/2
+        center_y = SCREEN_HEIGHT - SHOP_HEIGHT/2
         if self.current_shop_tab == 0:
-            shop_background_color = arcade.color.ORANGE
+            texture=self.assets['shop_combat']
         elif self.current_shop_tab == 1:
-            shop_background_color = arcade.color.PALE_BLUE
+            texture=self.assets['shop_sacred']
         else:
-            shop_background_color = arcade.color.SADDLE_BROWN
-        arcade.draw_lrtb_rectangle_filled(
-            left   = MAP_WIDTH, 
-            right  = SCREEN_WIDTH,
-            top    = SCREEN_HEIGHT,
-            bottom = 0,
-            color=shop_background_color
+            texture=self.assets['shop_buildings']
+        arcade.draw_scaled_texture_rectangle(
+            center_x=center_x, 
+            center_y=center_y,
+            texture=texture
         )
 
-        # shop tabs
-        arcade.draw_lrtb_rectangle_filled( # combat towers
-            left  = MAP_WIDTH,
-            right = SCREEN_WIDTH - (SCREEN_WIDTH-MAP_WIDTH)*2/3,
-            top    = SCREEN_HEIGHT,
-            bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
-            color = arcade.color.ORANGE
-        )
-        arcade.draw_lrtb_rectangle_filled( # sacred towers
-            left  = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*1/3,
-            right = SCREEN_WIDTH - (SCREEN_WIDTH-MAP_WIDTH)*1/3,
-            top    = SCREEN_HEIGHT,
-            bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
-            color = arcade.color.PALE_BLUE
-        )
-        arcade.draw_lrtb_rectangle_filled( # buildings
-            left  = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)*2/3,
-            right = SCREEN_WIDTH,
-            top    = SCREEN_HEIGHT,
-            bottom = SCREEN_HEIGHT - INFO_BAR_HEIGHT,
-            color = arcade.color.SADDLE_BROWN
-        )
-        for txt in self.multi_layer_text['combat_tab']:
-            txt.draw()
-        for txt in self.multi_layer_text['sacred_tab']:
-            txt.draw()
-        for txt in self.multi_layer_text['building_tab']:
-            txt.draw()
-
-        # empty shop slots
         for k in range(0, 5):
-            # background
-            arcade.draw_lrtb_rectangle_filled(
-                left  = MAP_WIDTH + 3,
-                right = SCREEN_WIDTH - 3,
-                top    = SHOP_TOPS[k],
-                bottom = SHOP_BOTTOMS[k],
-                color = arcade.color.BEIGE
-            )
             # shop item, if it should be there
             shop_item = (self.shop_listlist[self.current_shop_tab][k])
             if shop_item.is_unlocked:
                 arcade.draw_scaled_texture_rectangle( # draw the thumbnail
-                    center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 2 + 0.5, 
-                    center_y = 7 + SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2 + 0.5,
+                    center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 4 + 0.5, 
+                    center_y = 10 + SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2 + 0.5,
                     texture = shop_item.thumbnail,
                     scale = shop_item.scale
                 )
@@ -639,43 +590,30 @@ class GameWindow(arcade.Window):
                         border_width = 4
                     )
             elif shop_item.is_unlockable:
-                arcade.draw_scaled_texture_rectangle( # draw the little lock
-                    center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 2, 
-                    center_y = 7 + SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2,
-                    texture = self.assets["locked_shop_item"],
-                    scale = 0.2
-                )
                 self.shop_text[k]['name'].text = "Task: " + shop_item.tower.name
                 self.shop_text[k]['description'].text = shop_item.quest
                 self.shop_text[k]['price'].text = ''
                 self.shop_text[k]['quest progress'].text = str(shop_item.quest_progress) + '/' + str(shop_item.quest_thresh)
                 for txt in self.shop_text[k].values():
                     txt.draw()
-            else : 
-                arcade.draw_scaled_texture_rectangle( # draw the little lock
-                    center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 2, 
-                    center_y = SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2,
-                    texture = self.assets["locked_shop_item"],
-                    scale = 0.2
-                )
  
-    def draw_runes_bar(self):
+    def draw_corner_menu(self):
+
+        # 0. Background
         arcade.draw_scaled_texture_rectangle(
-            center_x = floor((SCREEN_WIDTH - MAP_WIDTH) / 2) + MAP_WIDTH + 0.5,
-            center_y = 200.5,
-            texture = self.assets["runes_bar"],
+            center_x = MAP_WIDTH + SHOP_WIDTH/2,
+            center_y = (SCREEN_HEIGHT-SHOP_HEIGHT)/2,
+            texture = self.assets["info_box"],
             scale = 1.0 
         )
-        for txt in self.multi_layer_text['runes_title']:
-            txt.draw()
 
+        # 1. Runes bar
         for k in range(7):
             if self.runes_unlocked[k]:
                 self.runes_list[k].draw_icon(
                     x = MAP_WIDTH + 7 + k*30 + 12.5,
                     y = 200.5
                 )
-
         if self.rune_selected > 0:
             k = self.rune_selected - 1
             arcade.draw_lrtb_rectangle_outline(
@@ -687,15 +625,7 @@ class GameWindow(arcade.Window):
                 border_width = 2
             )
 
-    def draw_info_box(self):
-        arcade.draw_lrtb_rectangle_filled( # background
-            left = MAP_WIDTH + 12,
-            right = SCREEN_WIDTH - 12,
-            top = SHOP_BOTTOMS[-1] - 68,
-            bottom = SHOP_BOTTOMS[-1] - 172, 
-            color = arcade.color.BEIGE
-        )
-        # shop item, if relevant
+        # 2. Info Box
         if 'shop' in self.hover_target:
             k = int(self.hover_target.split(':')[-1])
             if k < 9:
@@ -729,28 +659,16 @@ class GameWindow(arcade.Window):
             self.info_box_text[0].text = ''
             self.info_box_text[1].text = ''
             self.info_box_text[2].text = ''
-
         for txt in self.info_box_text:
             txt.draw()
     
-    def draw_abilities_bar(self):
-        arcade.draw_scaled_texture_rectangle(
-            center_x = floor((SCREEN_WIDTH - MAP_WIDTH) / 2) + MAP_WIDTH + 0.5,
-            center_y = 24.5,
-            texture = self.assets["abilities_bar"],
-            scale = 1.0 
-        )
-        for txt in self.multi_layer_text['abilities_title']:
-            txt.draw()
-
+        # 3. Abilities bar
         for k in range(5):
             if self.abilities_unlocked[k]:
                 self.abilities_list[k].draw_icon(
                     x = MAP_WIDTH + 7 + k*42 + 20.5,
                     y = 24.5
                 )
-
-        # test of the lrtb coords of different ability buttons
         if self.ability_selected > 0:
             k = self.ability_selected - 1
             arcade.draw_lrtb_rectangle_outline(
@@ -1385,7 +1303,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next steps : switch out info box and shop
+# TODO next steps :
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
@@ -1399,9 +1317,8 @@ if __name__ == "__main__":
 # free-play mode
 # radiho towers' projectiles become re-targeting
 # smoother trajectories for floating enemies
-# more maps
+# map 5
 # more towers
-# massive texture overhaul
 # enchants
 # platform ability
 # floating enemies re-calc their path when a platform is placed
