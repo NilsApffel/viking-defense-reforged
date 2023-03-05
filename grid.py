@@ -1,4 +1,5 @@
-import arcade
+from arcade import Sprite
+from arcade.color import BRONZE as bronze, BLUE as blue, DARK_BLUE as dark_blue, HOT_PINK as pink
 from constants import CELL_SIZE, SCREEN_HEIGHT
 
 class GridCell():
@@ -33,13 +34,13 @@ def cell_lrtb(i: int, j: int):
     return left, right, top, bottom
 
 def cell_color(terrain_type:str):
-    if (terrain_type == "ground") or (terrain_type == "g"):
-        return arcade.color.BRONZE
-    if (terrain_type == "shallow") or (terrain_type == "s"):
-        return arcade.color.BLUE
-    if (terrain_type == "deep") or (terrain_type == "d"):
-        return arcade.color.DARK_BLUE
-    return arcade.color.HOT_PINK # anime pigeon guy : is this error handling ? 
+    if terrain_type[0] == "g":
+        return bronze
+    if terrain_type[0] == "s":
+        return blue
+    if terrain_type[0] == "d":
+        return dark_blue
+    return pink # anime pigeon guy : is this error handling ? 
 
 def nearest_cell_ij(x: float, y:float):
     j = int(x // CELL_SIZE)
@@ -62,7 +63,7 @@ def nearest_cell_centerxy(x: float, y:float):
     i, j = nearest_cell_ij(x, y)
     return cell_centerxy(i, j)
 
-def is_in_cell(sprite: arcade.Sprite, i: float, j:float):
+def is_in_cell(sprite: Sprite, i: float, j:float):
     left, right, top, bottom = cell_lrtb(i, j)
     if left <= sprite.center_x < right:
         if bottom <= sprite.center_y < top:

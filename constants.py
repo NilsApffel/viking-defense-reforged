@@ -1,4 +1,5 @@
-import arcade
+from arcade import load_texture, make_transparent_color
+from arcade.color import BLACK
 from pathlib import Path
 
 # there's probably a better way than gloabl variables to handle all this sizing...
@@ -20,9 +21,11 @@ LEVEL_SPACING = 15
 LEVEL_WIDTH = (SCREEN_WIDTH - 6*LEVEL_SPACING)/5
 MAP_TARGET_J = 7
 
-ICE_SHIELD_TEXTURE = arcade.load_texture('./images/iceshield.png')
-FIRE_SHIELD_TEXTURE = arcade.load_texture('./images/fireshield.png')
-REGEN_TEXTURE = arcade.load_texture('./images/regen.png')
+TRANSPARENT_BLACK = make_transparent_color(BLACK, transparency=180)
+
+ICE_SHIELD_TEXTURE = load_texture('./images/iceshield.png')
+FIRE_SHIELD_TEXTURE = load_texture('./images/fireshield.png')
+REGEN_TEXTURE = load_texture('./images/regen.png')
 
 home_folder = Path.home()
 SCORE_FOLDER = home_folder.joinpath('./AppData/Local/viking-defense-refoged/')
@@ -45,6 +48,6 @@ RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting abil
                      "Not implemented", 
                      "Not implemented"]
 
-ASSETS = {'raidho-r': arcade.load_texture('./images/raidho-r.png')}
+ASSETS = {'raidho-r': load_texture('./images/raidho-r.png')}
 
 is_debug = False

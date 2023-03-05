@@ -1,13 +1,15 @@
-import arcade
-from constants import CELL_SIZE, CHIN_HEIGHT, MAP_WIDTH
+from arcade import (draw_arc_filled, draw_circle_filled, draw_circle_outline, 
+draw_scaled_texture_rectangle, load_texture, make_transparent_color)
+from arcade.color import YELLOW, RED
+from constants import CELL_SIZE, CHIN_HEIGHT, MAP_WIDTH, TRANSPARENT_BLACK
 from towers import Projectile, Explosion
 
 class Ability():
     def __init__(self, name: str, icon_file: str, preview_image_file: str, 
                  cooldown: float, range: float) -> None:
         self.name = name
-        self.icon = arcade.load_texture(icon_file)
-        self.preview_image = arcade.load_texture(preview_image_file)
+        self.icon = load_texture(icon_file)
+        self.preview_image = load_texture(preview_image_file)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
         self.range = range
@@ -15,27 +17,27 @@ class Ability():
 
     def preview(self, x, y, color): 
         if self.has_range:
-            arcade.draw_circle_filled(
+            draw_circle_filled(
                 center_x=x,
                 center_y=y,
                 radius=self.range, 
-                color=arcade.make_transparent_color(color, transparency=32.0)
+                color=make_transparent_color(color, transparency=32.0)
             )
-            arcade.draw_circle_outline(
+            draw_circle_outline(
                 center_x=x,
                 center_y=y,
                 radius=self.range, 
-                color=arcade.make_transparent_color(color, transparency=128.0), 
+                color=make_transparent_color(color, transparency=128.0), 
                 border_width=2
             )
-            arcade.draw_circle_outline(
+            draw_circle_outline(
                 center_x=x,
                 center_y=y,
                 radius=self.range-15, 
-                color=arcade.make_transparent_color(color, transparency=128.0), 
+                color=make_transparent_color(color, transparency=128.0), 
                 border_width=2
             )
-        arcade.draw_scaled_texture_rectangle(
+        draw_scaled_texture_rectangle(
             center_x=x,
             center_y=y,
             texture=self.preview_image,
@@ -43,19 +45,19 @@ class Ability():
         )
 
     def draw_icon(self, x, y):
-        arcade.draw_scaled_texture_rectangle(
+        draw_scaled_texture_rectangle(
             center_x=x,
             center_y=y,
             texture=self.icon,
             scale=1.0
         )
         if self.cooldown_remaining > 0.01:
-            arcade.draw_arc_filled(
+            draw_arc_filled(
                 center_x=x,
                 center_y=y,
                 width=40,
                 height=40,
-                color=arcade.make_transparent_color(arcade.color.BLACK, transparency=180),
+                color=TRANSPARENT_BLACK,
                 start_angle=90,
                 end_angle=90 + 360*(self.cooldown_remaining/self.cooldown)
             )
@@ -76,7 +78,7 @@ class SellTowerAbility(Ability):
                          cooldown = 0.0, range = 0.0)
         
     def preview(self, x, y):
-        return super().preview(x, y, color=arcade.color.YELLOW)
+        return super().preview(x, y, color=YELLOW)
         
     def trigger(self, x, y):
         # sell tower ability can't actually handle its own trigger actions. 
@@ -90,7 +92,7 @@ class MjolnirAbility(Ability):
                          cooldown = 120.0, range = 3.0*CELL_SIZE)
         
     def preview(self, x, y):
-        return super().preview(x, y, color=arcade.color.RED)
+        return super().preview(x, y, color=RED)
 
     def trigger(self, x, y):
         explosion = Explosion(

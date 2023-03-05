@@ -3,7 +3,7 @@ if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
 import arcade
 from random import randint, random
-from math import floor, sqrt
+from math import floor
 from copy import deepcopy
 from abilities import MjolnirAbility, SellTowerAbility
 from constants import *
@@ -52,12 +52,21 @@ class GameWindow(arcade.Window):
             "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png'),
             "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png'),
             "runes_bar" : arcade.load_texture('./images/Runes.png'),
-            "abilities_bar" : arcade.load_texture('./images/Abilities.png')
+            "abilities_bar" : arcade.load_texture('./images/Abilities.png'), 
+            'info_box' : arcade.load_texture('./images/info_box.png'),
+            'chin_menu' : arcade.load_texture('./images/chin_menu.png'),
+            'shop_buildings' : arcade.load_texture('./images/shop_buildings.png'),
+            'shop_combat' : arcade.load_texture('./images/shop_combat.png'),
+            'shop_sacred' : arcade.load_texture('./images/shop_sacred.png'),
         }
         self.read_score_file()
         self.init_text()
         self.abilities_list = [SellTowerAbility(), MjolnirAbility(), None, None, None]
         self.runes_list = [Raidho(), None, None, None, None, None, None]
+        if is_debug:
+            self.perf_graph = arcade.PerfGraph(width=80, height=80, background_color=TRANSPARENT_BLACK)
+            self.perf_graph.center_x = 40
+            self.perf_graph.center_y = SCREEN_HEIGHT - 40
 
     def read_score_file(self):
         self.best_waves = []
@@ -331,19 +340,19 @@ class GameWindow(arcade.Window):
 
         # 4. Misc chin menu items
         self.population_counter_text = arcade.Text(
-            text="Population: " ,
-            start_x = MAP_WIDTH/2,
-            start_y = 3,
+            text="10" ,
+            start_x = MAP_WIDTH*0.5,
+            start_y = 4,
             font_size = 14,
-            width = MAP_WIDTH/4,
-            align = "left"
+            width = MAP_WIDTH*0.2,
+            align = "right"
         )
         self.money_counter_text = arcade.Text(
-            text="Money: ",
+            text="500",
             start_x = MAP_WIDTH*0.75,
             start_y = 3,
             font_size = 14,
-            width = MAP_WIDTH/4,
+            width = MAP_WIDTH*0.22,
             align = "right"
         )
 
@@ -407,6 +416,8 @@ class GameWindow(arcade.Window):
             enemy.draw_effects()
             enemy.draw_health_bar()
 
+        # clears the buffer to make sure projectiles are properly rendered
+        self.ctx.flush() 
         self.projectiles_list.draw()
 
         if not self.paused:
@@ -415,6 +426,7 @@ class GameWindow(arcade.Window):
                     self.draw_range(tower)
                 if tower.animation_ontime_remaining > 0:
                     tower.draw_shoot_animation()
+            self.ctx.flush() 
 
         self.effects_list.draw()
 
@@ -440,6 +452,8 @@ class GameWindow(arcade.Window):
 
         if self.paused: 
             self.draw_pause_menu()
+        if is_debug:
+            self.perf_graph.draw()
     
     # draw sub-methods used to make self.on_draw more legible
     def draw_map(self):
@@ -510,23 +524,13 @@ class GameWindow(arcade.Window):
 
     def draw_chin_menu(self):
         # Background
-        arcade.draw_lrtb_rectangle_filled(
-            left   = 0, 
-            right  = MAP_WIDTH,
-            top    = CHIN_HEIGHT,
-            bottom = 0,
-            color=arcade.color.ORANGE
+        arcade.draw_scaled_texture_rectangle(
+            center_x=MAP_WIDTH/2,
+            center_y=CHIN_HEIGHT/2,
+            texture=self.assets['chin_menu']
         )
         # Wave previews
         for k in range(2):
-            # background 
-            arcade.draw_lrtb_rectangle_filled(
-                left   = 15+(WAVE_VIEWER_WIDTH+15)*k, 
-                right  = 15+(WAVE_VIEWER_WIDTH+15)*k + WAVE_VIEWER_WIDTH,
-                top    = CHIN_HEIGHT - 10,
-                bottom = INFO_BAR_HEIGHT + 2,
-                color=arcade.color.BEIGE
-            )
             # add preview of waves, if there are still waves left
             if self.wave_number+1-k < len(self.wave_list):
                 self.wave_previews_text[k][0].text = 'Attack #'+str(self.wave_number+2-k)+'/'+str(len(self.wave_list))
@@ -550,9 +554,9 @@ class GameWindow(arcade.Window):
             texture = texture
         )
         # info bar
-        self.population_counter_text.text = "Population: " + str(self.population)
+        self.population_counter_text.text = str(self.population)
         self.population_counter_text.draw()
-        self.money_counter_text.text = "Money: " + str(self.money)
+        self.money_counter_text.text = str(self.money)
         self.money_counter_text.draw()
 
     def draw_shop(self): 
@@ -864,6 +868,8 @@ class GameWindow(arcade.Window):
             )
                 
     def on_update(self, delta_time: float = 1/30):
+        if is_debug:
+            self.perf_graph.update_graph(delta_time=delta_time)
         if self.paused or self.game_state == 'won' or self.game_state == 'lost':
             self.paused = True
             return
@@ -879,8 +885,8 @@ class GameWindow(arcade.Window):
         for proj in self.projectiles_list.sprite_list:
             dx = proj.target_x - proj.center_x
             dy = proj.target_y - proj.center_y
-            dist_from_target = sqrt(dx*dx + dy*dy)
-            if dist_from_target < proj.speed/2:
+            dist2_from_target = dx*dx + dy*dy
+            if dist2_from_target < (proj.speed/2)**2:
                 self.perform_impact(proj)
 
         self.perform_enemy_actions()
@@ -1008,8 +1014,8 @@ class GameWindow(arcade.Window):
                 enemy = self.enemies_list.sprite_list[current_enemies-1-k]
                 dx = (enemy.center_x-projectile.target_x)
                 dy = (enemy.center_y-projectile.target_y)
-                dist = sqrt(dx**2 + dy**2)
-                if dist <= projectile.splash_radius:
+                dist2 = dx**2 + dy**2
+                if dist2 <= projectile.splash_radius**2:
                     earnings = enemy.take_damage_give_money(damage=projectile.damage)
                     self.money += earnings
                     # increment quest trackers
@@ -1375,16 +1381,16 @@ class GameWindow(arcade.Window):
 if __name__ == "__main__":
     app = GameWindow()
     app.setup(map_number=0)
+    arcade.enable_timings(max_history=10000)
     arcade.run()
+    arcade.print_timings()
 
-# TODO next steps : performance and graphics fixes
+# TODO next steps : switch out info box and shop
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
-# stop using shop_item.actively_selected, use self.shop_item_selected for everything
 # organize the zones way better instead of having tons of hard-coded variables
-# investigate glitch where projectiles are not drawn, chin background is not drawn, and 
-# leftmost wave preview box's background is not drawn.
+# towers, projectiles and enemies should use pre-loaded textures when initialized
 # high quality mjolnir explosion
 # abilities and shop items get highlighted on mouse-over
 # score calculation

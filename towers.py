@@ -1,4 +1,5 @@
-import arcade
+from arcade import Sprite, draw_line, draw_scaled_texture_rectangle
+from arcade.color import LIGHT_GRAY
 from math import atan2, pi
 from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS
 from copy import deepcopy
@@ -7,7 +8,7 @@ from explosions import Explosion
 from projectiles import Projectile
 from runes import Rune
 
-class Tower(arcade.Sprite):
+class Tower(Sprite):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
                     range: float = 100, damage: float = 5, 
                     name: str = None, description: str = None, can_see_types: list = None, 
@@ -46,7 +47,7 @@ class Tower(arcade.Sprite):
         if self.rune is None:
             return
         if self.rune.name == 'raidho':
-            arcade.draw_scaled_texture_rectangle(
+            draw_scaled_texture_rectangle(
                 center_x=self.center_x+10,
                 center_y=self.center_y-10,
                 texture=ASSETS['raidho-r'],
@@ -61,8 +62,10 @@ class Tower(arcade.Sprite):
         return super().on_update(delta_time)
 
     def can_see(self, enemy: Enemy):
-        distance = arcade.sprite.get_distance_between_sprites(self, enemy)
-        if distance > self.range:
+        dx = self.center_x - enemy.center_x
+        dy = self.center_y - enemy.center_y
+        dist2 = dx*dx + dy*dy
+        if dist2 > self.range**2:
             return False
         if enemy.is_flying and not ('flying' in self.can_see_types):
             return False
@@ -142,12 +145,12 @@ class WatchTower(Tower):
         return super().attack(enemy)
 
     def draw_shoot_animation(self):
-        arcade.draw_line(
+        draw_line(
             start_x=self.center_x, 
             start_y=self.center_y, 
             end_x=self.enemy_x, 
             end_y=self.enemy_y, 
-            color=arcade.color.LIGHT_GRAY, 
+            color=LIGHT_GRAY, 
             line_width=2
         )
 

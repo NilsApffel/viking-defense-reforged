@@ -1,10 +1,11 @@
-import arcade
+from arcade import Sprite, draw_lrtb_rectangle_filled, draw_scaled_texture_rectangle, load_texture
+from arcade.color import RED, GREEN
 from math import sqrt, atan2, pi
 from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE
 from grid import *
 from pathfind import find_path
 
-class Enemy(arcade.Sprite):
+class Enemy(Sprite):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, speed: float = 0.8,
                     reward: float = 30, is_flying: bool = True, can_hide: bool = False):
         super().__init__(filename, scale)
@@ -24,18 +25,18 @@ class Enemy(arcade.Sprite):
     def draw_health_bar(self):
         barheight = 4
         barwidth = self.max_health
-        arcade.draw_lrtb_rectangle_filled(
+        draw_lrtb_rectangle_filled(
             left  = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
             right = self.center_x + barwidth/2,
             top = self.top + barheight, 
             bottom = self.top, 
-            color=arcade.color.RED)
-        arcade.draw_lrtb_rectangle_filled(
+            color=RED)
+        draw_lrtb_rectangle_filled(
             left  = self.center_x - barwidth/2,
             right = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
             top = self.top + barheight, 
             bottom = self.top, 
-            color=arcade.color.GREEN)
+            color=GREEN)
 
     def take_damage_give_money(self, damage: float):
         if 'shield' in self.modifier.lower():
@@ -86,7 +87,7 @@ class Enemy(arcade.Sprite):
             effect_texture = REGEN_TEXTURE
 
         if effect_texture:
-            arcade.draw_scaled_texture_rectangle(
+            draw_scaled_texture_rectangle(
                 center_x=self.center_x, 
                 center_y=self.center_y + vertical_offset, 
                 texture=effect_texture, 
@@ -169,7 +170,7 @@ class UnderwaterEnemy(FloatingEnemy):
                     reward: float = 30, speed: float = 0.8, sumberged_texture_filename: str = None):
         super().__init__(filename=filename, scale=scale, health=health, 
                             reward=reward, speed=speed, can_hide=True)
-        self.append_texture(arcade.load_texture(sumberged_texture_filename))
+        self.append_texture(load_texture(sumberged_texture_filename))
         self.set_texture(0)
 
 

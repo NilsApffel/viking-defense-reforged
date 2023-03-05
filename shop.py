@@ -1,4 +1,4 @@
-import arcade
+from arcade import load_texture
 from towers import Tower
 
 class ShopItem():
@@ -9,7 +9,7 @@ class ShopItem():
         self.is_unlockable = is_unlockable
         if thumbnail is None:
             thumbnail = "images/question.png"
-        self.thumbnail = arcade.load_texture(thumbnail)
+        self.thumbnail = load_texture(thumbnail)
         self.scale = scale
         self.cost = cost
         self.tower = tower
