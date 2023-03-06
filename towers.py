@@ -1,7 +1,7 @@
 from arcade import Sprite, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
 from math import atan2, pi
-from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS
+from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug
 from copy import deepcopy
 from enemies import Enemy
 from explosions import Explosion
@@ -78,6 +78,7 @@ class Tower(Sprite):
     def aim_to(self, enemy: Enemy):
         self.target_x = enemy.center_x
         self.target_y = enemy.center_y
+        self.target = enemy
 
     def attack(self, enemy: Enemy):
         """Tells the tower what enemy to attack, in order for it to draw its own animation, 
@@ -98,7 +99,9 @@ class Tower(Sprite):
             return 'Damage: ' + str(self.damage) + '\nReload: ' + str(self.cooldown) + ' seconds'
 
     def has_rune(self, rune_name: str):
-        if (not (self.rune is None)) and (self.rune.name == rune_name):
+        if self.rune is None:
+            return False
+        if (self.rune.name == rune_name) or rune_name == 'any':
             return True
         return False
 
@@ -116,6 +119,13 @@ class Tower(Sprite):
         if rune.name == 'raidho':
             self.projectiles_are_homing = True
 
+    def make_runed_projectile(self, projectile: Projectile):
+        if self.has_rune('raidho'):
+            projectile.has_static_target = False
+            projectile.target = self.target
+            projectile.is_retargeting = True
+            projectile.parent_tower = self
+        return projectile
 
 class InstaAirTower(Tower):
     def __init__(self):
@@ -183,16 +193,16 @@ class Catapult(Tower):
         cannonball = Projectile(
             filename="images/cannonball.png", scale=0.3, speed=2.5, angle_rate=0,
             center_x=self.center_x, center_y=self.center_y, 
-            target=enemy if self.projectiles_are_homing else None,
+            target=None,
             target_x=enemy.center_x, target_y=enemy.center_y, 
             damage=self.damage, do_splash_damage=True, splash_radius=32, 
             impact_effect=Explosion(filename='./images/cannonball-explosion.png'), 
         )
+        cannonball = self.make_runed_projectile(cannonball)
             
         return 0, [cannonball] # damage will be dealt by projectile
 
-    # TODO : add rotation of top of the tower, an un-moving base, 
-    # and tracking enemy via top rotation using on_update.
+    # TODO : add an un-moving base
     # (bonus: use rotation to slightly adjust starting position of projectile)
 
 
@@ -214,6 +224,7 @@ class OakTreeTower(Tower):
             center_x=self.center_x, center_y=self.center_y, 
             target=enemy, damage=self.damage
         )
+        leaf = self.make_runed_projectile(leaf)
         return 0, [leaf] # damage will be dealt by projectile
 
 

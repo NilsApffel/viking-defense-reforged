@@ -15,7 +15,7 @@ from towers import Tower, WatchTower, Catapult, OakTreeTower, TempleOfThor
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.3.0 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.3.1 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1303,19 +1303,19 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next steps :
+# TODO next step : 
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
 # towers, projectiles and enemies should use pre-loaded textures when initialized
 # high quality mjolnir explosion
+# move effects, shields and health bars into 1 or 2 SpriteLists
 # abilities and shop items get highlighted on mouse-over
 # score calculation
 # vfx for enemies exploding
 # wave system compatible with infinite free-play
 # free-play mode
-# radiho towers' projectiles become re-targeting
 # smoother trajectories for floating enemies
 # map 5
 # more towers
