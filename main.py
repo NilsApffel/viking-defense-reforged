@@ -2,9 +2,9 @@ import csv, os, sys
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
 import arcade
-from random import randint, random
-from math import floor
 from copy import deepcopy
+from math import floor
+from random import randint, random
 from abilities import MjolnirAbility, SellTowerAbility
 from constants import *
 from grid import *
@@ -15,7 +15,7 @@ from towers import Tower, WatchTower, Catapult, OakTreeTower, TempleOfThor
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.3.1 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.3.2 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -119,6 +119,7 @@ class GameWindow(arcade.Window):
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()    
+        self.time_to_next_wave = 75 # seconds
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -524,6 +525,11 @@ class GameWindow(arcade.Window):
             if self.wave_number+1-k < len(self.wave_list):
                 self.wave_previews_text[k][0].text = 'Attack #'+str(self.wave_number+2-k)+'/'+str(len(self.wave_list))
                 self.wave_previews_text[k][1].text = self.wave_list[self.wave_number+1-k].describe()
+                if k==1 and not self.wave_is_happening:
+                   mins_left = str(int(self.time_to_next_wave//60))
+                   secs_left = str(int(self.time_to_next_wave) % 60)
+                   time_left = mins_left+':'+secs_left if len(secs_left)==2 else mins_left+':0'+secs_left
+                   self.wave_previews_text[k][0].text += ' : in ' + time_left
             else:
                 self.wave_previews_text[k][0].text = ''
                 self.wave_previews_text[k][1].text = ''
@@ -889,6 +895,11 @@ class GameWindow(arcade.Window):
             # check if wave is over 
             elif self.enemies_left_to_spawn == 0 and len(self.enemies_list.sprite_list) == 0:
                 self.wave_is_happening = False
+                self.time_to_next_wave = 75
+        else: # wave is not happening
+            self.time_to_next_wave -= delta_time
+            if self.time_to_next_wave <= 0:
+                self.start_wave()
 
     def perform_tower_attacks(self, delta_time: float):
         # sort enemies by increasing priority (low priority will be attacked first)
@@ -1045,10 +1056,7 @@ class GameWindow(arcade.Window):
         # 2.1 Next Wave Start Button
         if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
             if not self.wave_is_happening:
-                self.wave_is_happening = True
-                self.wave_number += 1
-                self.enemies_left_to_spawn = len(self.wave_list[self.wave_number-1].enemies_list)
-                self.next_enemy_index = 0
+                self.start_wave()
         # 2.2 Shop tab change
         elif (x > MAP_WIDTH) and (y >= SHOP_TOPS[0]): 
             if x <= MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)/3:
@@ -1295,6 +1303,15 @@ class GameWindow(arcade.Window):
         self.ability_selected = 0
         self.shop_item_selected = 0
 
+    def start_wave(self):
+        self.wave_is_happening = True
+        self.wave_number += 1
+        self.enemies_left_to_spawn = len(self.wave_list[self.wave_number-1].enemies_list)
+        self.next_enemy_index = 0
+        for ability in self.abilities_list:
+            if not (ability is None):
+                ability.cooldown_remaining -= max(self.time_to_next_wave, 0)
+
 
 if __name__ == "__main__":
     app = GameWindow()
@@ -1303,7 +1320,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step : Stone Head tower
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
