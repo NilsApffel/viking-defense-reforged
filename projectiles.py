@@ -1,5 +1,5 @@
 from arcade import Sprite
-from math import sqrt
+from math import atan2, pi, sqrt
 from constants import MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug
 from enemies import Enemy
 from explosions import Explosion
@@ -10,7 +10,7 @@ class Projectile(Sprite):
                     target: Enemy = None, target_x: float = None, target_y: float = None, 
                     damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10, 
                     impact_effect: Explosion = None, is_retargeting: bool = False, 
-                    parent_tower: Sprite = None):
+                    parent_tower: Sprite = None, effects: list = None):
         super().__init__(filename=filename, scale=scale, center_x=center_x, center_y=center_y, angle=angle)
         self.speed = speed
         self.angle_rate = angle_rate
@@ -24,6 +24,10 @@ class Projectile(Sprite):
         self.impact_effect = impact_effect
         self.is_retargeting = (is_retargeting and not (parent_tower is None))
         self.parent_tower = parent_tower
+        if effects:
+            self.effects = effects
+        else:
+            self.effects = []
 
         if not self.has_static_target:
             self.target_x = self.target.center_x
@@ -63,7 +67,10 @@ class Projectile(Sprite):
                 else:
                     self.target=None
                     self.has_static_target = True
-        self.angle += self.angle_rate*delta_time
+        if self.angle_rate:
+            self.angle += self.angle_rate*delta_time
+        else:
+            self.angle = atan2(self.velocity[1], self.velocity[0])*180/pi
         if ((self.center_x > MAP_WIDTH + 20) or (self.center_x < -20) or 
                 (self.center_y > SCREEN_HEIGHT + 20) or (self.center_y < CHIN_HEIGHT - 20)):
             self.remove_from_sprite_lists()

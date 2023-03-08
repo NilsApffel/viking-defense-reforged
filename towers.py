@@ -3,6 +3,7 @@ from arcade.color import LIGHT_GRAY
 from math import atan2, pi
 from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug
 from copy import deepcopy
+from effects import SlowDown
 from enemies import Enemy
 from explosions import Explosion
 from projectiles import Projectile
@@ -227,6 +228,28 @@ class OakTreeTower(Tower):
         leaf = self.make_runed_projectile(leaf)
         return 0, [leaf] # damage will be dealt by projectile
 
+
+class StoneHead(Tower):
+    def __init__(self):
+        super().__init__(filename='./images/stone_head_top.png', cooldown=3, 
+                         range=112, damage=0, name='Stone Head', 
+                         description="Fires at flying & floating\nHoming. Slows down enemies", 
+                         can_see_types=['flying', 'floating'], has_rotating_top=True, 
+                         projectiles_are_homing=True)
+        
+    def make_another(self):
+        return StoneHead()
+    
+    def attack(self, enemy: Enemy):
+        super().attack(enemy)
+        wind_gust = Projectile(
+            filename="images/wind-gust.png", scale=1.0, speed=2.0, angle_rate=0,
+            center_x=self.center_x, center_y=self.center_y, 
+            target=enemy, damage=self.damage, effects=[SlowDown()]
+        )
+        wind_gust = self.make_runed_projectile(wind_gust)
+        return 0, [wind_gust] # effect will be dealt by projectile
+        
 
 class BigBuilding(Tower):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 120, 

@@ -1,7 +1,8 @@
-from arcade import Sprite, draw_lrtb_rectangle_filled, draw_scaled_texture_rectangle, load_texture
+from arcade import Sprite, SpriteList, draw_lrtb_rectangle_filled, draw_scaled_texture_rectangle, load_texture
 from arcade.color import RED, GREEN
 from math import sqrt, atan2, pi
 from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE
+from effects import Effect
 from grid import *
 from pathfind import find_path
 
@@ -21,6 +22,7 @@ class Enemy(Sprite):
         self.regen_rate = 0.0
         self.speed = speed
         self.velocity = (0, -speed)
+        self.temporary_effects = SpriteList()
 
     def draw_health_bar(self):
         barheight = 4
@@ -67,9 +69,22 @@ class Enemy(Sprite):
         if 'regen' in self.modifier.lower():
             self.current_health += self.regen_rate * delta_time
             self.current_health = min(self.current_health, self.max_health)
+
+        # go through effects in reverse order because some of them might get removed in this loop
+        n = len(self.temporary_effects)
+        for k in range(n):
+            effect = self.temporary_effects[n-k-1]
+            effect.center_x = self.center_x
+            effect.center_y = self.center_y
+            self.velocity = (effect.speed_multiplier*self.velocity[0], 
+                             effect.speed_multiplier*self.velocity[1])
+            effect.on_update(delta_time)
+            if effect.duration_remaining <= 0:
+                effect.remove_from_sprite_lists()
         return super().on_update(delta_time)
     
     def draw_effects(self):
+        # 1. Permanent buff effects
         if self.is_flying:
             shield_size = max(self.width, self.height*0.6) + 4
             vertical_offset = 2
@@ -94,6 +109,12 @@ class Enemy(Sprite):
                 scale=shield_scale
             )
 
+        # 2. temporary debuf effects
+        self.temporary_effects.draw()
+
+    def set_effect(self, effect: Effect):
+        effect.scale = 1.2*max(self.width, self.height)/50
+        self.temporary_effects.append(effect)
 
 class FlyingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
@@ -101,6 +122,7 @@ class FlyingEnemy(Enemy):
 
     def on_update(self, delta_time: float = None):
         self.priority = self.center_y
+        self.velocity = (0, -self.speed)
         super().on_update(delta_time)
 
 

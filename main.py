@@ -11,11 +11,11 @@ from grid import *
 from projectiles import Projectile
 from runes import Raidho
 from shop import ShopItem
-from towers import Tower, WatchTower, Catapult, OakTreeTower, TempleOfThor
+from towers import Tower, WatchTower, Catapult, OakTreeTower, StoneHead, TempleOfThor
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.3.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.3.3 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -147,8 +147,8 @@ class GameWindow(arcade.Window):
                         thumbnail="images/SacredOakThumb.png", scale = 1,
                         cost=120, tower=OakTreeTower()), 
                 ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
-                        cost=180, tower=Tower(), quest="Plant 5 Sacred Oaks", 
+                        thumbnail="images/StoneHeadThumb.png", scale = 1.0,
+                        cost=180, tower=StoneHead(), quest="Plant 5 Sacred Oaks", 
                         quest_thresh=5, quest_var_name="current oaks"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png", scale = 0.3,
@@ -945,6 +945,8 @@ class GameWindow(arcade.Window):
                 dy = (enemy.center_y-projectile.target_y)
                 dist2 = dx**2 + dy**2
                 if dist2 <= projectile.splash_radius**2:
+                    for effect in projectile.effects:
+                        enemy.set_effect(deepcopy(effect))
                     earnings = enemy.take_damage_give_money(damage=projectile.damage)
                     self.money += earnings
                     # increment quest trackers
@@ -962,6 +964,8 @@ class GameWindow(arcade.Window):
             if projectile.target is None:
                 projectile.remove_from_sprite_lists()
                 return
+            for effect in projectile.effects:
+                projectile.target.set_effect(deepcopy(effect))
             earnings = projectile.target.take_damage_give_money(projectile.damage)
             self.money += earnings
             # increment quest trackers
@@ -1320,12 +1324,12 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : Stone Head tower
+# TODO next step : Sparkling pillar tower
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
-# towers, projectiles and enemies should use pre-loaded textures when initialized
+# towers, projectiles, effects and enemies should use pre-loaded textures when initialized
 # high quality mjolnir explosion
 # move effects, shields and health bars into 1 or 2 SpriteLists
 # abilities and shop items get highlighted on mouse-over
@@ -1336,6 +1340,5 @@ if __name__ == "__main__":
 # smoother trajectories for floating enemies
 # map 5
 # more towers
-# enchants
 # platform ability
 # floating enemies re-calc their path when a platform is placed
