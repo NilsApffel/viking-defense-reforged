@@ -11,11 +11,11 @@ from grid import *
 from projectiles import Projectile
 from runes import Raidho
 from shop import ShopItem
-from towers import Tower, WatchTower, Catapult, OakTreeTower, StoneHead, TempleOfThor
+from towers import Tower, WatchTower, Catapult, OakTreeTower, StoneHead, SparklingPillar, TempleOfThor
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.3.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.3.4 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -98,7 +98,7 @@ class GameWindow(arcade.Window):
             return
         self.game_state = 'playing'
         self.wave_number = 0
-        self.money = 500
+        self.money = 500 + 1500*is_debug
         self.population = 10
         self.enemies_left_to_spawn = 0
         self.next_enemy_index = 0
@@ -124,63 +124,63 @@ class GameWindow(arcade.Window):
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/WatchtowerThumb.png", scale = 1,
+                        thumbnail="images/WatchtowerThumb.png",
                         cost=100, tower=WatchTower()), 
-                ShopItem(is_unlocked=False, is_unlockable=True, # real
-                        thumbnail="images/catapult_cool.png", scale = 1,
+                ShopItem(is_unlocked=False, is_unlockable=True,
+                        thumbnail="images/catapult_cool.png",
                         cost=200, tower=Catapult(), quest="Destroy 10 enemies", 
                         quest_thresh=10, quest_var_name="enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=500, tower=Tower(), quest="Destroy 25 flying enemies", 
                         quest_thresh=25, quest_var_name="flying enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=650, tower=Tower(), quest="Place 10 platforms", 
                         quest_thresh=10, quest_var_name="platforms placed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=1000, tower=Tower(), quest="Inflame 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies inflamed")
             ], [ # start Sacred towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/SacredOakThumb.png", scale = 1,
+                        thumbnail="images/SacredOakThumb.png",
                         cost=120, tower=OakTreeTower()), 
-                ShopItem(is_unlocked=False, is_unlockable=True, # placeholder
-                        thumbnail="images/StoneHeadThumb.png", scale = 1.0,
+                ShopItem(is_unlocked=False, is_unlockable=True, 
+                        thumbnail="images/StoneHeadThumb.png",
                         cost=180, tower=StoneHead(), quest="Plant 5 Sacred Oaks", 
                         quest_thresh=5, quest_var_name="current oaks"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
-                        cost=400, tower=Tower(), quest="Destroy 4 enemies with 1 mjolnir", 
+                ShopItem(is_unlocked=False, is_unlockable=False, 
+                        thumbnail="images/SparklingPillarThumb.png",
+                        cost=400, tower=SparklingPillar(), quest="Destroy 4 enemies with 1\nmjolnir", 
                         quest_thresh=4, quest_var_name="max mjolnir kills"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=650, tower=Tower(), quest="Destroy 3 submerged enemies", 
                         quest_thresh=3, quest_var_name="submerged enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=1000, tower=Tower(), quest="Freeze 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies frozen")
             ], [ # start Buildings
-                ShopItem(is_unlocked=False, is_unlockable=True, # real
-                        thumbnail="images/ThorTempleThumb.png", scale = 1,
+                ShopItem(is_unlocked=False, is_unlockable=True,
+                        thumbnail="images/ThorTempleThumb.png",
                         cost=300, tower=TempleOfThor(), quest="Destroy 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=500, tower=Tower(), quest="Build 15 structures", 
                         quest_thresh=15, quest_var_name="current structures"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=700, tower=Tower(), quest="Enchant 12 towers with runes", 
                         quest_thresh=12, quest_var_name="current enchanted towers"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=1200, tower=Tower(), quest="Reach 3000 gold", 
                         quest_thresh=3000, quest_var_name="current gold"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png", scale = 0.3,
+                        thumbnail="images/question.png",
                         cost=1500, tower=Tower(), quest="Build 3 temples", 
                         quest_thresh=3, quest_var_name="current temples")
             ]]
@@ -395,6 +395,7 @@ class GameWindow(arcade.Window):
             tower.draw_runes()
 
         self.enemies_list.draw()
+        self.ctx.flush() 
         for enemy in self.enemies_list.sprite_list:
             enemy.draw_effects()
             enemy.draw_health_bar()
@@ -1324,7 +1325,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : Sparkling pillar tower
+# TODO next step : retire use of draw_scaled_texture_rectangle and draw_lrtb_rectangle_filled
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)

@@ -51,5 +51,8 @@ RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting abil
                      "Not implemented"]
 
 ASSETS = {'raidho-r': load_texture('./images/raidho-r.png')}
+zaps_names = ['zap-'+str(10*k+10) for k in range(12)]
+zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]
+ZAPS = dict(zip(zaps_names, zaps_list))
 
 is_debug = False

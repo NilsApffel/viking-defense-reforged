@@ -1,7 +1,7 @@
 from arcade import Sprite, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
-from math import atan2, pi
-from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug
+from math import atan2, pi, sqrt
+from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS
 from copy import deepcopy
 from effects import SlowDown
 from enemies import Enemy
@@ -250,6 +250,42 @@ class StoneHead(Tower):
         wind_gust = self.make_runed_projectile(wind_gust)
         return 0, [wind_gust] # effect will be dealt by projectile
         
+
+class SparklingPillar(Tower):
+    def __init__(self):
+        super().__init__(filename='./images/sparkling_pillar.png', cooldown=0.3, 
+                         range=75, damage=2, name='Sparkling Pillar', 
+                         description="Fires at flying\nNever missies", 
+                         can_see_types=['flying'], has_rotating_top=False)
+        
+    def make_another(self):
+        return SparklingPillar()
+    
+    def attack(self, enemy: Enemy):
+        self.animation_ontime_remaining = 0.1
+        self.enemy_x = enemy.center_x
+        self.enemy_y = enemy.center_y
+        return super().attack(enemy)
+    
+    def draw_shoot_animation(self):
+        cx = (self.center_x + self.enemy_x)/2
+        cy = (self.center_y + self.enemy_y)/2
+        dx = self.enemy_x - self.center_x
+        dy = self.enemy_y - self.center_y
+        zap_num = round(sqrt(dx**2 + dy**2)/10)*10
+        ZAPS['zap-'+str(zap_num)].draw_scaled(
+            center_x=cx, 
+            center_y=cy, 
+            angle=atan2(dy, dx)*180/pi
+        )
+
+    def on_update(self, delta_time: float = 1 / 60):
+        self.animation_ontime_remaining -= delta_time
+        if self.animation_ontime_remaining < 0:
+            self.animation_ontime_remaining = 0
+        return super().on_update(delta_time)
+
+
 
 class BigBuilding(Tower):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 120, 

@@ -114,6 +114,10 @@ class Enemy(Sprite):
 
     def set_effect(self, effect: Effect):
         effect.scale = 1.2*max(self.width, self.height)/50
+        for eff in self.temporary_effects.sprite_list:
+            if eff.name == effect.name:
+                eff.duration_remaining = effect.duration
+                return
         self.temporary_effects.append(effect)
 
 class FlyingEnemy(Enemy):

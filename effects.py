@@ -1,9 +1,10 @@
 from arcade import Sprite
 
 class Effect(Sprite):
-    def __init__(self, filename: str = None, damage_per_second: float = 0, 
+    def __init__(self, name, filename: str = None, damage_per_second: float = 0, 
                  speed_multiplier: float = 1, duration: float = 3, angle_rate: float=720):
         super().__init__(filename=filename, scale=1)
+        self.name = name
         self.damage_per_second = damage_per_second
         self.speed_multiplier = speed_multiplier
         self.angle_rate = angle_rate
@@ -17,5 +18,5 @@ class Effect(Sprite):
 
 class SlowDown(Effect):
     def __init__(self):
-        super().__init__(filename='./images/slowdown.png', damage_per_second=0, 
-                         speed_multiplier=0.5, duration=5, angle_rate=720)
+        super().__init__(name='slowdown', filename='./images/slowdown.png', damage_per_second=0, 
+                         speed_multiplier=0.6, duration=5, angle_rate=720)
