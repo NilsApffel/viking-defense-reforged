@@ -1,7 +1,10 @@
-from arcade import (draw_arc_filled, draw_circle_filled, draw_circle_outline, 
-draw_scaled_texture_rectangle, load_texture, make_transparent_color)
-from arcade.color import YELLOW, RED
-from constants import CELL_SIZE, CHIN_HEIGHT, MAP_WIDTH, TRANSPARENT_BLACK
+from arcade import (Sprite, draw_arc_filled, draw_circle_filled, draw_circle_outline, 
+draw_scaled_texture_rectangle, load_texture, make_transparent_color, draw_rectangle_filled)
+from arcade.color import YELLOW, RED, GREEN
+from copy import deepcopy
+from constants import ASSETS, CELL_SIZE, CHIN_HEIGHT, MAP_TARGET_J, MAP_WIDTH, TRANSPARENT_BLACK
+from grid import nearest_cell_ij, cell_centerxy
+from pathfind import find_path
 from towers import Projectile, Explosion
 
 class Ability():
@@ -117,3 +120,71 @@ class MjolnirAbility(Ability):
         )
         super().trigger(x, y)
         return mjolnir
+
+
+class PlatformAbility(Ability):
+    def __init__(self, map_reference: list = None) -> None:
+        super().__init__(name='platform', icon_file='./images/platform-icon.png', 
+                         preview_image_file='./images/platform.png', 
+                         cooldown = 90.0, range = 0.1)
+        self.map = map_reference
+        self.safe_cell_tuples = []
+        self.unsafe_cell_tuples = []
+        
+    def preview(self, x, y):
+        i, j = nearest_cell_ij(x, y)
+        cx, cy = cell_centerxy(i, j)
+        can_be_placed = (self.map[i][j].terrain_type == "shallow") and not(self.placement_would_block_path(i,j))
+        color = GREEN if can_be_placed else RED
+        draw_rectangle_filled(cx, cy, 36, 36, color)
+        draw_scaled_texture_rectangle(cx, cy, texture=ASSETS["platform"])
+
+    def trigger(self, x, y):
+        i, j = nearest_cell_ij(x, y)
+        cx, cy = cell_centerxy(i, j)
+        can_be_placed = (self.map[i][j].terrain_type == "shallow") and not(self.placement_would_block_path(i,j))
+        if can_be_placed:
+            self.map[i][j].terrain_type = "ground"
+            self.safe_cell_tuples = []
+            super().trigger(x, y)
+            return Sprite(center_x=cx, center_y=cy, texture=ASSETS["platform"])
+        
+    def placement_would_block_path(self, i, j):
+        """Returns True if placing a platform at (i,j) results in a map where some enemies would have no path to the exit"""
+        if j==0:
+            return True
+        
+        # See if we've already tested this cell
+        if (i,j) in self.safe_cell_tuples:
+            return False
+        if (i,j) in self.unsafe_cell_tuples:
+            return True
+        
+        # form a list of test cases / test cells where enemies could spawn
+        all_spawn_cells_js = []
+        for test_j in range(len(self.map[0])):
+            if self.map[0][test_j] == "shallow" or self.map[0][test_j] == "deep":
+                all_spawn_cells_js.append(test_j)
+        minimal_spawn_js = []
+        for test_j in all_spawn_cells_js:
+            if not (test_j+1 in all_spawn_cells_js):
+                minimal_spawn_js.append(test_j)
+
+        hypothetical_map = deepcopy(self.map)
+        hypothetical_map[i][j].terrain_type = "ground"
+
+        # test route from each individual spawn cell
+        for spawn_j in minimal_spawn_js:
+            try:
+                find_path(
+                    start_cell=(0, spawn_j), 
+                    target_cell=(15, MAP_TARGET_J),
+                    map=hypothetical_map
+                )
+            except ArithmeticError:
+                self.unsafe_cell_tuples.append((i,j))
+                return True
+        # if we get to this point, then even with this cell added, all enemies would still have a valid path
+        self.safe_cell_tuples.append((i,j))
+        return False
+

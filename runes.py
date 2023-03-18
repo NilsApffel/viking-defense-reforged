@@ -31,7 +31,16 @@ class Rune():
 class Raidho(Rune):
     def __init__(self) -> None:
         super().__init__(name='raidho', icon_file='./images/raidho-icon.png', 
-                            preview_image_file='./images/raidho-preview.png', cost=30)
+                            preview_image_file='./images/rune-preview.png', cost=30)
     
     def make_another(self):
         return Raidho()
+
+
+class Hagalaz(Rune):
+    def __init__(self) -> None:
+        super().__init__(name='hagalaz', icon_file='./images/hagalaz-icon.png', 
+                            preview_image_file='./images/rune-preview.png', cost=50)
+    
+    def make_another(self):
+        return Hagalaz()

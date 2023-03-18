@@ -5,17 +5,19 @@ import arcade
 from copy import deepcopy
 from math import floor
 from random import randint, random
-from abilities import MjolnirAbility, SellTowerAbility
+from abilities import MjolnirAbility, SellTowerAbility, PlatformAbility
 from constants import *
 from grid import *
 from projectiles import Projectile
-from runes import Raidho
+from runes import Raidho, Hagalaz
 from shop import ShopItem
-from towers import Tower, WatchTower, Catapult, OakTreeTower, StoneHead, SparklingPillar, TempleOfThor
+from towers import (Tower, WatchTower, Catapult, 
+                    OakTreeTower, StoneHead, SparklingPillar, 
+                    TempleOfThor, Forge)
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.3.5 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.0 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -45,6 +47,7 @@ class GameWindow(arcade.Window):
         self.effects_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()
         self.map_shape_list = arcade.ShapeElementList()
+        self.platforms = arcade.SpriteList()
         self.all_health_bars = arcade.SpriteList()
         self.enemy_effects = arcade.SpriteList()
         self.paused = False
@@ -61,8 +64,8 @@ class GameWindow(arcade.Window):
         }
         self.read_score_file()
         self.init_text()
-        self.abilities_list = [SellTowerAbility(), MjolnirAbility(), None, None, None]
-        self.runes_list = [Raidho(), None, None, None, None, None, None]
+        self.abilities_list = [SellTowerAbility(), MjolnirAbility(), PlatformAbility(), None, None]
+        self.runes_list = [Raidho(), Hagalaz(), None, None, None, None, None]
         if is_debug:
             self.perf_graph = arcade.PerfGraph(width=80, height=80, background_color=TRANSPARENT_BLACK)
             self.perf_graph.center_x = 40
@@ -116,6 +119,7 @@ class GameWindow(arcade.Window):
         self.map_shape_list = arcade.ShapeElementList()
         self.load_map("./files/map"+str(map_number)+".txt")
         self.load_waves("./files/map"+str(map_number)+"CampaignWaves.csv")
+        self.platforms = arcade.SpriteList()
         self.all_health_bars = arcade.SpriteList()
         self.enemy_effects = arcade.SpriteList()
         self.enemies_list = arcade.SpriteList()
@@ -171,9 +175,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/ThorTempleThumb.png",
                         cost=300, tower=TempleOfThor(), quest="Destroy 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies killed"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png",
-                        cost=500, tower=Tower(), quest="Build 15 structures", 
+                ShopItem(is_unlocked=False, is_unlockable=False,
+                        thumbnail="images/ForgeThumb.png",
+                        cost=500, tower=Forge(), quest="Build 15 structures", 
                         quest_thresh=15, quest_var_name="current structures"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png",
@@ -242,6 +246,8 @@ class GameWindow(arcade.Window):
         # load the map image, if it exists
         if self.map_number > 0 and not is_debug:
             self.map_image = arcade.load_texture('./images/map'+str(self.map_number)+'.png')
+
+        self.abilities_list[2] = PlatformAbility(map_reference=self.map_cells)
 
     def load_waves(self, filename):
         self.wave_list = []
@@ -450,12 +456,7 @@ class GameWindow(arcade.Window):
         else:
             # draw the map using colored rectangles representing terrain type of each cell
             self.map_shape_list.draw()
-        # individual cells (too slow, deprecated)
-        # for i in range(len(self.map_cells)-1):
-        #     for j in range(len(self.map_cells[i])):
-        #         l, r, t, b = cell_lrtb(i, j)
-        #         c = cell_color(self.map_cells[i][j].terrain_type)
-        #         arcade.draw_lrtb_rectangle_filled(left=l, right=r, top=t, bottom=b, color=c)
+        self.platforms.draw()
 
     def draw_range(self, tower):
         if tower.is_2x2:
@@ -852,11 +853,16 @@ class GameWindow(arcade.Window):
                 ability.on_update(delta_time)
         # update unlocks
         thor_temples = 0
+        forges = 0
         for tower in self.towers_list.sprite_list:
             if tower.name == "Temple of Thor":
                 thor_temples += 1
+            elif tower.name == "Forge":
+                forges += 1
         self.abilities_unlocked[1] = (thor_temples > 0) or is_debug
+        self.abilities_unlocked[2] = (forges > 0) or is_debug
         self.runes_unlocked[0] = (thor_temples > 0) or is_debug
+        self.runes_unlocked[1] = (forges > 0) or is_debug
 
     def perform_enemy_actions(self):
         # check if any enemies get kills
@@ -1067,12 +1073,22 @@ class GameWindow(arcade.Window):
             elif self.ability_selected > 0:
                 if self.ability_selected == 1:
                     self.attempt_tower_sell(x, y)
-                elif self.ability_selected == 2:
+                elif self.ability_selected == 2: # Mjolnir projectile
                     if self.abilities_list[1].cooldown_remaining <= 0.01:
                         mjolnir = self.abilities_list[1].trigger(x, y)
                         self.projectiles_list.append(mjolnir)
                         self.all_sprites.append(mjolnir)
                         self.ability_selected = 0
+                elif self.ability_selected == 3: # Platform placement
+                    if self.abilities_list[2].cooldown_remaining <= 0.01:
+                        new_platform = self.abilities_list[2].trigger(x, y)
+                        if new_platform:
+                            self.platforms.append(new_platform)
+                            self.all_sprites.append(new_platform)
+                            self.ability_selected = 0
+                            for enemy in self.enemies_list:
+                                if not (enemy.is_flying):
+                                    enemy.calc_path(map=self.map_cells)
             
         # 2. Deal with button clicks 
         # 2.1 Next Wave Start Button
@@ -1342,7 +1358,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : add Forge building
+# TODO next step : add cost of runes under their icon
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)

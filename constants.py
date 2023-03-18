@@ -35,24 +35,27 @@ home_folder = Path.home()
 SCORE_FOLDER = home_folder.joinpath('./AppData/Local/viking-defense-refoged/')
 SCORE_FILE = SCORE_FOLDER.joinpath('./scores.csv')
 
-ABILITY_NAMES = ["Dismantle", "Mjolnir"] + ["Not implemented"]*3
+ABILITY_NAMES = ["Dismantle", "Mjolnir", "Platform"] + ["Not implemented"]*2
 ABILITY_DESCRIPTIONS = ["Dismantles tower or building. You get a refund.\n\nRefund : 50%", 
-                        "Thor's legendary hammer. Damages all enemies in range.\nDamage: 100\nCooldown: 2 min", 
-                        "Not implemented", 
+                        "Thor's legendary hammer. Damages all enemies in range.\nDamage: 100\nCooldown: 2min", 
+                        "Sets up a barrier platform in a shallow water cell. You may build on the platforms.\nCooldown: 1min30sec", 
                         "Not implemented", 
                         "Not implemented"]
 
-RUNE_NAMES = ["Raidho"]  + ["Not implemented"]*6
+RUNE_NAMES = ["Raidho"] + ["Hagalaz"] + ["Not implemented"]*5
 RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting ability."+
                      "\n\nInsert to a tower",
-                     "Not implemented", 
+                     "Increases tower damage\n\nDamage: +25%\nInsert to a tower", 
                      "Not implemented", 
                      "Not implemented", 
                      "Not implemented", 
                      "Not implemented", 
                      "Not implemented"]
 
-ASSETS = {'raidho-r': load_texture('./images/raidho-r.png')}
+ASSETS = {'platform': load_texture('./images/platform.png'),
+          'raidho-r': load_texture('./images/raidho-r.png'), 
+          'hagalaz-h': load_texture('./images/hagalaz-h.png'),
+}
 zaps_names = ['zap-'+str(10*k+10) for k in range(12)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]
 ZAPS = dict(zip(zaps_names, zaps_list))

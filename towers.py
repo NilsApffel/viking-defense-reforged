@@ -54,6 +54,13 @@ class Tower(Sprite):
                 texture=ASSETS['raidho-r'],
                 scale=1.0,
             )
+        elif self.rune.name == 'hagalaz':
+            draw_scaled_texture_rectangle(
+                center_x=self.center_x+10,
+                center_y=self.center_y-10,
+                texture=ASSETS['hagalaz-h'],
+                scale=1.0,
+            )
 
     def on_update(self, delta_time: float = 1 / 60):
         if self.does_rotate:
@@ -119,6 +126,8 @@ class Tower(Sprite):
         self.rune = rune
         if rune.name == 'raidho':
             self.projectiles_are_homing = True
+        elif rune.name == 'hagalaz':
+            self.damage *= 1.25
 
     def make_runed_projectile(self, projectile: Projectile):
         if self.has_rune('raidho'):
@@ -319,3 +328,14 @@ class TempleOfThor(BigBuilding):
     def make_another(self):
         return TempleOfThor()
     
+
+class Forge(BigBuilding):
+    def __init__(self):
+        super().__init__(filename="images/Forge-transparent.png", scale=1.0, cooldown=90, 
+                            name="Forge", 
+                            description="Grants Platform ability\nGrants Hagalaz rune", 
+                            unlocked_rune_indxs=[1], 
+                            unlocked_power_indxs=[1])
+
+    def make_another(self):
+        return Forge()
