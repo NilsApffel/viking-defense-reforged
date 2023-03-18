@@ -1,7 +1,7 @@
-from arcade import Sprite, SpriteList, draw_lrtb_rectangle_filled, draw_scaled_texture_rectangle, load_texture
+from arcade import Sprite, SpriteSolidColor, SpriteList, draw_scaled_texture_rectangle, load_texture
 from arcade.color import RED, GREEN
 from math import sqrt, atan2, pi
-from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE
+from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR
 from effects import Effect
 from grid import *
 from pathfind import find_path
@@ -23,22 +23,10 @@ class Enemy(Sprite):
         self.speed = speed
         self.velocity = (0, -speed)
         self.temporary_effects = SpriteList()
-
-    def draw_health_bar(self):
-        barheight = 4
-        barwidth = self.max_health
-        draw_lrtb_rectangle_filled(
-            left  = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
-            right = self.center_x + barwidth/2,
-            top = self.top + barheight, 
-            bottom = self.top, 
-            color=RED)
-        draw_lrtb_rectangle_filled(
-            left  = self.center_x - barwidth/2,
-            right = self.center_x - barwidth/2 + barwidth*(self.current_health/self.max_health),
-            top = self.top + barheight, 
-            bottom = self.top, 
-            color=GREEN)
+        self.greenbar = SpriteSolidColor(width=round(HBAR_WIDTH_FACTOR*self.max_health), height=HBAR_HEIGHT, color=GREEN)
+        self.redbar = SpriteSolidColor(width=1, height=HBAR_HEIGHT, color=RED)
+        self.redbar.visible = False
+        self.buff_sprite = None
 
     def take_damage_give_money(self, damage: float):
         if 'shield' in self.modifier.lower():
@@ -59,11 +47,40 @@ class Enemy(Sprite):
     def set_modifier(self, modifier: str):
         old_modifier = self.modifier
         self.modifier = modifier
+
+        if old_modifier != modifier:
+            if self.buff_sprite:
+                self.buff_sprite.remove_from_sprite_lists()
+                self.buff_sprite = None
+
         if ('fast' in modifier) and not ('fast' in old_modifier):
             self.speed *= 1.5
             self.velocity = (self.velocity[0]*1.5, self.velocity[1]*1.5)
         if ('regen' in modifier) and not ('regen' in old_modifier):
             self.regen_rate = self.max_health / 60
+
+        effect_texture = None
+        if 'ice shield' in self.modifier:
+            effect_texture = ICE_SHIELD_TEXTURE
+        elif 'fire shield' in self.modifier:
+            effect_texture = FIRE_SHIELD_TEXTURE
+        elif 'regen' in self.modifier:
+            effect_texture = REGEN_TEXTURE
+        if self.is_flying:
+            shield_size = max(self.width, self.height*0.6) + 4
+            vertical_offset = 2
+        else:
+            shield_size = max(self.width, self.height) + 4
+            vertical_offset = 0
+        shield_scale = shield_size / 64
+
+        if effect_texture:
+            self.buff_sprite = Sprite(
+                center_x=self.center_x, 
+                center_y=self.center_y + vertical_offset, 
+                texture=effect_texture, 
+                scale=shield_scale
+            )
 
     def on_update(self, delta_time: float = 1 / 60):
         if 'regen' in self.modifier.lower():
@@ -81,44 +98,48 @@ class Enemy(Sprite):
             effect.on_update(delta_time)
             if effect.duration_remaining <= 0:
                 effect.remove_from_sprite_lists()
+        if self.buff_sprite:
+            self.buff_sprite.center_x = self.center_x
+            self.buff_sprite.center_y = self.center_y
+        self.update_health_bar()
         return super().on_update(delta_time)
     
-    def draw_effects(self):
-        # 1. Permanent buff effects
-        if self.is_flying:
-            shield_size = max(self.width, self.height*0.6) + 4
-            vertical_offset = 2
+    def update_health_bar(self):
+        full_width = round(self.max_health*HBAR_WIDTH_FACTOR)
+        green_width = round(self.current_health*HBAR_WIDTH_FACTOR)
+        red_width = full_width - green_width
+        if red_width >= 1: #Workaround for Sprites not supporting zero width
+            self.redbar.width = red_width
+            if not self.redbar.visible:
+                self.redbar.visible = True
         else:
-            shield_size = max(self.width, self.height) + 4
-            vertical_offset = 0
-        shield_scale = shield_size / 64
+            self.redbar.width = 1
+            if self.redbar.visible:
+                self.redbar.visible = False
+        self.redbar.center_x = self.center_x + full_width/2 - red_width/2
+        self.redbar.center_y = self.top + HBAR_HEIGHT/2
 
-        effect_texture = None
-        if 'ice shield' in self.modifier:
-            effect_texture = ICE_SHIELD_TEXTURE
-        elif 'fire shield' in self.modifier:
-            effect_texture = FIRE_SHIELD_TEXTURE
-        elif 'regen' in self.modifier:
-            effect_texture = REGEN_TEXTURE
+        self.greenbar.width = green_width
+        self.greenbar.center_x = self.center_x - full_width/2 + green_width/2
+        self.greenbar.center_y = self.top + HBAR_HEIGHT/2
 
-        if effect_texture:
-            draw_scaled_texture_rectangle(
-                center_x=self.center_x, 
-                center_y=self.center_y + vertical_offset, 
-                texture=effect_texture, 
-                scale=shield_scale
-            )
-
-        # 2. temporary debuf effects
-        self.temporary_effects.draw()
-
-    def set_effect(self, effect: Effect):
+    def set_effect(self, effect: Effect) -> bool:
         effect.scale = 1.2*max(self.width, self.height)/50
         for eff in self.temporary_effects.sprite_list:
             if eff.name == effect.name:
                 eff.duration_remaining = effect.duration
-                return
+                return False # no new effect added
         self.temporary_effects.append(effect)
+        return True # 1 new effect added
+
+    def remove_from_sprite_lists(self):
+        self.greenbar.remove_from_sprite_lists()
+        self.redbar.remove_from_sprite_lists()
+        for eff in self.temporary_effects:
+            eff.remove_from_sprite_lists()
+        if self.buff_sprite:
+            self.buff_sprite.remove_from_sprite_lists()
+        return super().remove_from_sprite_lists()
 
 class FlyingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):

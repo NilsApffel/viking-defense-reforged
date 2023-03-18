@@ -15,7 +15,7 @@ from towers import Tower, WatchTower, Catapult, OakTreeTower, StoneHead, Sparkli
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.3.4 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.3.5 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -44,7 +44,9 @@ class GameWindow(arcade.Window):
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()
-        self.shape_list = arcade.ShapeElementList()
+        self.map_shape_list = arcade.ShapeElementList()
+        self.all_health_bars = arcade.SpriteList()
+        self.enemy_effects = arcade.SpriteList()
         self.paused = False
         self.assets = {
             "attack_button" : arcade.load_texture('./images/NextWaveButton.png'),
@@ -111,9 +113,11 @@ class GameWindow(arcade.Window):
         self.ability_selected = 0 # 0 if none selected, otherwise index+1 of selection
         self.runes_unlocked = [False, False, False, False, False, False, False]
         self.abilities_unlocked = [True, False, False, False, False]
-        self.shape_list = arcade.ShapeElementList()
+        self.map_shape_list = arcade.ShapeElementList()
         self.load_map("./files/map"+str(map_number)+".txt")
         self.load_waves("./files/map"+str(map_number)+"CampaignWaves.csv")
+        self.all_health_bars = arcade.SpriteList()
+        self.enemy_effects = arcade.SpriteList()
         self.enemies_list = arcade.SpriteList()
         self.towers_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
@@ -233,7 +237,7 @@ class GameWindow(arcade.Window):
                 for m in range(4):
                     colors_list.append(c)
         shape = arcade.create_rectangles_filled_with_colors(points_list, colors_list)
-        self.shape_list.append(shape)
+        self.map_shape_list.append(shape)
 
         # load the map image, if it exists
         if self.map_number > 0 and not is_debug:
@@ -395,10 +399,8 @@ class GameWindow(arcade.Window):
             tower.draw_runes()
 
         self.enemies_list.draw()
-        self.ctx.flush() 
-        for enemy in self.enemies_list.sprite_list:
-            enemy.draw_effects()
-            enemy.draw_health_bar()
+        self.enemy_effects.draw()
+        self.all_health_bars.draw()
 
         # clears the buffer to make sure projectiles are properly rendered
         self.ctx.flush() 
@@ -447,7 +449,7 @@ class GameWindow(arcade.Window):
             )
         else:
             # draw the map using colored rectangles representing terrain type of each cell
-            self.shape_list.draw()
+            self.map_shape_list.draw()
         # individual cells (too slow, deprecated)
         # for i in range(len(self.map_cells)-1):
         #     for j in range(len(self.map_cells[i])):
@@ -891,6 +893,13 @@ class GameWindow(arcade.Window):
                         new_enemy.calc_path(map=self.map_cells)
                     self.enemies_list.append(new_enemy)
                     self.all_sprites.append(new_enemy)
+                    self.all_health_bars.append(new_enemy.greenbar)
+                    self.all_health_bars.append(new_enemy.redbar)
+                    self.all_sprites.append(new_enemy.greenbar)
+                    self.all_sprites.append(new_enemy.redbar)
+                    if new_enemy.buff_sprite:
+                        self.enemy_effects.append(new_enemy.buff_sprite)
+                        self.all_sprites.append(new_enemy.buff_sprite)
                     self.enemies_left_to_spawn -= 1
                     self.next_enemy_index += 1
             # check if wave is over 
@@ -946,8 +955,12 @@ class GameWindow(arcade.Window):
                 dy = (enemy.center_y-projectile.target_y)
                 dist2 = dx**2 + dy**2
                 if dist2 <= projectile.splash_radius**2:
-                    for effect in projectile.effects:
-                        enemy.set_effect(deepcopy(effect))
+                    for eff in projectile.effects:
+                        effect = deepcopy(eff)
+                        effect_added = enemy.set_effect(effect)
+                        if effect_added:
+                            self.enemy_effects.append(effect)
+                            self.all_sprites.append(effect)
                     earnings = enemy.take_damage_give_money(damage=projectile.damage)
                     self.money += earnings
                     # increment quest trackers
@@ -965,8 +978,12 @@ class GameWindow(arcade.Window):
             if projectile.target is None:
                 projectile.remove_from_sprite_lists()
                 return
-            for effect in projectile.effects:
-                projectile.target.set_effect(deepcopy(effect))
+            for eff in projectile.effects:
+                effect = deepcopy(eff)
+                effect_added = projectile.target.set_effect(effect)
+                if effect_added:
+                    self.enemy_effects.append(effect)
+                    self.all_sprites.append(effect)
             earnings = projectile.target.take_damage_give_money(projectile.damage)
             self.money += earnings
             # increment quest trackers
@@ -1325,14 +1342,13 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : retire use of draw_scaled_texture_rectangle and draw_lrtb_rectangle_filled
+# TODO next step : add Forge building
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
 # towers, projectiles, effects and enemies should use pre-loaded textures when initialized
 # high quality mjolnir explosion
-# move effects, shields and health bars into 1 or 2 SpriteLists
 # abilities and shop items get highlighted on mouse-over
 # score calculation
 # vfx for enemies exploding

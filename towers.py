@@ -262,7 +262,7 @@ class SparklingPillar(Tower):
         return SparklingPillar()
     
     def attack(self, enemy: Enemy):
-        self.animation_ontime_remaining = 0.1
+        self.animation_ontime_remaining = 0.05
         self.enemy_x = enemy.center_x
         self.enemy_y = enemy.center_y
         return super().attack(enemy)
@@ -273,11 +273,12 @@ class SparklingPillar(Tower):
         dx = self.enemy_x - self.center_x
         dy = self.enemy_y - self.center_y
         zap_num = round(sqrt(dx**2 + dy**2)/10)*10
-        ZAPS['zap-'+str(zap_num)].draw_scaled(
-            center_x=cx, 
-            center_y=cy, 
-            angle=atan2(dy, dx)*180/pi
-        )
+        if zap_num > 0:
+            ZAPS['zap-'+str(zap_num)].draw_scaled(
+                center_x=cx, 
+                center_y=cy, 
+                angle=atan2(dy, dx)*180/pi
+            )
 
     def on_update(self, delta_time: float = 1 / 60):
         self.animation_ontime_remaining -= delta_time
