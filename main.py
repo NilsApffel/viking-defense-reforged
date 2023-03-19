@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult,
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.0 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.1 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -63,7 +63,6 @@ class GameWindow(arcade.Window):
             'shop_sacred' : arcade.load_texture('./images/shop_sacred.png'),
         }
         self.read_score_file()
-        self.init_text()
         self.abilities_list = [SellTowerAbility(), MjolnirAbility(), PlatformAbility(), None, None]
         self.runes_list = [Raidho(), Hagalaz(), None, None, None, None, None]
         if is_debug:
@@ -128,6 +127,7 @@ class GameWindow(arcade.Window):
         self.effects_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()    
         self.time_to_next_wave = 75 # seconds
+        self.init_text()
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -272,7 +272,17 @@ class GameWindow(arcade.Window):
         terrible performance"""
 
         # 1. Permanently static text using outlined font
-        self.multi_layer_text = {}
+        self.rune_costs_txt = []
+        for k in range(len(self.runes_list)):
+            x = MAP_WIDTH + 12 + k*30
+            if self.runes_unlocked[k] or (is_debug and self.runes_list[k]):
+                self.rune_costs_txt.append(init_outlined_text(
+                    text=str(self.runes_list[k].cost), start_x=x, start_y=172, font_size=10
+                ))
+            else:
+                self.rune_costs_txt.append(init_outlined_text(
+                    text='', start_x=x, start_y=172, font_size=10
+                ))
         
         # 2. Info box text
         title_text = arcade.Text(
@@ -439,6 +449,9 @@ class GameWindow(arcade.Window):
         self.draw_chin_menu()
         self.draw_shop()
         self.draw_corner_menu()
+        for multi_layer_txt in self.rune_costs_txt:
+            for txt in multi_layer_txt:
+                txt.draw()
 
         if self.paused: 
             self.draw_pause_menu()
@@ -861,8 +874,16 @@ class GameWindow(arcade.Window):
                 forges += 1
         self.abilities_unlocked[1] = (thor_temples > 0) or is_debug
         self.abilities_unlocked[2] = (forges > 0) or is_debug
+        old_unlocks = deepcopy(self.runes_unlocked)
         self.runes_unlocked[0] = (thor_temples > 0) or is_debug
         self.runes_unlocked[1] = (forges > 0) or is_debug
+        for k in range(len(self.runes_unlocked)):
+            if self.runes_unlocked[k] and not old_unlocks[k]:
+                for txt in self.rune_costs_txt[k]:
+                    txt.text = str(self.runes_list[k].cost)
+            elif old_unlocks[k] and not self.runes_unlocked[k]:
+                for txt in self.rune_costs_txt[k]:
+                    txt.text = ''
 
     def perform_enemy_actions(self):
         # check if any enemies get kills
@@ -1358,7 +1379,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : add cost of runes under their icon
+# TODO next step :
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
