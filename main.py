@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult,
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.3 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1411,7 +1411,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : make ice shields prevent freezing and fire shields prevent inflaming
+# TODO next step :
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
@@ -1426,5 +1426,3 @@ if __name__ == "__main__":
 # smoother trajectories for floating enemies
 # map 5
 # more towers
-# platform ability
-# floating enemies re-calc their path when a platform is placed

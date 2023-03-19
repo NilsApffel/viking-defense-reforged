@@ -126,13 +126,24 @@ class Enemy(Sprite):
         self.greenbar.center_y = self.top + HBAR_HEIGHT/2
 
     def set_effect(self, effect: Effect) -> bool:
+        """Attempts to set the effect on the enemy. Returns True only if the effect 
+        was added and was not already present."""
+        # check if effect cannot be added
         if self.current_health <= 0:
-            return False # no new effect added
-        effect.scale = 1.2*max(self.width, self.height)/50
+            return False
+        if ('ice shield' in self.modifier) and (effect.name == 'freeze'):
+            return False
+        if ('fire shield' in self.modifier) and (effect.name == 'inflame'):
+            return False
+        
+        # check if effect is already present
         for eff in self.temporary_effects.sprite_list:
             if eff.name == effect.name:
                 eff.duration_remaining = effect.duration
-                return False # no new effect added
+                return False
+            
+        # add effect
+        effect.scale = 1.2*max(self.width, self.height)/50
         self.temporary_effects.append(effect)
         return True # 1 new effect added
 
