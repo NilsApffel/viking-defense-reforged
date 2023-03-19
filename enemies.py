@@ -34,6 +34,8 @@ class Enemy(Sprite):
         else:
             self.current_health -= damage
         if self.current_health <= 0:
+            for eff in self.temporary_effects:
+                eff.remove_from_sprite_lists()
             self.remove_from_sprite_lists()
             return self.reward
         return 0
@@ -124,6 +126,8 @@ class Enemy(Sprite):
         self.greenbar.center_y = self.top + HBAR_HEIGHT/2
 
     def set_effect(self, effect: Effect) -> bool:
+        if self.current_health <= 0:
+            return False # no new effect added
         effect.scale = 1.2*max(self.width, self.height)/50
         for eff in self.temporary_effects.sprite_list:
             if eff.name == effect.name:

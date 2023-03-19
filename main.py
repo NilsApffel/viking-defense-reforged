@@ -9,15 +9,15 @@ from abilities import MjolnirAbility, SellTowerAbility, PlatformAbility
 from constants import *
 from grid import *
 from projectiles import Projectile
-from runes import Raidho, Hagalaz
+from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa
 from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, 
                     OakTreeTower, StoneHead, SparklingPillar, 
-                    TempleOfThor, Forge)
+                    TempleOfThor, Forge, TempleOfOdin)
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.1 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.2 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -64,7 +64,7 @@ class GameWindow(arcade.Window):
         }
         self.read_score_file()
         self.abilities_list = [SellTowerAbility(), MjolnirAbility(), PlatformAbility(), None, None]
-        self.runes_list = [Raidho(), Hagalaz(), None, None, None, None, None]
+        self.runes_list = [Raidho(), Hagalaz(), Tiwaz(), Kenaz(), Isa(), None, None]
         if is_debug:
             self.perf_graph = arcade.PerfGraph(width=80, height=80, background_color=TRANSPARENT_BLACK)
             self.perf_graph.center_x = 40
@@ -179,9 +179,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/ForgeThumb.png",
                         cost=500, tower=Forge(), quest="Build 15 structures", 
                         quest_thresh=15, quest_var_name="current structures"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png",
-                        cost=700, tower=Tower(), quest="Enchant 12 towers with runes", 
+                ShopItem(is_unlocked=False, is_unlockable=False,
+                        thumbnail="images/OdinTempleThumb.png",
+                        cost=700, tower=TempleOfOdin(), quest="Enchant 12 towers with runes", 
                         quest_thresh=12, quest_var_name="current enchanted towers"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png",
@@ -830,7 +830,7 @@ class GameWindow(arcade.Window):
             if dist2_from_target < (proj.speed/2)**2:
                 self.perform_impact(proj)
 
-        self.perform_enemy_actions()
+        self.perform_enemy_actions(delta_time=delta_time)
         self.perform_tower_attacks(delta_time=delta_time)
         self.update_wave_progress(delta_time=delta_time)
         self.update_quests()
@@ -867,16 +867,22 @@ class GameWindow(arcade.Window):
         # update unlocks
         thor_temples = 0
         forges = 0
+        odin_temples = 0
         for tower in self.towers_list.sprite_list:
             if tower.name == "Temple of Thor":
                 thor_temples += 1
             elif tower.name == "Forge":
                 forges += 1
+            elif tower.name == "Temple of Odin":
+                odin_temples += 1
         self.abilities_unlocked[1] = (thor_temples > 0) or is_debug
         self.abilities_unlocked[2] = (forges > 0) or is_debug
         old_unlocks = deepcopy(self.runes_unlocked)
         self.runes_unlocked[0] = (thor_temples > 0) or is_debug
         self.runes_unlocked[1] = (forges > 0) or is_debug
+        self.runes_unlocked[2] = (odin_temples > 0) or is_debug
+        self.runes_unlocked[3] = (odin_temples > 0) or is_debug
+        self.runes_unlocked[4] = (odin_temples > 0) or is_debug
         for k in range(len(self.runes_unlocked)):
             if self.runes_unlocked[k] and not old_unlocks[k]:
                 for txt in self.rune_costs_txt[k]:
@@ -885,7 +891,22 @@ class GameWindow(arcade.Window):
                 for txt in self.rune_costs_txt[k]:
                     txt.text = ''
 
-    def perform_enemy_actions(self):
+    def perform_enemy_actions(self, delta_time: float):
+        # take damage from dps effects:
+        for enemy in self.enemies_list.sprite_list:
+            for eff in enemy.temporary_effects:
+                if eff.damage_per_second > 0:
+                    dmg = eff.damage_per_second*delta_time
+                    earnings = enemy.take_damage_give_money(damage=dmg)
+                    self.money += earnings
+                    # increment quest trackers
+                    if earnings > 0:
+                        self.quest_tracker["enemies killed"] += 1
+                        if enemy.is_flying:
+                            self.quest_tracker["flying enemies killed"] += 1
+                        elif enemy.is_hidden:
+                            self.quest_tracker["submerged enemies killed"] += 1
+
         # check if any enemies get kills
         for enemy in self.enemies_list.sprite_list:
             if enemy.center_y <= CHIN_HEIGHT - 0.4*CELL_SIZE:
@@ -949,6 +970,13 @@ class GameWindow(arcade.Window):
                     if tower.cooldown_remaining <= 0: # ready to fire
                         # an attack happens
                         dmg, projlist = tower.attack(enemy)
+                        if tower.has_rune('kenaz') or tower.has_rune('isa'):
+                            effect = deepcopy(tower.rune.effect)
+                            if random() < 0.05:
+                                effect_added = enemy.set_effect(effect)
+                                if effect_added:
+                                    self.enemy_effects.append(effect)
+                                    self.all_sprites.append(effect)
                         earnings = enemy.take_damage_give_money(dmg)
                         self.money += earnings
                         # deal with projectiles created by tower.attack()
@@ -1262,15 +1290,19 @@ class GameWindow(arcade.Window):
         # (event-based quests are updated wherever the relevant events happen)
         temples = 0
         oaks = 0
+        runed_towers = 0
         for tower in self.towers_list.sprite_list:
             if "temple" in tower.name.lower():
                 temples += 1
             elif tower.name == "Sacred Oak":
                 oaks += 1
+            if tower.has_rune('any'):
+                runed_towers += 1
         self.quest_tracker["current oaks"] = oaks
         self.quest_tracker["current_temples"] = temples
         self.quest_tracker["current structures"] = len(self.towers_list.sprite_list)
         self.quest_tracker["current gold"] = self.money
+        self.quest_tracker["current enchanted towers"] = runed_towers
 
         # 2. use self.quest_tracker to update each shopitem and perform unlocks
         for shop_list in self.shop_listlist:
@@ -1379,7 +1411,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : make ice shields prevent freezing and fire shields prevent inflaming
 
 # Roadmap items : 
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)

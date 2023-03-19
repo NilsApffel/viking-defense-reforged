@@ -1,9 +1,10 @@
 from arcade import Sprite, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
 from math import atan2, pi, sqrt
+from random import random
 from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS
 from copy import deepcopy
-from effects import SlowDown
+from effects import SlowDown, Inflame, Freeze
 from enemies import Enemy
 from explosions import Explosion
 from projectiles import Projectile
@@ -59,6 +60,27 @@ class Tower(Sprite):
                 center_x=self.center_x+10,
                 center_y=self.center_y-10,
                 texture=ASSETS['hagalaz-h'],
+                scale=1.0,
+            )
+        elif self.rune.name == 'tiwaz':
+            draw_scaled_texture_rectangle(
+                center_x=self.center_x+10,
+                center_y=self.center_y-10,
+                texture=ASSETS['tiwaz-t'],
+                scale=1.0,
+            )
+        elif self.rune.name == 'kenaz':
+            draw_scaled_texture_rectangle(
+                center_x=self.center_x+10,
+                center_y=self.center_y-10,
+                texture=ASSETS['kenaz-c'],
+                scale=1.0,
+            )
+        elif self.rune.name == 'isa':
+            draw_scaled_texture_rectangle(
+                center_x=self.center_x+10,
+                center_y=self.center_y-10,
+                texture=ASSETS['isa-i'],
                 scale=1.0,
             )
 
@@ -128,6 +150,10 @@ class Tower(Sprite):
             self.projectiles_are_homing = True
         elif rune.name == 'hagalaz':
             self.damage *= 1.25
+        elif rune.name == 'tiwaz':
+            self.range *= 1.5
+        elif rune.name == 'kenaz':
+            self.damage *= 1.2
 
     def make_runed_projectile(self, projectile: Projectile):
         if self.has_rune('raidho'):
@@ -135,6 +161,12 @@ class Tower(Sprite):
             projectile.target = self.target
             projectile.is_retargeting = True
             projectile.parent_tower = self
+        elif self.has_rune('kenaz'):
+            if random() < 0.05:
+                projectile.effects.append(Inflame())
+        elif self.has_rune('isa'):
+            if random() < 0.05:
+                projectile.effects.append(Freeze())
         return projectile
 
 class InstaAirTower(Tower):
@@ -339,3 +371,15 @@ class Forge(BigBuilding):
 
     def make_another(self):
         return Forge()
+
+
+class TempleOfOdin(BigBuilding):
+    def __init__(self):
+        super().__init__(filename="images/TempleOfOdin.png", scale=1.0, cooldown=0, 
+                            name="Temple of Odin", 
+                            description="Grants Tiwaz, Kenaz and Isa runes", 
+                            unlocked_rune_indxs=[2, 3, 4], 
+                            unlocked_power_indxs=[])
+
+    def make_another(self):
+        return TempleOfOdin()

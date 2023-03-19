@@ -42,19 +42,22 @@ ABILITY_DESCRIPTIONS = ["Dismantles tower or building. You get a refund.\n\nRefu
                         "Not implemented", 
                         "Not implemented"]
 
-RUNE_NAMES = ["Raidho"] + ["Hagalaz"] + ["Not implemented"]*5
+RUNE_NAMES = ["Raidho", "Hagalaz", "Tiwaz", "Kenaz", "Isa"] + ["Not implemented"]*2
 RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting ability."+
                      "\n\nInsert to a tower",
                      "Increases tower damage\n\nDamage: +25%\nInsert to a tower", 
-                     "Not implemented", 
-                     "Not implemented", 
-                     "Not implemented", 
+                     "Extends tower shooting range\n\nRange: +50%\nInsert to a tower", 
+                     "Grants a tower fire damage, +5% inflame chance\nDamage: +20%\nInsert to a tower", 
+                     "Grants a tower ice damage, +5% freeze chance\nFreeze time : 3s\nInsert to a tower",
                      "Not implemented", 
                      "Not implemented"]
 
 ASSETS = {'platform': load_texture('./images/platform.png'),
           'raidho-r': load_texture('./images/raidho-r.png'), 
           'hagalaz-h': load_texture('./images/hagalaz-h.png'),
+          'tiwaz-t': load_texture('./images/tiwaz-t.png'),
+          'kenaz-c': load_texture('./images/kenaz-c.png'),
+          'isa-i': load_texture('./images/isa-i.png'),
 }
 zaps_names = ['zap-'+str(10*k+10) for k in range(12)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]

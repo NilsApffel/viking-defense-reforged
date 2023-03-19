@@ -1,4 +1,5 @@
 from arcade import load_texture, draw_scaled_texture_rectangle
+from effects import Inflame, Freeze
 
 class Rune():
     def __init__(self, name: str, icon_file: str, preview_image_file: str, 
@@ -7,6 +8,7 @@ class Rune():
         self.icon = load_texture(icon_file)
         self.preview_image = load_texture(preview_image_file)
         self.cost = cost
+        self.effect = None
 
     def preview(self, x, y): 
         draw_scaled_texture_rectangle(
@@ -44,3 +46,35 @@ class Hagalaz(Rune):
     
     def make_another(self):
         return Hagalaz()
+
+
+class Tiwaz(Rune):
+    def __init__(self) -> None:
+        super().__init__(name='tiwaz', icon_file='./images/tiwaz-icon.png', 
+                            preview_image_file='./images/rune-preview.png', cost=70)
+    
+    def make_another(self):
+        return Tiwaz()
+    
+
+class Kenaz(Rune):
+    def __init__(self) -> None:
+        super().__init__(name='kenaz', icon_file='./images/kenaz-icon.png', 
+                            preview_image_file='./images/rune-preview.png', cost=100)
+        self.effect = Inflame()
+    
+    def make_another(self):
+        return Kenaz()
+    
+
+class Isa(Rune):
+    def __init__(self) -> None:
+        super().__init__(name='isa', icon_file='./images/isa-icon.png', 
+                            preview_image_file='./images/rune-preview.png', cost=100)
+        self.effect = Freeze()
+    
+    def make_another(self):
+        return Isa()
+
+
+
