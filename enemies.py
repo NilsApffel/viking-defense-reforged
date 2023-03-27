@@ -1,7 +1,7 @@
 from arcade import Sprite, SpriteSolidColor, SpriteList, draw_scaled_texture_rectangle, load_texture
 from arcade.color import RED, GREEN
 from math import sqrt, atan2, pi
-from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR
+from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR, is_debug
 from effects import Effect
 from grid import *
 from pathfind import find_path

@@ -7,7 +7,7 @@ from copy import deepcopy
 from effects import SlowDown, Inflame, Freeze
 from enemies import Enemy
 from explosions import Explosion
-from projectiles import Projectile
+from projectiles import Projectile, Falcon
 from runes import Rune
 
 class Tower(Sprite):
@@ -92,6 +92,8 @@ class Tower(Sprite):
         return super().on_update(delta_time)
 
     def can_see(self, enemy: Enemy):
+        if enemy.center_y > SCREEN_HEIGHT:
+            return False
         dx = self.center_x - enemy.center_x
         dy = self.center_y - enemy.center_y
         dist2 = dx*dx + dy*dy
@@ -248,6 +250,56 @@ class Catapult(Tower):
     # (bonus: use rotation to slightly adjust starting position of projectile)
 
 
+class FalconCliff(Tower):
+    def __init__(self):
+        super().__init__(
+            filename="images/falcon_cliff.png", 
+            scale=1.0, 
+            cooldown=0.1, 
+            range=144, 
+            damage=7.5, 
+            name="Falcon Cliff", 
+            description="Fires at Floating & Flying\nFalcon stays within range", 
+            can_see_types=['floating', 'flying'], 
+            constant_attack=True
+        )
+        self.falcon = Falcon(parent_tower=self)
+
+    def make_another(self):
+        return FalconCliff()
+
+    def set_rune(self, rune: Rune):
+        if self.has_rune(rune.name):
+            return 
+        if (not (self.rune is None)):
+            # we need to clear our current rune's effects
+            clean_tower = self.make_another()
+            self.cooldown = clean_tower.cooldown
+            self.range = clean_tower.range
+            self.damage = clean_tower.damage
+            self.projectiles_are_homing = clean_tower.projectiles_are_homing
+        self.rune = rune
+        if rune.name == 'raidho':
+            self.projectiles_are_homing = True
+        elif rune.name == 'hagalaz':
+            self.damage *= 1.25
+        elif rune.name == 'tiwaz':
+            self.range *= 1.5
+        elif rune.name == 'kenaz':
+            self.damage *= 1.2
+
+        self.falcon.set_rune(rune)
+
+    def attack(self, enemy: Enemy):
+        if self.can_see(enemy):
+            return self.falcon.attack(enemy), [] # falcon attack should return the damage
+        return 0, []
+    
+    def remove_from_sprite_lists(self):
+        self.falcon.remove_from_sprite_lists()
+        return super().remove_from_sprite_lists()
+
+
 class OakTreeTower(Tower):
     def __init__(self):
         super().__init__(filename="images/Oak_32x32_transparent.png", scale=1.0, cooldown=2.0, 
@@ -326,7 +378,6 @@ class SparklingPillar(Tower):
         if self.animation_ontime_remaining < 0:
             self.animation_ontime_remaining = 0
         return super().on_update(delta_time)
-
 
 
 class BigBuilding(Tower):

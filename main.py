@@ -11,13 +11,13 @@ from grid import *
 from projectiles import Projectile
 from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa
 from shop import ShopItem
-from towers import (Tower, WatchTower, Catapult, 
+from towers import (Tower, WatchTower, Catapult, FalconCliff,
                     OakTreeTower, StoneHead, SparklingPillar, 
                     TempleOfThor, Forge, TempleOfOdin)
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.4 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -138,9 +138,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/catapult_cool.png",
                         cost=200, tower=Catapult(), quest="Destroy 10 enemies", 
                         quest_thresh=10, quest_var_name="enemies killed"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png",
-                        cost=500, tower=Tower(), quest="Destroy 25 flying enemies", 
+                ShopItem(is_unlocked=is_debug, is_unlockable=False, 
+                        thumbnail="images/FalconCliffThumb.png",
+                        cost=500, tower=FalconCliff(), quest="Destroy 25 flying enemies", 
                         quest_thresh=25, quest_var_name="flying enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png",
@@ -244,7 +244,7 @@ class GameWindow(arcade.Window):
         self.map_shape_list.append(shape)
 
         # load the map image, if it exists
-        if self.map_number > 0 and not is_debug:
+        if self.map_number > 0:
             self.map_image = arcade.load_texture('./images/map'+str(self.map_number)+'.png')
 
         self.abilities_list[2] = PlatformAbility(map_reference=self.map_cells)
@@ -428,7 +428,7 @@ class GameWindow(arcade.Window):
                     self.draw_range(tower)
                 if tower.animation_ontime_remaining > 0:
                     tower.draw_shoot_animation()
-            self.ctx.flush() 
+            self.ctx.flush()
 
         self.effects_list.draw()
 
@@ -460,7 +460,7 @@ class GameWindow(arcade.Window):
     
     # draw sub-methods used to make self.on_draw more legible
     def draw_map(self):
-        if self.map_number > 0 and not is_debug:
+        if self.map_number > 0:
             arcade.draw_scaled_texture_rectangle(
                 center_x=MAP_WIDTH/2,
                 center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
@@ -824,11 +824,12 @@ class GameWindow(arcade.Window):
 
         # check for projectile impacts
         for proj in self.projectiles_list.sprite_list:
-            dx = proj.target_x - proj.center_x
-            dy = proj.target_y - proj.center_y
-            dist2_from_target = dx*dx + dy*dy
-            if dist2_from_target < (proj.speed/2)**2:
-                self.perform_impact(proj)
+            if proj.name != 'falcon':
+                dx = proj.target_x - proj.center_x
+                dy = proj.target_y - proj.center_y
+                dist2_from_target = dx*dx + dy*dy
+                if dist2_from_target < (proj.speed/2)**2:
+                    self.perform_impact(proj)
 
         self.perform_enemy_actions(delta_time=delta_time)
         self.perform_tower_attacks(delta_time=delta_time)
@@ -869,6 +870,8 @@ class GameWindow(arcade.Window):
         forges = 0
         odin_temples = 0
         for tower in self.towers_list.sprite_list:
+            if not tower.is_2x2:
+                continue
             if tower.name == "Temple of Thor":
                 thor_temples += 1
             elif tower.name == "Forge":
@@ -972,11 +975,18 @@ class GameWindow(arcade.Window):
                         dmg, projlist = tower.attack(enemy)
                         if tower.has_rune('kenaz') or tower.has_rune('isa'):
                             effect = deepcopy(tower.rune.effect)
-                            if random() < 0.05:
+                            thresh = 0.05
+                            if tower.name == "Falcon Cliff":
+                                if dmg == 0:
+                                    thresh = 0 # zero probability of setting effect
+                                else:
+                                    thresh *= delta_time # probability per second is 1-(1-0.05*dt)^(1/dt) = ~0.049
+                            if random() < thresh:
                                 effect_added = enemy.set_effect(effect)
                                 if effect_added:
                                     self.enemy_effects.append(effect)
                                     self.all_sprites.append(effect)
+                            
                         earnings = enemy.take_damage_give_money(dmg)
                         self.money += earnings
                         # deal with projectiles created by tower.attack()
@@ -1223,6 +1233,11 @@ class GameWindow(arcade.Window):
             self.map_cells[i+1][j].is_occupied = True
             self.map_cells[i][j+1].is_occupied = True
             self.map_cells[i+1][j+1].is_occupied = True
+        elif new_tower.name == "Falcon Cliff":
+            self.projectiles_list.append(new_tower.falcon)
+            self.all_sprites.append(new_tower.falcon)
+            new_tower.falcon.center_x = new_tower.center_x
+            new_tower.falcon.center_y = new_tower.center_y
 
     def attempt_tower_sell(self, x: float, y: float):
         i, j = nearest_cell_ij(x, y)
@@ -1256,6 +1271,8 @@ class GameWindow(arcade.Window):
                 self.map_cells[ti][tj+1].is_occupied = False
                 self.map_cells[ti+1][tj+1].is_occupied = False
                 tower.remove_from_sprite_lists()
+                if tower.name == "Falcon Cliff":
+                    tower.falcon.remove_fromm_sprite_lists()
                 return
 
     def attempt_tower_enchant(self, x: float, y: float):
@@ -1411,9 +1428,11 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
+# further perfomance improvements
+# better pause menu
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
 # towers, projectiles, effects and enemies should use pre-loaded textures when initialized
