@@ -1,6 +1,6 @@
 from arcade import Sprite, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
-from math import atan2, pi, sqrt
+from math import atan2, pi, sqrt, cos, sin
 from random import random
 from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS
 from copy import deepcopy
@@ -298,6 +298,43 @@ class FalconCliff(Tower):
     def remove_from_sprite_lists(self):
         self.falcon.remove_from_sprite_lists()
         return super().remove_from_sprite_lists()
+
+
+class Bastion(Tower):
+    def __init__(self):
+        super().__init__(
+            filename='./images/Bastion.png', cooldown=5, range=48, damage=25, name='Bastion', 
+            description='Fires at floating & underwater\nDamages all in range', 
+            can_see_types=['floating', 'underwater'])
+        self.splash_radius = 32
+        self.explode_distance = 32
+
+    def make_another(self):
+        return Bastion()
+
+    def attack(self, enemy: Enemy):
+        super().attack(enemy)
+        explosives = []
+        dx = self.target_x - self.center_x
+        dy = self.target_y - self.center_y
+        theta_0 = atan2(dy, dx)
+        for k in range(3):
+            theta_k = theta_0 + 2*pi*k/3
+            proj = Projectile(
+                filename="images/cannonball.png", scale=0.3, speed=2.5, angle_rate=0,
+                center_x=self.center_x, center_y=self.center_y, target=None,
+                target_x=self.center_x + self.explode_distance*cos(theta_k), 
+                target_y=self.center_y + self.explode_distance*sin(theta_k), 
+                damage=self.damage, do_splash_damage=True, splash_radius=self.splash_radius, 
+                impact_effect=Explosion(
+                    filename='./images/cannonball-explosion.png',
+                    starting_scale=0.2, lifetime_seconds=0.2, scale_increase_rate=4
+                ), 
+            )
+            proj = self.make_runed_projectile(proj)
+            explosives.append(proj)
+            
+        return 0, explosives # damage will be dealt by projectiles
 
 
 class OakTreeTower(Tower):

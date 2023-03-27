@@ -3,7 +3,7 @@ if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
 import arcade
 from copy import deepcopy
-from math import floor
+from math import floor, atan2, pi
 from random import randint, random
 from abilities import MjolnirAbility, SellTowerAbility, PlatformAbility
 from constants import *
@@ -11,13 +11,13 @@ from grid import *
 from projectiles import Projectile
 from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa
 from shop import ShopItem
-from towers import (Tower, WatchTower, Catapult, FalconCliff,
+from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
                     OakTreeTower, StoneHead, SparklingPillar, 
                     TempleOfThor, Forge, TempleOfOdin)
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.5 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.6 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -134,7 +134,7 @@ class GameWindow(arcade.Window):
                 ShopItem(is_unlocked=True, is_unlockable=False, 
                         thumbnail="images/WatchtowerThumb.png",
                         cost=100, tower=WatchTower()), 
-                ShopItem(is_unlocked=False, is_unlockable=True,
+                ShopItem(is_unlocked=is_debug, is_unlockable=True,
                         thumbnail="images/catapult_cool.png",
                         cost=200, tower=Catapult(), quest="Destroy 10 enemies", 
                         quest_thresh=10, quest_var_name="enemies killed"), 
@@ -142,9 +142,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/FalconCliffThumb.png",
                         cost=500, tower=FalconCliff(), quest="Destroy 25 flying enemies", 
                         quest_thresh=25, quest_var_name="flying enemies killed"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png",
-                        cost=650, tower=Tower(), quest="Place 10 platforms", 
+                ShopItem(is_unlocked=is_debug, is_unlockable=False,
+                        thumbnail="images/BastionThumb.png",
+                        cost=650, tower=Bastion(), quest="Place 10 platforms", 
                         quest_thresh=10, quest_var_name="platforms placed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png",
@@ -154,11 +154,11 @@ class GameWindow(arcade.Window):
                 ShopItem(is_unlocked=True, is_unlockable=False, 
                         thumbnail="images/SacredOakThumb.png",
                         cost=120, tower=OakTreeTower()), 
-                ShopItem(is_unlocked=False, is_unlockable=True, 
+                ShopItem(is_unlocked=is_debug, is_unlockable=True, 
                         thumbnail="images/StoneHeadThumb.png",
                         cost=180, tower=StoneHead(), quest="Plant 5 Sacred Oaks", 
                         quest_thresh=5, quest_var_name="current oaks"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, 
+                ShopItem(is_unlocked=is_debug, is_unlockable=False, 
                         thumbnail="images/SparklingPillarThumb.png",
                         cost=400, tower=SparklingPillar(), quest="Destroy 4 enemies with 1\nmjolnir", 
                         quest_thresh=4, quest_var_name="max mjolnir kills"), 
@@ -171,15 +171,15 @@ class GameWindow(arcade.Window):
                         cost=1000, tower=Tower(), quest="Freeze 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies frozen")
             ], [ # start Buildings
-                ShopItem(is_unlocked=False, is_unlockable=True,
+                ShopItem(is_unlocked=is_debug, is_unlockable=True,
                         thumbnail="images/ThorTempleThumb.png",
                         cost=300, tower=TempleOfThor(), quest="Destroy 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies killed"), 
-                ShopItem(is_unlocked=False, is_unlockable=False,
+                ShopItem(is_unlocked=is_debug, is_unlockable=False,
                         thumbnail="images/ForgeThumb.png",
                         cost=500, tower=Forge(), quest="Build 15 structures", 
                         quest_thresh=15, quest_var_name="current structures"), 
-                ShopItem(is_unlocked=False, is_unlockable=False,
+                ShopItem(is_unlocked=is_debug, is_unlockable=False,
                         thumbnail="images/OdinTempleThumb.png",
                         cost=700, tower=TempleOfOdin(), quest="Enchant 12 towers with runes", 
                         quest_thresh=12, quest_var_name="current enchanted towers"), 
@@ -825,10 +825,22 @@ class GameWindow(arcade.Window):
         # check for projectile impacts
         for proj in self.projectiles_list.sprite_list:
             if proj.name != 'falcon':
+                # see if we are on the target
                 dx = proj.target_x - proj.center_x
                 dy = proj.target_y - proj.center_y
                 dist2_from_target = dx*dx + dy*dy
-                if dist2_from_target < (proj.speed/2)**2:
+                if dist2_from_target <= (proj.speed/2)**2:
+                    self.perform_impact(proj)
+                    continue
+                # see if we already passed the target and are now headed away
+                vx = proj.velocity[0]
+                vy = proj.velocity[1]
+                vel_angle = atan2(vy, vx)
+                tgt_angle = atan2(-dy, -dx)
+                angle_diff = abs(vel_angle-tgt_angle) # this should be in [0, 2*pi]
+                if angle_diff < 0.2 or angle_diff > 2*pi - 0.2: 
+                    # we are headed directly away from target (+/- 0.2rad)
+                    # detonate self before we get too embarrasingly far
                     self.perform_impact(proj)
 
         self.perform_enemy_actions(delta_time=delta_time)
@@ -1058,7 +1070,7 @@ class GameWindow(arcade.Window):
                     self.quest_tracker["flying enemies killed"] += 1
                 elif projectile.target.is_hidden:
                     self.quest_tracker["submerged enemies killed"] += 1
-        if not (projectile.impact_effect is None):
+        if projectile.impact_effect:
             explosion = deepcopy(projectile.impact_effect)
             explosion.center_x = projectile.target_x
             explosion.center_y = projectile.target_y
@@ -1145,6 +1157,7 @@ class GameWindow(arcade.Window):
                             self.platforms.append(new_platform)
                             self.all_sprites.append(new_platform)
                             self.ability_selected = 0
+                            self.quest_tracker['platforms placed'] += 1
                             for enemy in self.enemies_list:
                                 if not (enemy.is_flying):
                                     enemy.calc_path(map=self.map_cells)
@@ -1428,10 +1441,10 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step : Quarry of Rage tower
 
 # Roadmap items : 
-# further perfomance improvements
+# further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # better pause menu
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
