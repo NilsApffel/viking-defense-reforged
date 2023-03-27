@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff,
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.4 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.5 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -126,7 +126,7 @@ class GameWindow(arcade.Window):
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
         self.all_sprites = arcade.SpriteList()    
-        self.time_to_next_wave = 75 # seconds
+        self.time_to_next_wave = 75 if self.map_number < 5 else 60 # seconds
         self.init_text()
 
     def load_shop_items(self):
@@ -956,7 +956,7 @@ class GameWindow(arcade.Window):
             # check if wave is over 
             elif self.enemies_left_to_spawn == 0 and len(self.enemies_list.sprite_list) == 0:
                 self.wave_is_happening = False
-                self.time_to_next_wave = 75
+                self.time_to_next_wave = 75 if self.map_number < 5 else 60
         else: # wave is not happening
             self.time_to_next_wave -= delta_time
             if self.time_to_next_wave <= 0:
@@ -1443,5 +1443,4 @@ if __name__ == "__main__":
 # wave system compatible with infinite free-play
 # free-play mode
 # smoother trajectories for floating enemies
-# map 5
 # more towers
