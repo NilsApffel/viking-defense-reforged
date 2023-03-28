@@ -417,6 +417,30 @@ class SparklingPillar(Tower):
         return super().on_update(delta_time)
 
 
+class QuarryOfRage(Tower):
+    def __init__(self):
+        super().__init__(filename='./images/QuarryOfRage.png', cooldown=4.0, 
+                         range=208, damage=30, name='Quarry Of Rage', 
+                         description='Fires at floating\nHoming. Fragmentation blast', 
+                         can_see_types=['floating'], projectiles_are_homing=True)
+    
+    def make_another(self):
+        return QuarryOfRage()
+    
+    def attack(self, enemy: Enemy):
+        super().attack(enemy)
+        bomb = Projectile(
+            filename="images/bomb.png", scale=0.3, speed=5, angle_rate=0,
+            center_x=self.center_x, center_y=self.center_y, 
+            target=enemy, target_x=enemy.center_x, target_y=enemy.center_y, 
+            damage=self.damage, do_splash_damage=False, 
+            name='rage-bomb', num_secondary_projectiles=4
+        )
+        bomb = self.make_runed_projectile(bomb)
+            
+        return 0, [bomb] # damage will be dealt by projectile
+
+
 class BigBuilding(Tower):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 120, 
                     name: str = None, description: str = None, 

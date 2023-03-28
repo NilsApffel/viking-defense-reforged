@@ -1,4 +1,4 @@
-from arcade import Sprite
+from arcade import Sprite, Texture
 from copy import deepcopy
 from math import atan2, pi, sqrt, cos, sin
 from constants import MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug
@@ -12,8 +12,10 @@ class Projectile(Sprite):
                     target: Enemy = None, target_x: float = None, target_y: float = None, 
                     damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10, 
                     impact_effect: Explosion = None, is_retargeting: bool = False, 
-                    parent_tower: Sprite = None, effects: list = None, name: str = ''):
-        super().__init__(filename=filename, scale=scale, center_x=center_x, center_y=center_y, angle=angle)
+                    parent_tower: Sprite = None, effects: list = None, name: str = '', 
+                    num_secondary_projectiles: int = 0, texture: Texture = None):
+        super().__init__(filename=filename, scale=scale, center_x=center_x, 
+                         center_y=center_y, angle=angle, texture=texture)
         self.speed = speed
         self.angle_rate = angle_rate
         self.target = target
@@ -31,6 +33,7 @@ class Projectile(Sprite):
         else:
             self.effects = []
         self.name = name
+        self.num_secondary_projectiles = num_secondary_projectiles
 
         if not self.has_static_target:
             self.target_x = self.target.center_x
@@ -78,6 +81,42 @@ class Projectile(Sprite):
                 (self.center_y > SCREEN_HEIGHT + 20) or (self.center_y < CHIN_HEIGHT - 20)):
             self.remove_from_sprite_lists()
         return super().on_update(delta_time)
+
+    def make_secondaries(self, all_enemies: list, not_allowed_targets: list):
+        '''After impacting the target, some projectiles launch fragments onto other enemies. 
+        This function creates and returns those sub_projectiles.'''
+
+        secondaries_list = []
+        for k in range(self.num_secondary_projectiles):
+            # pick a target
+            chosen_enemy = None
+            for enemy in all_enemies:
+                dx = enemy.center_x - self.center_x
+                dy = enemy.center_y - self.center_y
+                dist2 = dx**2 + dy**2
+                if dist2 < 10000 and not (enemy in not_allowed_targets):
+                    # we found an enemy to shoot, stop looping through enemies and lets go shoot it
+                    not_allowed_targets.append(enemy)
+                    chosen_enemy = enemy
+                    break
+            if not chosen_enemy:
+                # we did not find an enemy and the next sub-projectile won't either => exit sub creation loop
+                break
+
+            # make a copy of self but weaker and with no subs
+            sub_proj = Projectile(
+                filename=None, scale=self.scale/2, speed=self.speed,
+                center_x=self.center_x, center_y=self.center_y, angle_rate=self.angle_rate,
+                target=chosen_enemy if self.target else None, 
+                target_x=chosen_enemy.center_x, target_y=chosen_enemy.center_y, 
+                damage=self.damage/2, do_splash_damage=self.do_splash_damage, 
+                splash_radius=self.splash_radius/1.4, impact_effect=deepcopy(self.impact_effect), 
+                is_retargeting=False, parent_tower=None, effects=deepcopy(self.effects), 
+                name='sub-'+self.name, num_secondary_projectiles=0, 
+                texture=self._texture 
+            )
+            secondaries_list.append(sub_proj)
+        return secondaries_list
 
 
 class Falcon(Projectile):

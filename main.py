@@ -12,12 +12,12 @@ from projectiles import Projectile
 from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa
 from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
-                    OakTreeTower, StoneHead, SparklingPillar, 
+                    OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage,
                     TempleOfThor, Forge, TempleOfOdin)
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.6 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.7 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -162,9 +162,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/SparklingPillarThumb.png",
                         cost=400, tower=SparklingPillar(), quest="Destroy 4 enemies with 1\nmjolnir", 
                         quest_thresh=4, quest_var_name="max mjolnir kills"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png",
-                        cost=650, tower=Tower(), quest="Destroy 3 submerged enemies", 
+                ShopItem(is_unlocked=is_debug, is_unlockable=False,
+                        thumbnail="images/QuarryOfRageThumb.png",
+                        cost=650, tower=QuarryOfRage(), quest="Destroy 3 submerged enemies", 
                         quest_thresh=3, quest_var_name="submerged enemies killed"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png",
@@ -1025,6 +1025,8 @@ class GameWindow(arcade.Window):
     def perform_impact(self, projectile: Projectile):
         if projectile.do_splash_damage:
             projectile_kills = 0
+
+            # fancy loop through enemies, to cope with removal(s) during the loop
             current_enemies = len(self.enemies_list.sprite_list)
             for k in range(current_enemies):
                 enemy = self.enemies_list.sprite_list[current_enemies-1-k]
@@ -1032,6 +1034,7 @@ class GameWindow(arcade.Window):
                 dy = (enemy.center_y-projectile.target_y)
                 dist2 = dx**2 + dy**2
                 if dist2 <= projectile.splash_radius**2:
+                    # Found an enemy that will take some damage and/or effects
                     for eff in projectile.effects:
                         effect = deepcopy(eff)
                         effect_added = enemy.set_effect(effect)
@@ -1051,10 +1054,19 @@ class GameWindow(arcade.Window):
             if projectile.damage == 100: # this is a mjolnir
                 if projectile_kills > self.quest_tracker["max mjolnir kills"]:
                     self.quest_tracker["max mjolnir kills"] = projectile_kills
-        else:
-            if projectile.target is None:
+        else: # projectiles that do not have AoE damage
+            if projectile.target is None: # sad, useless projectile
+                # create secondary projectiles if needed
+                sub_projectiles = projectile.make_secondaries(
+                    all_enemies=self.enemies_list.sprite_list, 
+                    not_allowed_targets=[]
+                )
+                for sub in sub_projectiles:
+                    self.projectiles_list.append(sub)
+                    self.all_sprites.append(sub)
                 projectile.remove_from_sprite_lists()
                 return
+            # if we reach this point, the projectile is not useless and will effect its target
             for eff in projectile.effects:
                 effect = deepcopy(eff)
                 effect_added = projectile.target.set_effect(effect)
@@ -1070,12 +1082,21 @@ class GameWindow(arcade.Window):
                     self.quest_tracker["flying enemies killed"] += 1
                 elif projectile.target.is_hidden:
                     self.quest_tracker["submerged enemies killed"] += 1
+        # ""pretty"" explosions
         if projectile.impact_effect:
             explosion = deepcopy(projectile.impact_effect)
             explosion.center_x = projectile.target_x
             explosion.center_y = projectile.target_y
             self.effects_list.append(explosion)
             self.all_sprites.append(explosion)
+        # create secondary projectiles if needed
+        sub_projectiles = projectile.make_secondaries(
+            all_enemies = self.enemies_list.sprite_list, 
+            not_allowed_targets = [projectile.target] if projectile.target else []
+            )
+        for sub in sub_projectiles:
+            self.projectiles_list.append(sub)
+            self.all_sprites.append(sub)
         projectile.remove_from_sprite_lists()
 
     def update_score_file(self, map_number: int, waves_survived: int, did_win: bool):
@@ -1441,7 +1462,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : Quarry of Rage tower
+# TODO next step : Chamber Of The Chief building
 
 # Roadmap items : 
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
