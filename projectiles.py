@@ -185,6 +185,12 @@ class Falcon(Projectile):
             self.patrol_radius *= 1.5
         elif rune.name == 'kenaz':
             self.damage *= 1.2
+        elif rune.name == 'sowil':
+            self.damage *= 2.00
+            vx = self.velocity[0]
+            vy = self.velocity[1]
+            self.speed *= 1.75
+            self.velocity = [vx*1.75, vy*1.75]
         self.rune = rune
 
     def attack(self, enemy: Enemy) -> float:

@@ -83,6 +83,13 @@ class Tower(Sprite):
                 texture=ASSETS['isa-i'],
                 scale=1.0,
             )
+        elif self.rune.name == 'sowil':
+            draw_scaled_texture_rectangle(
+                center_x=self.center_x+10,
+                center_y=self.center_y-10,
+                texture=ASSETS['sowil-s'],
+                scale=1.0,
+            )
 
     def on_update(self, delta_time: float = 1 / 60):
         if self.does_rotate:
@@ -126,9 +133,9 @@ class Tower(Sprite):
 
     def describe_damage(self):
         if self.do_constant_attack:
-            return 'Damage: ' + str(self.damage) + ' per second\n'
+            return 'Damage: ' + str(round(self.damage, 2)) + ' per second\n'
         else:
-            return 'Damage: ' + str(self.damage) + '\nReload: ' + str(self.cooldown) + ' seconds'
+            return 'Damage: ' + str(round(self.damage, 2)) + '\nReload: ' + str(round(self.cooldown, 2)) + ' seconds'
 
     def has_rune(self, rune_name: str):
         if self.rune is None:
@@ -156,6 +163,11 @@ class Tower(Sprite):
             self.range *= 1.5
         elif rune.name == 'kenaz':
             self.damage *= 1.2
+        elif rune.name == 'sowil':
+            self.cooldown /= 2.00
+            self.cooldown_remaining /= 2.00
+            if self.do_constant_attack:
+                self.damage *= 2.00
 
     def make_runed_projectile(self, projectile: Projectile):
         if self.has_rune('raidho'):
@@ -169,6 +181,11 @@ class Tower(Sprite):
         elif self.has_rune('isa'):
             if random() < 0.05:
                 projectile.effects.append(Freeze())
+        elif self.has_rune('sowil'):
+            vx = projectile.velocity[0]
+            vy = projectile.velocity[1]
+            projectile.speed *= 2.00
+            projectile.velocity = [vx*2.00, vy*2.00]
         return projectile
 
 class InstaAirTower(Tower):
@@ -287,6 +304,8 @@ class FalconCliff(Tower):
             self.range *= 1.5
         elif rune.name == 'kenaz':
             self.damage *= 1.2
+        elif rune.name == 'sowil':
+            self.damage *= 2.00
 
         self.falcon.set_rune(rune)
 
@@ -467,7 +486,7 @@ class TempleOfThor(BigBuilding):
                             name="Temple of Thor", 
                             description="Grants Mjolnir ability\nGrants Raidho rune", 
                             unlocked_rune_indxs=[0], 
-                            unlocked_power_indxs=[0])
+                            unlocked_power_indxs=[1])
 
     def make_another(self):
         return TempleOfThor()
@@ -479,7 +498,7 @@ class Forge(BigBuilding):
                             name="Forge", 
                             description="Grants Platform ability\nGrants Hagalaz rune", 
                             unlocked_rune_indxs=[1], 
-                            unlocked_power_indxs=[1])
+                            unlocked_power_indxs=[2])
 
     def make_another(self):
         return Forge()
@@ -495,3 +514,14 @@ class TempleOfOdin(BigBuilding):
 
     def make_another(self):
         return TempleOfOdin()
+
+
+class ChamberOfTheChief(BigBuilding):
+    def __init__(self):
+        super().__init__(filename='./images/ChamberChief.png', cooldown=60, 
+                         name='Chamber of the Chief', 
+                         description='Grants Command ability\nGrants Sowil rune', 
+                         unlocked_rune_indxs=[5], unlocked_power_indxs=[3])
+        
+    def make_another(self):
+        return ChamberOfTheChief()

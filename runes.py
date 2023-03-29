@@ -77,4 +77,11 @@ class Isa(Rune):
         return Isa()
 
 
+class Sowil(Rune):
+    def __init__(self) -> None:
+        super().__init__(name='sowil', icon_file='./images/sowil-icon.png', 
+                         preview_image_file='./images/rune-preview.png', cost=120)
+        
+    def make_another(self):
+        return Sowil()
 

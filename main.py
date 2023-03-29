@@ -5,19 +5,19 @@ import arcade
 from copy import deepcopy
 from math import floor, atan2, pi
 from random import randint, random
-from abilities import MjolnirAbility, SellTowerAbility, PlatformAbility
+from abilities import MjolnirAbility, SellTowerAbility, PlatformAbility, CommandAbility
 from constants import *
 from grid import *
 from projectiles import Projectile
-from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa
+from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil
 from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
                     OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage,
-                    TempleOfThor, Forge, TempleOfOdin)
+                    TempleOfThor, Forge, TempleOfOdin, ChamberOfTheChief)
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.7 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.8 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -63,8 +63,8 @@ class GameWindow(arcade.Window):
             'shop_sacred' : arcade.load_texture('./images/shop_sacred.png'),
         }
         self.read_score_file()
-        self.abilities_list = [SellTowerAbility(), MjolnirAbility(), PlatformAbility(), None, None]
-        self.runes_list = [Raidho(), Hagalaz(), Tiwaz(), Kenaz(), Isa(), None, None]
+        self.abilities_list = [SellTowerAbility(), MjolnirAbility(), PlatformAbility(), CommandAbility(), None]
+        self.runes_list = [Raidho(), Hagalaz(), Tiwaz(), Kenaz(), Isa(), Sowil(), None]
         if is_debug:
             self.perf_graph = arcade.PerfGraph(width=80, height=80, background_color=TRANSPARENT_BLACK)
             self.perf_graph.center_x = 40
@@ -183,9 +183,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/OdinTempleThumb.png",
                         cost=700, tower=TempleOfOdin(), quest="Enchant 12 towers with runes", 
                         quest_thresh=12, quest_var_name="current enchanted towers"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png",
-                        cost=1200, tower=Tower(), quest="Reach 3000 gold", 
+                ShopItem(is_unlocked=is_debug, is_unlockable=False, 
+                        thumbnail="images/ChamberChiefThumb.png",
+                        cost=1200, tower=ChamberOfTheChief(), quest="Reach 3000 gold", 
                         quest_thresh=3000, quest_var_name="current gold"), 
                 ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
                         thumbnail="images/question.png",
@@ -881,6 +881,7 @@ class GameWindow(arcade.Window):
         thor_temples = 0
         forges = 0
         odin_temples = 0
+        chief_chambers = 0
         for tower in self.towers_list.sprite_list:
             if not tower.is_2x2:
                 continue
@@ -890,14 +891,18 @@ class GameWindow(arcade.Window):
                 forges += 1
             elif tower.name == "Temple of Odin":
                 odin_temples += 1
+            elif tower.name == "Chamber of the Chief":
+                chief_chambers += 1
         self.abilities_unlocked[1] = (thor_temples > 0) or is_debug
         self.abilities_unlocked[2] = (forges > 0) or is_debug
+        self.abilities_unlocked[3] = (chief_chambers > 0) or is_debug
         old_unlocks = deepcopy(self.runes_unlocked)
         self.runes_unlocked[0] = (thor_temples > 0) or is_debug
         self.runes_unlocked[1] = (forges > 0) or is_debug
         self.runes_unlocked[2] = (odin_temples > 0) or is_debug
         self.runes_unlocked[3] = (odin_temples > 0) or is_debug
         self.runes_unlocked[4] = (odin_temples > 0) or is_debug
+        self.runes_unlocked[5] = (chief_chambers > 0) or is_debug
         for k in range(len(self.runes_unlocked)):
             if self.runes_unlocked[k] and not old_unlocks[k]:
                 for txt in self.rune_costs_txt[k]:
@@ -1182,6 +1187,16 @@ class GameWindow(arcade.Window):
                             for enemy in self.enemies_list:
                                 if not (enemy.is_flying):
                                     enemy.calc_path(map=self.map_cells)
+                elif self.ability_selected == 4: # Command
+                    if self.abilities_list[2].cooldown_remaining <= 0.01:
+                        priority_delta, effect_radius2 = self.abilities_list[3].trigger(x, y)
+                        for enemy in self.enemies_list.sprite_list:
+                            dx = x - enemy.center_x
+                            dy = y - enemy.center_y
+                            dist2 = dx**2 + dy**2
+                            if dist2 < effect_radius2:
+                                enemy.priority += priority_delta
+                        self.ability_selected = 0
             
         # 2. Deal with button clicks 
         # 2.1 Next Wave Start Button
@@ -1462,7 +1477,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : Chamber Of The Chief building
+# TODO next step : switch to a priority 10million binary-mask-ish model
 
 # Roadmap items : 
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)

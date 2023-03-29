@@ -188,3 +188,17 @@ class PlatformAbility(Ability):
         self.safe_cell_tuples.append((i,j))
         return False
 
+
+class CommandAbility(Ability):
+    def __init__(self) -> None:
+        super().__init__(name='command', icon_file='./images/command-icon.png', 
+                         preview_image_file='./images/command-preview.png', 
+                         cooldown=60, range=1.5*CELL_SIZE)
+        self.priority_increase = -1000000
+        
+    def preview(self, x, y):
+        return super().preview(x, y, color=RED)
+    
+    def trigger(self, x, y):
+        super().trigger(x, y)
+        return self.priority_increase, self.range**2

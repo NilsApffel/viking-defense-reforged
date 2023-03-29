@@ -35,21 +35,21 @@ home_folder = Path.home()
 SCORE_FOLDER = home_folder.joinpath('./AppData/Local/viking-defense-refoged/')
 SCORE_FILE = SCORE_FOLDER.joinpath('./scores.csv')
 
-ABILITY_NAMES = ["Dismantle", "Mjolnir", "Platform"] + ["Not implemented"]*2
+ABILITY_NAMES = ["Dismantle", "Mjolnir", "Platform", "Command", "Not implemented"]
 ABILITY_DESCRIPTIONS = ["Dismantles tower or building. You get a refund.\n\nRefund : 50%", 
                         "Thor's legendary hammer. Damages all enemies in range.\nDamage: 100\nCooldown: 2min", 
                         "Sets up a barrier platform in a shallow water cell. You may build on the platforms.\nCooldown: 1min30sec", 
-                        "Not implemented", 
+                        "All enemies in range become priority targets.\n\nCooldown: 1min", 
                         "Not implemented"]
 
-RUNE_NAMES = ["Raidho", "Hagalaz", "Tiwaz", "Kenaz", "Isa"] + ["Not implemented"]*2
+RUNE_NAMES = ["Raidho", "Hagalaz", "Tiwaz", "Kenaz", "Isa", "Sowil", "Not implemented"]
 RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting ability."+
                      "\n\nInsert to a tower",
                      "Increases tower damage\n\nDamage: +25%\nInsert to a tower", 
                      "Extends tower shooting range\n\nRange: +50%\nInsert to a tower", 
                      "Grants a tower fire damage, +5% inflame chance\nDamage: +20%\nInsert to a tower", 
                      "Grants a tower ice damage, +5% freeze chance\nFreeze time : 3s\nInsert to a tower",
-                     "Not implemented", 
+                     "Decreases a tower's shooting and loading time\nSpeed: 2.00x\nInsert to a tower", 
                      "Not implemented"]
 
 ASSETS = {'platform': load_texture('./images/platform.png'),
@@ -58,6 +58,7 @@ ASSETS = {'platform': load_texture('./images/platform.png'),
           'tiwaz-t': load_texture('./images/tiwaz-t.png'),
           'kenaz-c': load_texture('./images/kenaz-c.png'),
           'isa-i': load_texture('./images/isa-i.png'),
+          'sowil-s': load_texture('./images/sowil-s.png'),
 }
 zaps_names = ['zap-'+str(10*k+10) for k in range(12)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]

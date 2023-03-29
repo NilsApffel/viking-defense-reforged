@@ -161,7 +161,8 @@ class FlyingEnemy(Enemy):
         super().__init__(filename=filename, scale=scale, health=health, reward=reward, is_flying=True)
 
     def on_update(self, delta_time: float = None):
-        self.priority = self.center_y
+        priority_millions = round(self.priority/1000000)
+        self.priority = self.center_y + priority_millions*1000000
         self.velocity = (0, -self.speed)
         super().on_update(delta_time)
 
@@ -211,9 +212,12 @@ class FloatingEnemy(Enemy):
             self.velocity = (self.speed*dx/norm, self.speed*dy/norm)
             self.angle = atan2(self.velocity[1], self.velocity[0])*180/pi
         # set own targeting priority vis-a-vis towers
-        # priority mostly depends on how many steps are left on the path to your target
-        # if your priority is lower than other enemies', towers will try to shoot you first
-        self.priority = self.center_y + 1000 * (len(self.path_to_follow) - self.next_path_step)
+        # Priority mostly depends on how many steps are left on the path to your target.
+        # If your priority is lower than other enemies', towers will try to shoot you first.
+        # Priority millions does not change over time except through the Command ability
+        priority_millions = round(self.priority/1000000)
+        new_priority = self.center_y + 1000 * (len(self.path_to_follow) - self.next_path_step)
+        self.priority = new_priority + priority_millions*1000000
         super().on_update(delta_time)
 
     def calc_path(self, map):
