@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.5.0 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.5.1 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -899,6 +899,8 @@ class GameWindow(arcade.Window):
             self.abilities_unlocked = [True]*len(self.abilities_unlocked)
             self.runes_unlocked = [True]*len(self.runes_unlocked)
             return
+        self.abilities_unlocked = [True, False, False, False, False]
+        self.runes_unlocked = [False]*len(self.runes_unlocked)
         for tower in self.towers_list.sprite_list:
             if not tower.is_2x2:
                 continue
@@ -1322,6 +1324,8 @@ class GameWindow(arcade.Window):
                 self.money += int(floor(price/2))
                 self.map_cells[i][j].is_occupied = False
                 tower.remove_from_sprite_lists()
+                if tower.name == "Falcon Cliff":
+                    tower.falcon.remove_fromm_sprite_lists()
                 return
             
         # if we reach this line, then the cell is occupied by a 2x2 tower
@@ -1338,8 +1342,6 @@ class GameWindow(arcade.Window):
                 self.map_cells[ti][tj+1].is_occupied = False
                 self.map_cells[ti+1][tj+1].is_occupied = False
                 tower.remove_from_sprite_lists()
-                if tower.name == "Falcon Cliff":
-                    tower.falcon.remove_fromm_sprite_lists()
                 return
 
     def attempt_tower_enchant(self, x: float, y: float):
@@ -1499,7 +1501,6 @@ if __name__ == "__main__":
 
 # Roadmap items : 
 # runes on towers are in a spritelist
-# all the shop/menu items are in a spritelist (requires visibility logic to avoid layering/addition/removal problems)
 # multiple buildings gives faster cooldown
 # runes on towers are drawn as part of a big spriteList
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
