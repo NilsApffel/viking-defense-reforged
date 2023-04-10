@@ -85,3 +85,11 @@ class Sowil(Rune):
     def make_another(self):
         return Sowil()
 
+
+class Laguz(Rune):
+    def __init__(self) -> None:
+        super().__init__(name='laguz', icon_file='./images/laguz-icon.png', 
+                         preview_image_file='./images/rune-preview.png', cost=150)
+    
+    def make_another(self):
+        return Laguz()

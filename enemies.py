@@ -58,8 +58,13 @@ class Enemy(Sprite):
         if ('fast' in modifier) and not ('fast' in old_modifier):
             self.speed *= 1.5
             self.velocity = (self.velocity[0]*1.5, self.velocity[1]*1.5)
+        elif ('fast' in old_modifier) and not ('fast' in modifier):
+            self.speed /= 1.5
+            self.velocity = (self.velocity[0]/1.5, self.velocity[1]/1.5)
         if ('regen' in modifier) and not ('regen' in old_modifier):
             self.regen_rate = self.max_health / 60
+        elif ('regen' in old_modifier) and not ('regen' in modifier):
+            self.regen_rate = 0
 
         effect_texture = None
         if 'ice shield' in self.modifier:
@@ -112,16 +117,19 @@ class Enemy(Sprite):
         red_width = full_width - green_width
         if red_width >= 1: #Workaround for Sprites not supporting zero width
             self.redbar.width = red_width
-            if not self.redbar.visible:
-                self.redbar.visible = True
+            self.redbar.visible = True
         else:
             self.redbar.width = 1
-            if self.redbar.visible:
-                self.redbar.visible = False
+            self.redbar.visible = False
         self.redbar.center_x = self.center_x + full_width/2 - red_width/2
         self.redbar.center_y = self.top + HBAR_HEIGHT/2
 
-        self.greenbar.width = green_width
+        if green_width >= 1: #Workaround for Sprites not supporting zero width
+            self.greenbar.width = green_width
+            self.greenbar.visible = True
+        else:
+            self.greenbar.width = 1
+            self.greenbar.visible = False
         self.greenbar.center_x = self.center_x - full_width/2 + green_width/2
         self.greenbar.center_y = self.top + HBAR_HEIGHT/2
 

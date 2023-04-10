@@ -202,3 +202,17 @@ class CommandAbility(Ability):
     def trigger(self, x, y):
         super().trigger(x, y)
         return self.priority_increase, self.range**2
+
+
+class HarvestAbility(Ability):
+    def __init__(self) -> None:
+        super().__init__(name='harvest', icon_file='./images/harvest-icon.png', 
+                         preview_image_file='./images/harvest-preview.png', 
+                         cooldown=120, range=1.5*CELL_SIZE)
+        
+    def preview(self, x, y):
+        return super().preview(x, y, color=YELLOW)
+    
+    def trigger(self, x, y):
+        super().trigger(x, y)
+        return 0.25, self.range**2

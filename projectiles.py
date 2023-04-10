@@ -115,6 +115,8 @@ class Projectile(Sprite):
                 name='sub-'+self.name, num_secondary_projectiles=0, 
                 texture=self._texture 
             )
+            for k in range(len(sub_proj.effects)):
+                sub_proj.effects[k].duration_remaining /= 2
             secondaries_list.append(sub_proj)
         return secondaries_list
 

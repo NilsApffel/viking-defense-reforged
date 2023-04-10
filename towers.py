@@ -90,6 +90,13 @@ class Tower(Sprite):
                 texture=ASSETS['sowil-s'],
                 scale=1.0,
             )
+        elif self.rune.name == 'laguz':
+            draw_scaled_texture_rectangle(
+                center_x=self.center_x+10,
+                center_y=self.center_y-10,
+                texture=ASSETS['laguz-l'],
+                scale=1.0,
+            )
 
     def on_update(self, delta_time: float = 1 / 60):
         if self.does_rotate:
@@ -186,7 +193,10 @@ class Tower(Sprite):
             vy = projectile.velocity[1]
             projectile.speed *= 2.00
             projectile.velocity = [vx*2.00, vy*2.00]
+        elif self.has_rune('laguz'):
+            projectile.num_secondary_projectiles += 1
         return projectile
+    
 
 class InstaAirTower(Tower):
     def __init__(self):
@@ -525,3 +535,14 @@ class ChamberOfTheChief(BigBuilding):
         
     def make_another(self):
         return ChamberOfTheChief()
+
+
+class TempleOfFreyr(BigBuilding):
+    def __init__(self):
+        super().__init__(filename='./images/TempleOfFreyr.png', cooldown=120, 
+                         name='Temple of Freyr', 
+                         description='Grants Harvest ability\nGrants Laguz rune', 
+                         unlocked_rune_indxs=[6], unlocked_power_indxs=[4])
+    
+    def make_another(self):
+        return TempleOfFreyr()
