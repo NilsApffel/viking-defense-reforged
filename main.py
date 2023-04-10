@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.10 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.5.0 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -50,6 +50,7 @@ class GameWindow(arcade.Window):
         self.platforms = arcade.SpriteList()
         self.all_health_bars = arcade.SpriteList()
         self.enemy_effects = arcade.SpriteList()
+        self.gui_elements = arcade.SpriteList()
         self.paused = False
         self.assets = {
             "attack_button" : arcade.load_texture('./images/NextWaveButton.png'),
@@ -125,6 +126,7 @@ class GameWindow(arcade.Window):
         self.towers_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
+        self.init_gui_elements()
         self.all_sprites = arcade.SpriteList()    
         self.time_to_next_wave = 75 if self.map_number < 5 else 60 # seconds
         self.init_text()
@@ -390,6 +392,74 @@ class GameWindow(arcade.Window):
             self.shop_text.append({'name': name, 'description': description, 
                                    'price': price, 'quest progress': quest_progress})
 
+    def init_gui_elements(self):
+        """creates the SpriteList containing almost all parts of the gui (shop, corner menu, chin menu). 
+        Speeds up future draw operations on these parts, which will be stored in the SpriteList self.gui_elements"""
+        self.gui_elements = arcade.SpriteList()
+
+        # 1. Backgrounds
+        chin_background = arcade.Sprite(
+            center_x=MAP_WIDTH/2,
+            center_y=CHIN_HEIGHT/2,
+            texture=self.assets['chin_menu']
+        )
+        corner_background = arcade.Sprite(
+            center_x = MAP_WIDTH + SHOP_WIDTH/2,
+            center_y = (SCREEN_HEIGHT-SHOP_HEIGHT)/2,
+            texture = self.assets["info_box"]
+        )
+        self.shop_background = arcade.Sprite(
+            center_x = MAP_WIDTH + SHOP_WIDTH/2,
+            center_y = SCREEN_HEIGHT - SHOP_HEIGHT/2
+        )
+        self.shop_background.append_texture(self.assets['shop_combat'])
+        self.shop_background.append_texture(self.assets['shop_sacred'])
+        self.shop_background.append_texture(self.assets['shop_buildings'])
+        self.shop_background.set_texture(texture_no=0)
+        self.gui_elements.extend([chin_background, corner_background, self.shop_background])
+
+        # 2. Attack button
+        self.attack_button = arcade.Sprite(
+            center_x = MAP_WIDTH - 5 - ATK_BUTT_HEIGHT/2,
+            center_y = INFO_BAR_HEIGHT + 2 + ATK_BUTT_HEIGHT/2,
+        )
+        self.attack_button.append_texture(self.assets['attack_button'])
+        self.attack_button.append_texture(self.assets['attack_button_lit'])
+        self.attack_button.append_texture(self.assets['attack_button_grey'])
+        self.attack_button.set_texture(texture_no=0)
+        self.gui_elements.append(self.attack_button)
+        
+        # 3. Shop items
+        for tab in range(len(self.shop_listlist)):
+            for k in range(len(self.shop_listlist[tab])):
+                self.shop_listlist[tab][k].center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 4.5
+                self.shop_listlist[tab][k].center_y = SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2 + 10.5
+                self.gui_elements.append(self.shop_listlist[tab][k])
+
+        # 4. Abilities bar
+        self.ability_icons = []
+        for k in range(5):
+            ability_icon = arcade.Sprite(
+                center_x = MAP_WIDTH + k*42 + 28.5,
+                center_y = 25.5,
+                texture=self.abilities_list[k].icon
+            )
+            ability_icon.visible = self.abilities_unlocked[k]
+            self.ability_icons.append(ability_icon)
+            self.gui_elements.append(ability_icon)
+
+        # 5. Runes bar
+        self.rune_icons = []
+        for k in range(7):
+            rune_icon = arcade.Sprite(
+                center_x = MAP_WIDTH + k*30 + 20.5,
+                center_y = 193.5,
+                texture=self.runes_list[k].extended_icon
+            )
+            rune_icon.visible = self.runes_unlocked[k]
+            self.rune_icons.append(rune_icon)
+            self.gui_elements.append(rune_icon)
+
     def on_draw(self): 
         arcade.start_render()
         if self.game_state == 'level select':
@@ -433,6 +503,7 @@ class GameWindow(arcade.Window):
                 k = self.ability_selected - 1
                 self.abilities_list[k].preview(x=self._mouse_x, y=self._mouse_y)
 
+        self.gui_elements.draw()
         self.draw_chin_menu()
         self.draw_shop()
         self.draw_corner_menu()
@@ -514,12 +585,8 @@ class GameWindow(arcade.Window):
         fake_tower.draw()
 
     def draw_chin_menu(self):
-        # Background
-        arcade.draw_scaled_texture_rectangle(
-            center_x=MAP_WIDTH/2,
-            center_y=CHIN_HEIGHT/2,
-            texture=self.assets['chin_menu']
-        )
+        # Background and attack button are Sprites in the gui_elements list, already drawn
+
         # Wave previews
         for k in range(2):
             # add preview of waves, if there are still waves left
@@ -537,18 +604,14 @@ class GameWindow(arcade.Window):
             for txt in self.wave_previews_text[k]:
                 txt.draw()
                 
-        # attack button
-        texture = self.assets['attack_button']
+        # attack button (update only, it already got drawn)
         if self.wave_is_happening:
-            texture = self.assets['attack_button_grey']
+            self.attack_button.set_texture(texture_no=2) # grey
         elif self.hover_target == 'attack_button' and not self.paused:
-            texture = self.assets['attack_button_lit']
-        arcade.draw_scaled_texture_rectangle(
-            center_x = MAP_WIDTH - 5 - ATK_BUTT_HEIGHT/2,
-            center_y = INFO_BAR_HEIGHT + 2 + ATK_BUTT_HEIGHT/2,
-            scale = 1.0,
-            texture = texture
-        )
+            self.attack_button.set_texture(texture_no=1) # lit
+        else:
+            self.attack_button.set_texture(texture_no=0) # normal
+
         # info bar
         self.population_counter_text.text = str(self.population)
         self.population_counter_text.draw()
@@ -556,31 +619,17 @@ class GameWindow(arcade.Window):
         self.money_counter_text.draw()
 
     def draw_shop(self): 
-        # backround
-        center_x = MAP_WIDTH + SHOP_WIDTH/2
-        center_y = SCREEN_HEIGHT - SHOP_HEIGHT/2
-        if self.current_shop_tab == 0:
-            texture=self.assets['shop_combat']
-        elif self.current_shop_tab == 1:
-            texture=self.assets['shop_sacred']
-        else:
-            texture=self.assets['shop_buildings']
-        arcade.draw_scaled_texture_rectangle(
-            center_x=center_x, 
-            center_y=center_y,
-            texture=texture
-        )
+        # background
+        self.shop_background.set_texture(self.current_shop_tab)
+
+        for tab in range(len(self.shop_listlist)):
+            for k in range(len(self.shop_listlist[tab])):
+                self.shop_listlist[tab][k].visible = (self.current_shop_tab == tab) and self.shop_listlist[tab][k].is_unlocked
 
         for k in range(0, 5):
             # shop item, if it should be there
             shop_item = (self.shop_listlist[self.current_shop_tab][k])
             if shop_item.is_unlocked:
-                arcade.draw_scaled_texture_rectangle( # draw the thumbnail
-                    center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 4 + 0.5, 
-                    center_y = 10 + SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2 + 0.5,
-                    texture = shop_item.thumbnail,
-                    scale = shop_item.scale
-                )
                 self.shop_text[k]['name'].text = shop_item.tower.name
                 self.shop_text[k]['description'].text = shop_item.tower.description
                 self.shop_text[k]['price'].text = str(shop_item.cost)
@@ -605,23 +654,9 @@ class GameWindow(arcade.Window):
                     txt.draw()
  
     def draw_corner_menu(self):
-
-        # 0. Background
-        arcade.draw_scaled_texture_rectangle(
-            center_x = MAP_WIDTH + SHOP_WIDTH/2,
-            center_y = (SCREEN_HEIGHT-SHOP_HEIGHT)/2,
-            texture = self.assets["info_box"],
-            scale = 1.0 
-        )
-
         # 1. Runes bar
         for k in range(7):
-            if self.runes_unlocked[k]:
-                self.runes_list[k].draw_icon(
-                    x = MAP_WIDTH + 7 + k*30 + 12.5,
-                    y = 193.5,
-                    large = True
-                )
+            self.rune_icons[k].visible = self.runes_unlocked[k]
         if self.rune_selected > 0:
             k = self.rune_selected - 1
             arcade.draw_lrtb_rectangle_outline(
@@ -672,11 +707,7 @@ class GameWindow(arcade.Window):
     
         # 3. Abilities bar
         for k in range(5):
-            if self.abilities_unlocked[k]:
-                self.abilities_list[k].draw_icon(
-                    x = MAP_WIDTH + 7 + k*42 + 20.5,
-                    y = 24.5
-                )
+            self.ability_icons[k].visible = self.abilities_unlocked[k]
         if self.ability_selected > 0:
             k = self.ability_selected - 1
             arcade.draw_lrtb_rectangle_outline(
