@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.4.9 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.4.10 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -270,19 +270,6 @@ class GameWindow(arcade.Window):
     def init_text(self):
         """Initializes all text objects in order to avoid ever using draw_text, which has 
         terrible performance"""
-
-        # 1. Permanently static text using outlined font
-        self.rune_costs_txt = []
-        for k in range(len(self.runes_list)):
-            x = MAP_WIDTH + 12 + k*30
-            if self.runes_unlocked[k] or (is_debug and self.runes_list[k]):
-                self.rune_costs_txt.append(init_outlined_text(
-                    text=str(self.runes_list[k].cost), start_x=x, start_y=172, font_size=10
-                ))
-            else:
-                self.rune_costs_txt.append(init_outlined_text(
-                    text='', start_x=x, start_y=172, font_size=10
-                ))
         
         # 2. Info box text
         title_text = arcade.Text(
@@ -449,9 +436,6 @@ class GameWindow(arcade.Window):
         self.draw_chin_menu()
         self.draw_shop()
         self.draw_corner_menu()
-        for multi_layer_txt in self.rune_costs_txt:
-            for txt in multi_layer_txt:
-                txt.draw()
 
         if self.paused: 
             self.draw_pause_menu()
@@ -635,7 +619,8 @@ class GameWindow(arcade.Window):
             if self.runes_unlocked[k]:
                 self.runes_list[k].draw_icon(
                     x = MAP_WIDTH + 7 + k*30 + 12.5,
-                    y = 200.5
+                    y = 193.5,
+                    large = True
                 )
         if self.rune_selected > 0:
             k = self.rune_selected - 1
@@ -877,44 +862,31 @@ class GameWindow(arcade.Window):
         for ability in self.abilities_list:
             if not (ability is None):
                 ability.on_update(delta_time)
+        
         # update unlocks
-        thor_temples = 0
-        forges = 0
-        odin_temples = 0
-        chief_chambers = 0
-        freyr_temples = 0
+        if is_debug:
+            self.abilities_unlocked = [True]*len(self.abilities_unlocked)
+            self.runes_unlocked = [True]*len(self.runes_unlocked)
+            return
         for tower in self.towers_list.sprite_list:
             if not tower.is_2x2:
                 continue
             if tower.name == "Temple of Thor":
-                thor_temples += 1
+                self.abilities_unlocked[1] = True
+                self.runes_unlocked[0] = True
             elif tower.name == "Forge":
-                forges += 1
+                 self.abilities_unlocked[2] = True
+                 self.runes_unlocked[1] = True
             elif tower.name == "Temple of Odin":
-                odin_temples += 1
+                self.runes_unlocked[2] = True
+                self.runes_unlocked[3] = True
+                self.runes_unlocked[4] = True
             elif tower.name == "Chamber of the Chief":
-                chief_chambers += 1
+                self.abilities_unlocked[3] = True
+                self.runes_unlocked[5] = True
             elif tower.name == "Temple of Freyr":
-                freyr_temples += 1
-        self.abilities_unlocked[1] = (thor_temples > 0) or is_debug
-        self.abilities_unlocked[2] = (forges > 0) or is_debug
-        self.abilities_unlocked[3] = (chief_chambers > 0) or is_debug
-        self.abilities_unlocked[4] = (freyr_temples > 0) or is_debug
-        old_unlocks = deepcopy(self.runes_unlocked)
-        self.runes_unlocked[0] = (thor_temples > 0) or is_debug
-        self.runes_unlocked[1] = (forges > 0) or is_debug
-        self.runes_unlocked[2] = (odin_temples > 0) or is_debug
-        self.runes_unlocked[3] = (odin_temples > 0) or is_debug
-        self.runes_unlocked[4] = (odin_temples > 0) or is_debug
-        self.runes_unlocked[5] = (chief_chambers > 0) or is_debug
-        self.runes_unlocked[6] = (freyr_temples > 0) or is_debug
-        for k in range(len(self.runes_unlocked)):
-            if self.runes_unlocked[k] and not old_unlocks[k]:
-                for txt in self.rune_costs_txt[k]:
-                    txt.text = str(self.runes_list[k].cost)
-            elif old_unlocks[k] and not self.runes_unlocked[k]:
-                for txt in self.rune_costs_txt[k]:
-                    txt.text = ''
+                self.abilities_unlocked[4] = True
+                self.runes_unlocked[6] = True
 
     def perform_enemy_actions(self, delta_time: float):
         # take damage from dps effects:
@@ -1495,7 +1467,8 @@ if __name__ == "__main__":
 # TODO next step :
 
 # Roadmap items : 
-# rune costs get incorporated into the image instead of being drawn
+# runes on towers are in a spritelist
+# all the shop/menu items are in a spritelist (requires visibility logic to avoid layering/addition/removal problems)
 # multiple buildings gives faster cooldown
 # runes on towers are drawn as part of a big spriteList
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
@@ -1510,4 +1483,4 @@ if __name__ == "__main__":
 # wave system compatible with infinite free-play
 # free-play mode
 # smoother trajectories for floating enemies
-# more towers
+# last couple towers

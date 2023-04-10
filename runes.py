@@ -6,6 +6,7 @@ class Rune():
                  cost: float) -> None:
         self.name = name
         self.icon = load_texture(icon_file)
+        self.extended_icon = load_texture(icon_file[:-8]+'extended.png')
         self.preview_image = load_texture(preview_image_file)
         self.cost = cost
         self.effect = None
@@ -18,11 +19,11 @@ class Rune():
             scale=1.0
         )
 
-    def draw_icon(self, x, y):
+    def draw_icon(self, x, y, large: bool = False):
         draw_scaled_texture_rectangle(
             center_x=x,
             center_y=y,
-            texture=self.icon,
+            texture=self.extended_icon if large else self.icon,
             scale=1.0
         )
 
