@@ -47,13 +47,7 @@ class Ability():
             scale=1.0
         )
 
-    def draw_icon(self, x, y):
-        draw_scaled_texture_rectangle(
-            center_x=x,
-            center_y=y,
-            texture=self.icon,
-            scale=1.0
-        )
+    def draw_cooldown(self, x, y):
         if self.cooldown_remaining > 0.01:
             draw_arc_filled(
                 center_x=x,

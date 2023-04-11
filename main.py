@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.5.1 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.5.2 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -708,6 +708,11 @@ class GameWindow(arcade.Window):
         # 3. Abilities bar
         for k in range(5):
             self.ability_icons[k].visible = self.abilities_unlocked[k]
+            if self.abilities_list[k].cooldown_remaining > 0.01:
+                self.abilities_list[k].draw_cooldown(
+                    x = MAP_WIDTH + 27 + k*42,
+                    y=24
+                )
         if self.ability_selected > 0:
             k = self.ability_selected - 1
             arcade.draw_lrtb_rectangle_outline(
@@ -1497,7 +1502,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
 # runes on towers are in a spritelist
