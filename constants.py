@@ -60,8 +60,13 @@ ASSETS = {'platform': load_texture('./images/platform.png'),
           'isa-i': load_texture('./images/isa-i.png'),
           'sowil-s': load_texture('./images/sowil-s.png'),
           'laguz-l': load_texture('./images/laguz-l.png'),
+          'sanctum0': load_texture('./images/SanctumOfTempest0.png'),
+          'sanctum1': load_texture('./images/SanctumOfTempest1.png'),
+          'sanctum2': load_texture('./images/SanctumOfTempest2.png'),
+          'sanctum3': load_texture('./images/SanctumOfTempest3.png'),
+          'sanctum4': load_texture('./images/SanctumOfTempest4.png'),
 }
-zaps_names = ['zap-'+str(10*k+10) for k in range(12)]
+zaps_names = ['zap-'+str(10*k+10) for k in range(15)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]
 ZAPS = dict(zip(zaps_names, zaps_list))
 

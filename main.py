@@ -12,12 +12,12 @@ from projectiles import Projectile
 from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil, Laguz
 from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
-                    OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage,
+                    OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage, SanctumOfTempest,
                     TempleOfThor, Forge, TempleOfOdin, ChamberOfTheChief, TempleOfFreyr)
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.5.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.5.3 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -168,9 +168,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/QuarryOfRageThumb.png",
                         cost=650, tower=QuarryOfRage(), quest="Destroy 3 submerged enemies", 
                         quest_thresh=3, quest_var_name="submerged enemies killed"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png",
-                        cost=1000, tower=Tower(), quest="Freeze 20 enemies", 
+                ShopItem(is_unlocked=is_debug, is_unlockable=False,
+                        thumbnail="images/SanctumOfTempestThumb.png",
+                        cost=1000, tower=SanctumOfTempest(), quest="Freeze 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies frozen")
             ], [ # start Buildings
                 ShopItem(is_unlocked=is_debug, is_unlockable=True,
@@ -989,6 +989,10 @@ class GameWindow(arcade.Window):
             elif self.enemies_left_to_spawn == 0 and len(self.enemies_list.sprite_list) == 0:
                 self.wave_is_happening = False
                 self.time_to_next_wave = 75 if self.map_number < 5 else 60
+                for tower in self.towers_list.sprite_list:
+                    if tower.name == 'Sanctum of Tempest':
+                        tower.hit_counter = 0
+                        tower.set_texture(0)
         else: # wave is not happening
             self.time_to_next_wave -= delta_time
             if self.time_to_next_wave <= 0:
@@ -1018,6 +1022,10 @@ class GameWindow(arcade.Window):
                                 if effect_added:
                                     self.enemy_effects.append(effect)
                                     self.all_sprites.append(effect)
+                                if effect.name == 'freeze':
+                                    self.quest_tracker['enemies frozen'] += 1
+                                elif effect.name == 'inflame':
+                                    self.quest_tracker['enemies inflamed'] += 1
                             
                         earnings = enemy.take_damage_give_money(dmg)
                         self.money += earnings
@@ -1061,6 +1069,10 @@ class GameWindow(arcade.Window):
                         if effect_added:
                             self.enemy_effects.append(effect)
                             self.all_sprites.append(effect)
+                        if effect.name == 'freeze':
+                            self.quest_tracker['enemies frozen'] += 1
+                        elif effect.name == 'inflame':
+                            self.quest_tracker['enemies inflamed'] += 1
                     earnings = enemy.take_damage_give_money(damage=projectile.damage)
                     self.money += earnings
                     # increment quest trackers
@@ -1093,6 +1105,10 @@ class GameWindow(arcade.Window):
                 if effect_added:
                     self.enemy_effects.append(effect)
                     self.all_sprites.append(effect)
+                if effect.name == 'freeze':
+                    self.quest_tracker['enemies frozen'] += 1
+                elif effect.name == 'inflame':
+                    self.quest_tracker['enemies inflamed'] += 1
             earnings = projectile.target.take_damage_give_money(projectile.damage)
             self.money += earnings
             # increment quest trackers
@@ -1502,7 +1518,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
 # runes on towers are in a spritelist
@@ -1520,4 +1536,4 @@ if __name__ == "__main__":
 # wave system compatible with infinite free-play
 # free-play mode
 # smoother trajectories for floating enemies
-# last couple towers
+# last tower

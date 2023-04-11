@@ -470,6 +470,71 @@ class QuarryOfRage(Tower):
         return 0, [bomb] # damage will be dealt by projectile
 
 
+class SanctumOfTempest(Tower):
+    def __init__(self):
+        super().__init__(cooldown=0.5, 
+                         range=96, damage=10, name='Sanctum of Tempest', 
+                         description="Fires at flying & floating\nEach 5th hit amplified", 
+                         can_see_types=["floating", "flying"])
+        self.hit_counter = 0
+        for k in range(5):
+            self.append_texture(ASSETS['sanctum'+str(k)])
+        self.set_texture(0)
+
+    def make_another(self):
+        return SanctumOfTempest()
+    
+    def attack(self, enemy: Enemy):
+        self.hit_counter = self.hit_counter + 1
+        self.hit_counter = self.hit_counter % 5
+        if self.hit_counter != 0:
+            self.animation_ontime_remaining = 0.1
+            self.enemy_x = enemy.center_x
+            self.enemy_y = enemy.center_y
+            self.set_texture(self.hit_counter)
+            return super().attack(enemy)
+        else:
+            # Special AoE giant hit
+            blast_effect = Explosion(
+                filename='./images/zap_blast.png', starting_scale=0.1, 
+                lifetime_seconds=0.15, 
+                scale_increase_rate = 10 if self.has_rune('tiwaz') else 6, 
+            )
+            blast_effect.angle = random()*2*pi
+            zap_blast = Projectile(
+                filename='./images/cannonball.png', scale=0.1, speed=0,
+                center_x=self.center_x, center_y=self.center_y, 
+                target_x=self.center_x, target_y=self.center_y, 
+                damage=self.damage, do_splash_damage=True, 
+                splash_radius=self.range, impact_effect=blast_effect, 
+                name='zap blast'
+            )
+            if (not self.has_rune('raidho')) and (not self.has_rune('laguz')):
+                zap_blast = self.make_runed_projectile(zap_blast)
+            self.set_texture(self.hit_counter)
+            self.cooldown_remaining = self.cooldown
+            return 0, [zap_blast]
+        
+    def on_update(self, delta_time: float = 1 / 60):
+        self.animation_ontime_remaining -= delta_time
+        if self.animation_ontime_remaining < 0:
+            self.animation_ontime_remaining = 0
+        return super().on_update(delta_time)
+    
+    def draw_shoot_animation(self):
+        cx = (self.center_x + self.enemy_x)/2
+        cy = (self.center_y + self.enemy_y)/2
+        dx = self.enemy_x - self.center_x
+        dy = self.enemy_y - self.center_y
+        zap_num = round(sqrt(dx**2 + dy**2)/10)*10
+        if zap_num > 0:
+            ZAPS['zap-'+str(zap_num)].draw_scaled(
+                center_x=cx, 
+                center_y=cy, 
+                angle=atan2(dy, dx)*180/pi
+            )
+
+
 class BigBuilding(Tower):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 120, 
                     name: str = None, description: str = None, 
