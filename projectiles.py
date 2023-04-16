@@ -1,7 +1,8 @@
 from arcade import Sprite, Texture
 from copy import deepcopy
 from math import atan2, pi, sqrt, cos, sin
-from constants import MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug
+from random import random, randint
+from constants import FLAMES, MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug
 from enemies import Enemy
 from explosions import Explosion
 from runes import Rune
@@ -54,6 +55,9 @@ class Projectile(Sprite):
                 # accelerate towards target and lose some speed
                 dx = self.target_x - self.center_x
                 dy = self.target_y - self.center_y
+                if self.name == 'flame_particle' and max(dx, dy) > 20:
+                    dx += random()*32-8
+                    dy += random()*32-8
                 norm = sqrt(dx*dx + dy*dy)
                 if norm == 0:
                     norm = 0.001
@@ -203,3 +207,23 @@ class Falcon(Projectile):
             return 0
         damage = self.latest_dt*self.damage # damage = dt * dps
         return damage
+
+
+class FlameParticle(Projectile):
+    def __init__(self, tower_x: float, tower_y: float, tower_angle: float, enemy: Enemy, damage: float):
+        # choose random coords near the "mouth" of the tower's nozzle
+        r0 = 32
+        theta = (tower_angle+90)*pi/180
+        sigma_t = 6
+        randsigned = random()*2 - 1
+        dt = sigma_t*randsigned 
+        dr = -16*(1-abs(dt)/sigma_t) # spawning "surface" is v-shaped along radial direction
+        center_x = tower_x + r0*cos(theta) + dr*cos(theta) + dt*sin(theta)
+        center_y = tower_y + r0*sin(theta) + dr*sin(theta) - dt*cos(theta)
+
+        super().__init__(
+            speed=3.0, scale=0.75, center_x=center_x, center_y=center_y, angle=0, angle_rate=0, 
+            target=enemy, target_x=enemy.center_x, target_y=enemy.center_y, damage=damage, 
+            do_splash_damage=False, is_retargeting=False, name='flame_particle', 
+            texture=FLAMES[randint(0, 7)]
+        )

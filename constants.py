@@ -69,5 +69,7 @@ ASSETS = {'platform': load_texture('./images/platform.png'),
 zaps_names = ['zap-'+str(10*k+10) for k in range(15)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]
 ZAPS = dict(zip(zaps_names, zaps_list))
+flames_names = ['flame_particle_'+str(k) for k in range(8)]
+FLAMES = [load_texture('./images/flames/'+s+'.png') for s in flames_names]
 
 is_debug = False

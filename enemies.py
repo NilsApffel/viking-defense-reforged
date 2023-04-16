@@ -29,6 +29,7 @@ class Enemy(Sprite):
         self.buff_sprite = None
 
     def take_damage_give_money(self, damage: float):
+        starting_health = self.current_health
         if 'shield' in self.modifier.lower():
             self.current_health -= damage/2 
         else:
@@ -37,7 +38,8 @@ class Enemy(Sprite):
             for eff in self.temporary_effects:
                 eff.remove_from_sprite_lists()
             self.remove_from_sprite_lists()
-            return self.reward
+            if damage > 0 and starting_health > 0:
+                return self.reward
         return 0
     
     def set_rank(self, rank:int):

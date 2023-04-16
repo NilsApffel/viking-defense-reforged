@@ -1,13 +1,13 @@
 from arcade import Sprite, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
-from math import atan2, pi, sqrt, cos, sin
+from math import atan2, pi, sqrt, cos, sin, ceil
 from random import random
 from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS
 from copy import deepcopy
 from effects import SlowDown, Inflame, Freeze
 from enemies import Enemy
 from explosions import Explosion
-from projectiles import Projectile, Falcon
+from projectiles import Projectile, Falcon, FlameParticle
 from runes import Rune
 
 class Tower(Sprite):
@@ -364,6 +364,62 @@ class Bastion(Tower):
             explosives.append(proj)
             
         return 0, explosives # damage will be dealt by projectiles
+
+
+class GreekFire(Tower):
+    def __init__(self):
+        super().__init__(
+            filename='./images/greek_fire_top.png', 
+            cooldown=0.001, 
+            range=150, 
+            damage=30, 
+            name='Greek Fire', 
+            description='Fires at floating\nContinuous fire', 
+            can_see_types=['floating'], 
+            has_rotating_top=True, 
+            constant_attack=True, 
+            projectiles_are_homing=True)
+        self.latest_dt = 0.017
+        self.particles_per_second = 60*10
+        self.effect_probability_per_second = 0.05
+        self.effect_probability_per_particle = 1-(1-self.effect_probability_per_second)**(1.0/self.particles_per_second)
+
+    def make_another(self):
+        return GreekFire()
+
+    def make_runed_projectile(self, projectile: Projectile):
+        if self.has_rune('kenaz'):
+            if random() < self.effect_probability_per_particle:
+                projectile.effects.append(Inflame())
+        elif self.has_rune('isa'):
+            if random() < self.effect_probability_per_particle:
+                projectile.effects.append(Freeze())
+        else:
+            return super().make_runed_projectile(projectile)
+        return projectile
+
+    def on_update(self, delta_time: float = 1 / 60):
+        self.latest_dt = delta_time
+        return super().on_update(delta_time)
+    
+    def attack(self, enemy: Enemy):
+        super().attack(enemy)
+        flame_particles = []
+        n_particles = ceil(self.particles_per_second*self.latest_dt)
+        n_particles = max (1, n_particles) # guarantee we always create at least 1 particle
+        total_dmg = self.damage * self.latest_dt
+        dmg_per_particle = total_dmg / n_particles
+        for k in range(n_particles):
+            particle = FlameParticle(
+                tower_x=self.center_x, 
+                tower_y=self.center_y,
+                tower_angle=self.angle,
+                enemy=enemy,
+                damage=dmg_per_particle
+            )
+            flame_particles.append(self.make_runed_projectile(particle))
+
+        return 0, flame_particles
 
 
 class OakTreeTower(Tower):

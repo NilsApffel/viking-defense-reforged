@@ -11,13 +11,13 @@ from grid import *
 from projectiles import Projectile
 from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil, Laguz
 from shop import ShopItem
-from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion,
+from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire,
                     OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage, SanctumOfTempest,
                     TempleOfThor, Forge, TempleOfOdin, ChamberOfTheChief, TempleOfFreyr)
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.5.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.5.4 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -148,9 +148,9 @@ class GameWindow(arcade.Window):
                         thumbnail="images/BastionThumb.png",
                         cost=650, tower=Bastion(), quest="Place 10 platforms", 
                         quest_thresh=10, quest_var_name="platforms placed"), 
-                ShopItem(is_unlocked=False, is_unlockable=False, # placeholder
-                        thumbnail="images/question.png",
-                        cost=1000, tower=Tower(), quest="Inflame 20 enemies", 
+                ShopItem(is_unlocked=is_debug, is_unlockable=False, 
+                        thumbnail="images/GreekFireThumb.png",
+                        cost=1000, tower=GreekFire(), quest="Inflame 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies inflamed")
             ], [ # start Sacred towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
@@ -869,7 +869,7 @@ class GameWindow(arcade.Window):
         self.update_wave_progress(delta_time=delta_time)
         self.update_quests()
         self.update_abilities_and_runes(delta_time=delta_time)
-
+        
         # move and delete sprites if needed
         self.enemies_list.update()
         self.enemies_list.on_update(delta_time) 
@@ -1009,7 +1009,7 @@ class GameWindow(arcade.Window):
                     if tower.cooldown_remaining <= 0: # ready to fire
                         # an attack happens
                         dmg, projlist = tower.attack(enemy)
-                        if tower.has_rune('kenaz') or tower.has_rune('isa'):
+                        if dmg > 0 and (tower.has_rune('kenaz') or tower.has_rune('isa')):
                             effect = deepcopy(tower.rune.effect)
                             thresh = 0.05
                             if tower.name == "Falcon Cliff":
