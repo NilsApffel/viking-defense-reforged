@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.5.4 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.5.5 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -36,6 +36,16 @@ def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact")
         arcade.Text(text, start_x=start_x, start_y=start_y, font_size=font_size, 
                         font_name=font_name)]
     return text_objects_list
+
+def timestr(seconds: float):
+    s = ''
+    if seconds >= 60:
+        mins = floor(seconds / 60)
+        s += str(mins) + 'min'
+        seconds = seconds - mins*60
+    if seconds >= 1:
+        s += str(floor(seconds)) + 'sec'
+    return s
 
 class GameWindow(arcade.Window):
     def __init__(self):
@@ -692,7 +702,7 @@ class GameWindow(arcade.Window):
         elif 'ability' in self.hover_target:
             k = int(self.hover_target.split(':')[-1])
             self.info_box_text[0].text = ABILITY_NAMES[k]
-            self.info_box_text[1].text = ABILITY_DESCRIPTIONS[k]
+            self.info_box_text[1].text = ABILITY_DESCRIPTIONS[k] + timestr(self.abilities_list[k].cooldown)
             self.info_box_text[2].text = ''
         elif is_debug:
             self.info_box_text[0].text = self.hover_target
@@ -1323,6 +1333,7 @@ class GameWindow(arcade.Window):
             self.map_cells[i+1][j].is_occupied = True
             self.map_cells[i][j+1].is_occupied = True
             self.map_cells[i+1][j+1].is_occupied = True
+            self.update_ability_cooldowns()
         elif new_tower.name == "Falcon Cliff":
             self.projectiles_list.append(new_tower.falcon)
             self.all_sprites.append(new_tower.falcon)
@@ -1363,6 +1374,7 @@ class GameWindow(arcade.Window):
                 self.map_cells[ti][tj+1].is_occupied = False
                 self.map_cells[ti+1][tj+1].is_occupied = False
                 tower.remove_from_sprite_lists()
+                self.update_ability_cooldowns()
                 return
 
     def attempt_tower_enchant(self, x: float, y: float):
@@ -1501,6 +1513,25 @@ class GameWindow(arcade.Window):
         self.ability_selected = 0
         self.shop_item_selected = 0
 
+    def update_ability_cooldowns(self):
+        """Adjusts the cooldown duration (in s) of each ability using the base 
+        cooldown and the number of corresponding buildings."""
+        for k in range(1, 5): # k is the ability index
+            building_name = ''
+            for building in self.shop_listlist[2]:
+                if k in building.tower.unlocked_power_indxs:
+                    building_name = building.tower.name
+                    base_cooldown = building.tower.cooldown
+
+            n_buildings = 0
+            for tower in self.towers_list:
+                if tower.name == building_name:
+                    n_buildings += 1
+
+            self.abilities_list[k].cooldown = base_cooldown * 0.8**(n_buildings-1)
+            self.abilities_list[k].cooldown_remaining = min(self.abilities_list[k].cooldown, 
+                                                            self.abilities_list[k].cooldown_remaining)
+
     def start_wave(self):
         self.wave_is_happening = True
         self.wave_number += 1
@@ -1518,11 +1549,9 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
-# runes on towers are in a spritelist
-# multiple buildings gives faster cooldown
 # runes on towers are drawn as part of a big spriteList
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # better pause menu
@@ -1536,4 +1565,3 @@ if __name__ == "__main__":
 # wave system compatible with infinite free-play
 # free-play mode
 # smoother trajectories for floating enemies
-# last tower

@@ -37,10 +37,10 @@ SCORE_FILE = SCORE_FOLDER.joinpath('./scores.csv')
 
 ABILITY_NAMES = ["Dismantle", "Mjolnir", "Platform", "Command", "Harvest"]
 ABILITY_DESCRIPTIONS = ["Dismantles tower or building. You get a refund.\n\nRefund : 50%", 
-                        "Thor's legendary hammer. Damages all enemies in range.\nDamage: 100\nCooldown: 2min", 
-                        "Sets up a barrier platform in a shallow water cell. You may build on the platforms.\nCooldown: 1min30sec", 
-                        "All enemies in range become priority targets.\n\nCooldown: 1min", 
-                        "Enemies in range lose their buffs. You get part of their reward.\nProfit: 25%\nCooldown: 2min"]
+                        "Thor's legendary hammer. Damages all enemies in range.\nDamage: 100\nCooldown: ", 
+                        "Sets up a barrier platform in a shallow water cell. You may build on the platforms.\nCooldown: ", 
+                        "All enemies in range become priority targets.\n\nCooldown: ", 
+                        "Enemies in range lose their buffs. You get part of their reward.\nProfit: 25%\nCooldown: "]
 
 RUNE_NAMES = ["Raidho", "Hagalaz", "Tiwaz", "Kenaz", "Isa", "Sowil", "Laguz"]
 RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting ability."+
