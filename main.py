@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.5.5 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.5.6 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -470,6 +470,32 @@ class GameWindow(arcade.Window):
             self.rune_icons.append(rune_icon)
             self.gui_elements.append(rune_icon)
 
+        # 6. Chin menu buttons
+        self.pause_button = arcade.Sprite(
+            filename='./images/pause-button.png',
+            center_x = 83,
+            center_y = 12,
+        )
+        self.gui_elements.append(self.pause_button)
+        self.exit_button = arcade.Sprite(
+            filename='./images/exit-button.png',
+            center_x = 25.5,
+            center_y = 12,
+        )
+        self.gui_elements.append(self.exit_button)
+
+        # 7. Splash screens (drawn separately, on top of everything)
+        self.pause_splash = arcade.Sprite(
+            filename='./images/pause-menu.png',
+            center_x=SCREEN_WIDTH/2,
+            center_y=SCREEN_HEIGHT/2,
+        )
+        self.exit_splash = arcade.Sprite(
+            filename='./images/confirm-exit.png',
+            center_x=SCREEN_WIDTH/2,
+            center_y=SCREEN_HEIGHT/2,
+        )
+
     def on_draw(self): 
         arcade.start_render()
         if self.game_state == 'level select':
@@ -735,6 +761,19 @@ class GameWindow(arcade.Window):
             )
 
     def draw_pause_menu(self):
+        arcade.draw_lrtb_rectangle_filled( # dim screen
+            left   = 0, 
+            right  = SCREEN_WIDTH,
+            top    = SCREEN_HEIGHT,
+            bottom = 0,
+            color=arcade.make_transparent_color(arcade.color.DIM_GRAY, transparency=128.0)
+        )
+        if self.game_state == 'playing' and self.paused:
+            self.pause_splash.draw()
+            return
+        elif self.game_state == 'exit confirmation':
+            self.exit_splash.draw()
+            return
 
         popup_color = arcade.color.ASH_GREY
         popup_title = 'Paused'
@@ -749,13 +788,7 @@ class GameWindow(arcade.Window):
             popup_title = 'Game Over'
             popup_subtext = 'Waves survived: '+str(self.wave_number-1)
 
-        arcade.draw_lrtb_rectangle_filled( # dim screen
-            left   = 0, 
-            right  = SCREEN_WIDTH,
-            top    = SCREEN_HEIGHT,
-            bottom = 0,
-            color=arcade.make_transparent_color(arcade.color.DIM_GRAY, transparency=128.0)
-        )
+        
         arcade.draw_lrtb_rectangle_filled( # Message background
             left   = self.width/2  - 100, 
             right  = self.width/2  + 100,
@@ -842,7 +875,7 @@ class GameWindow(arcade.Window):
     def on_update(self, delta_time: float = 1/30):
         if is_debug:
             self.perf_graph.update_graph(delta_time=delta_time)
-        if self.paused or self.game_state == 'won' or self.game_state == 'lost':
+        if self.paused or self.game_state == 'won' or self.game_state == 'lost' or self.game_state == 'exit confirmation':
             self.paused = True
             return
         ret = super().on_update(delta_time)
@@ -1178,11 +1211,11 @@ class GameWindow(arcade.Window):
         if symbol == arcade.key.ESCAPE:
             if self.paused and self.game_state == 'playing':
                 self.paused = False
+            elif self.paused and self.game_state == 'exit confirmation':
+                self.paused = False
+                self.game_state = 'playing'
             else:
                 self.paused = True
-        elif self.paused and symbol == arcade.key.SPACE: 
-            # return to level select
-            self.setup(map_number=0)
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
         # 0. Deal with level selection and paused state
@@ -1196,7 +1229,18 @@ class GameWindow(arcade.Window):
                         if k <= self.maps_beaten:
                             self.setup(map_number=k+1) 
                             return super().on_mouse_press(x, y, button, modifiers)
-        if self.paused:
+            return 
+        if self.paused and self.game_state == 'exit confirmation':
+            if (SCREEN_WIDTH/2-203 <= x <= SCREEN_WIDTH/2) and (SCREEN_HEIGHT/2-105 <= y <= SCREEN_HEIGHT/2): # No exit
+                self.paused = False
+                self.game_state = 'playing'
+            elif (SCREEN_WIDTH/2 <= x <= SCREEN_WIDTH/2+203) and (SCREEN_HEIGHT/2-105 <= y <= SCREEN_HEIGHT/2): # Yes exit
+                # return to level select
+                self.setup(map_number=0)
+            return
+        elif self.paused:
+            self.paused = False
+            self.game_state = 'playing'
             return
         
         # 1. Deal with tower placement, runes, and abilities
@@ -1285,6 +1329,13 @@ class GameWindow(arcade.Window):
                 if left <= x <= right:
                     if self.abilities_unlocked[k] and self.abilities_list[k].cooldown_remaining < 0.01:
                         self.ability_selected = k+1
+        # 2.6 Pause button
+        elif (73 <= x <= 93) and (2 <= y <= 22):
+            self.paused = True
+        # 2.7 Exit button
+        elif (3 <= x <= 48) and (2 <= y <= 22):
+            self.paused = True
+            self.game_state = 'exit confirmation'
 
         return super().on_mouse_press(x, y, button, modifiers)
 
@@ -1554,7 +1605,6 @@ if __name__ == "__main__":
 # Roadmap items : 
 # runes on towers are drawn as part of a big spriteList
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
-# better pause menu
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
 # towers, projectiles, effects and enemies should use pre-loaded textures when initialized
