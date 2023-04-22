@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire
 from waves import Wave
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.5.6 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.5.7 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -495,6 +495,16 @@ class GameWindow(arcade.Window):
             center_x=SCREEN_WIDTH/2,
             center_y=SCREEN_HEIGHT/2,
         )
+        self.win_splash = arcade.Sprite(
+            filename='./images/win-screen.png',
+            center_x=SCREEN_WIDTH/2,
+            center_y=SCREEN_HEIGHT/2,
+        )
+        self.lose_splash = arcade.Sprite(
+            filename='./images/lose-splash.png',
+            center_x=SCREEN_WIDTH/2,
+            center_y=SCREEN_HEIGHT/2,
+        )
 
     def on_draw(self): 
         arcade.start_render()
@@ -774,53 +784,12 @@ class GameWindow(arcade.Window):
         elif self.game_state == 'exit confirmation':
             self.exit_splash.draw()
             return
-
-        popup_color = arcade.color.ASH_GREY
-        popup_title = 'Paused'
-        popup_subtext = 'Press Esc to resume'
-        popup_subsubtext = 'Press SPACE to exit'
-        if self.game_state == 'won':
-            popup_color = arcade.color.FERN_GREEN
-            popup_title = 'You Win !'
-            popup_subtext = 'Waves survived: '+str(self.wave_number)
+        elif self.game_state == 'won':
+            self.win_splash.draw()
+            return
         elif self.game_state == 'lost':
-            popup_color = arcade.color.DARK_RED
-            popup_title = 'Game Over'
-            popup_subtext = 'Waves survived: '+str(self.wave_number-1)
-
-        
-        arcade.draw_lrtb_rectangle_filled( # Message background
-            left   = self.width/2  - 100, 
-            right  = self.width/2  + 100,
-            top    = self.height/2 + 50,
-            bottom = self.height/2 - 50,
-            color=popup_color
-        )
-        arcade.draw_text(
-            text=popup_title,
-            start_x = self.width/2 - 100,
-            start_y = self.height/2 + 10,
-            font_size = 28,
-            width = 200,
-            align = "center"
-        )
-        arcade.draw_text(
-            text=popup_subtext,
-            start_x = self.width/2 - 125,
-            start_y = self.height/2 - 15,
-            font_size = 16,
-            width = 250,
-            align = "center"
-        )
-        arcade.draw_text(
-            text=popup_subsubtext,
-            start_x = self.width/2 - 100,
-            start_y = self.height/2 - 35,
-            font_size = 12,
-            width = 200,
-            align = "center", 
-            italic = True
-        )
+            self.lose_splash.draw()
+            return
 
     def draw_level_select(self):
         arcade.draw_scaled_texture_rectangle(
@@ -1238,6 +1207,9 @@ class GameWindow(arcade.Window):
                 # return to level select
                 self.setup(map_number=0)
             return
+        elif self.paused and (self.game_state == 'won' or self.game_state == 'lost'):
+            self.setup(map_number=0)
+            return
         elif self.paused:
             self.paused = False
             self.game_state = 'playing'
@@ -1600,7 +1572,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
 # runes on towers are drawn as part of a big spriteList
