@@ -14,10 +14,10 @@ from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire,
                     OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage, SanctumOfTempest,
                     TempleOfThor, Forge, TempleOfOdin, ChamberOfTheChief, TempleOfFreyr)
-from waves import Wave
+from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.5.7 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.0 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -99,13 +99,20 @@ class GameWindow(arcade.Window):
                 if is_map_unlocked:
                     maps_unlocked += 1
         self.maps_beaten = maps_unlocked - 1
+        if self.best_waves[-1] >= 70:
+            self.maps_beaten += 1
 
-    def setup(self, map_number: int = 1):
+    def setup(self, map_number: int = 1, is_freeplay: bool = False):
         arcade.set_background_color(arcade.color.ORANGE)
         self.map_number = map_number
         self.map_image = None
+        self.is_freeplay = is_freeplay
         self.read_score_file()
         self.wave_is_happening = False
+        if self.is_freeplay:
+            self.wave_maker = WaveMaker()
+        else:
+            self.wave_maker = None
         self.hover_target = '' # used to store what UI element is being moused over, if any
         if map_number == 0: # level select screen
             self.game_state = 'level select'
@@ -263,21 +270,25 @@ class GameWindow(arcade.Window):
 
     def load_waves(self, filename):
         self.wave_list = []
-        with open(filename, mode='r', newline='') as csvfile:
-            wave_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-            next(wave_reader) # skip header
-            for row in wave_reader:
-                self.wave_list.append(Wave(
-                    number=row[0], 
-                    modifier=row[1],
-                    rank=row[2],
-                    type1=row[3],
-                    quant1=row[4],
-                    type2=row[5], 
-                    quant2=row[6], 
-                    type3=row[7],
-                    quant3=row[8]
-                ))
+        if self.is_freeplay:
+            for k in range(4):
+                self.wave_list.append(self.wave_maker.make_wave())
+        else:
+            with open(filename, mode='r', newline='') as csvfile:
+                wave_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+                next(wave_reader) # skip header
+                for row in wave_reader:
+                    self.wave_list.append(Wave(
+                        number=row[0], 
+                        modifier=row[1],
+                        rank=row[2],
+                        type1=row[3],
+                        quant1=row[4],
+                        type2=row[5], 
+                        quant2=row[6], 
+                        type3=row[7],
+                        quant3=row[8]
+                    ))
 
     def init_text(self):
         """Initializes all text objects in order to avoid ever using draw_text, which has 
@@ -637,7 +648,10 @@ class GameWindow(arcade.Window):
         for k in range(2):
             # add preview of waves, if there are still waves left
             if self.wave_number+1-k < len(self.wave_list):
-                self.wave_previews_text[k][0].text = 'Attack #'+str(self.wave_number+2-k)+'/'+str(len(self.wave_list))
+                if self.is_freeplay:
+                    self.wave_previews_text[k][0].text = 'Attack #'+str(self.wave_number+2-k)
+                else:
+                    self.wave_previews_text[k][0].text = 'Attack #'+str(self.wave_number+2-k)+'/'+str(len(self.wave_list))
                 self.wave_previews_text[k][1].text = self.wave_list[self.wave_number+1-k].describe()
                 if k==1 and not self.wave_is_happening:
                    mins_left = str(int(self.time_to_next_wave//60))
@@ -815,7 +829,7 @@ class GameWindow(arcade.Window):
                     left = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
                     right= LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH,
                     top=313,
-                    bottom= 278, 
+                    bottom= 278,
                     color=arcade.color.BLACK,
                     border_width=3
                 )
@@ -829,6 +843,26 @@ class GameWindow(arcade.Window):
                 align = "center", 
                 bold = True
             )
+            if k < self.maps_beaten:
+                arcade.draw_text(
+                    text = 'FREEPLAY', 
+                    start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                    start_y = 245,
+                    color = arcade.color.BLACK,
+                    font_size = 17,
+                    width = LEVEL_WIDTH,
+                    align = "center", 
+                    bold = True
+                )
+                if ("start freeplay" in self.hover_target) and (self.hover_target[-1] == str(k+1)):
+                    arcade.draw_lrtb_rectangle_outline(
+                        left = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                        right= LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH,
+                        top=272,
+                        bottom= 235,
+                        color=arcade.color.BLACK,
+                        border_width=3
+                    )
             arcade.draw_text(
                 text = "Waves survived:\n" + str(self.best_waves[k]), 
                 start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
@@ -1001,6 +1035,7 @@ class GameWindow(arcade.Window):
             elif self.enemies_left_to_spawn == 0 and len(self.enemies_list.sprite_list) == 0:
                 self.wave_is_happening = False
                 self.time_to_next_wave = 75 if self.map_number < 5 else 60
+                self.wave_list.append(self.wave_maker.make_wave())
                 for tower in self.towers_list.sprite_list:
                     if tower.name == 'Sanctum of Tempest':
                         tower.hit_counter = 0
@@ -1198,6 +1233,15 @@ class GameWindow(arcade.Window):
                         if k <= self.maps_beaten:
                             self.setup(map_number=k+1) 
                             return super().on_mouse_press(x, y, button, modifiers)
+            # check if we pressed a "freeplay" button for any map
+            if 238 <= y <= 273:
+                for k in range(5):
+                    left  = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k
+                    right = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH
+                    if left <= x <= right: 
+                        if k < self.maps_beaten:
+                            self.setup(map_number=k+1, is_freeplay=True) 
+                            return super().on_mouse_press(x, y, button, modifiers)
             return 
         if self.paused and self.game_state == 'exit confirmation':
             if (SCREEN_WIDTH/2-203 <= x <= SCREEN_WIDTH/2) and (SCREEN_HEIGHT/2-105 <= y <= SCREEN_HEIGHT/2): # No exit
@@ -1380,7 +1424,7 @@ class GameWindow(arcade.Window):
                 self.map_cells[i][j].is_occupied = False
                 tower.remove_from_sprite_lists()
                 if tower.name == "Falcon Cliff":
-                    tower.falcon.remove_fromm_sprite_lists()
+                    tower.falcon.remove_from_sprite_lists()
                 return
             
         # if we reach this line, then the cell is occupied by a 2x2 tower
@@ -1472,6 +1516,13 @@ class GameWindow(arcade.Window):
                     if left <= x <= right: 
                         if k <= self.maps_beaten:
                             self.hover_target = "start campaign " + str(k+1)
+            elif 238 <= y <= 273:
+                for k in range(5):
+                    left  = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k
+                    right = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH
+                    if left <= x <= right: 
+                        if k <= self.maps_beaten:
+                            self.hover_target = "start freeplay " + str(k+1)
             return ret
 
         # 1. Are we hovering over a shop item ?
@@ -1575,6 +1626,8 @@ if __name__ == "__main__":
 # TODO next step :
 
 # Roadmap items : 
+# more balanced timing and positioning of enemy spawns
+# regen gives +5HP/s instead of +100%/min
 # runes on towers are drawn as part of a big spriteList
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
