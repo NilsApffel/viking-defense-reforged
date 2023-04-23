@@ -175,7 +175,7 @@ class WaveMaker():
             big_guys_size = enemy_size
             big_guys_cost = self.costs_per_size[big_guys_size]
             num_big_guys = floor(num_enemies / 2)
-            budget_for_smalls = budget - big_guys_cost*num_big_guys*(self.modifier_cost_factor if modifier else 1.0)
+            budget_for_smalls = budget - big_guys_cost*num_big_guys
             small_guys_size = big_guys_size - 1
             small_guys_cost = self.costs_per_size[small_guys_size]
             num_small_guys = floor(budget_for_smalls/small_guys_cost)
@@ -184,7 +184,7 @@ class WaveMaker():
             small_guys_size = enemy_size
             small_guys_cost = self.costs_per_size[small_guys_size]
             num_small_guys = ceil(num_enemies / 2)
-            budget_for_bigs = budget - small_guys_cost*num_small_guys*(self.modifier_cost_factor if modifier else 1.0)
+            budget_for_bigs = budget - small_guys_cost*num_small_guys
             big_guys_size = small_guys_size + 1
             big_guys_cost = self.costs_per_size[big_guys_size]
             num_big_guys = floor(budget_for_bigs/big_guys_cost)
