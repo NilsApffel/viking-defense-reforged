@@ -1,10 +1,12 @@
 from arcade import Sprite, SpriteSolidColor, SpriteList, draw_scaled_texture_rectangle, load_texture
 from arcade.color import RED, GREEN
-from math import sqrt, atan2, pi
+from math import atan2, cos, sin, pi
+from random import randint, random
 from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR, is_debug
 from effects import Effect
 from grid import *
 from pathfind import find_path
+from utils import normalize_tuple
 
 class Enemy(Sprite):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, speed: float = 0.8,
@@ -204,23 +206,36 @@ class FloatingEnemy(Enemy):
                             reward=reward, is_flying=False, can_hide=can_hide)
         self.path_to_follow = None
         self.next_path_step = 0
+        # these parameters determine the "wobble" of my trajectory around the path connecting centers of path cells
+        self.wander_r = randint(2, 12)
+        self.wander_theta0 = random()*2*pi
+        self.wander_omega = random()*2*pi
 
     def on_update(self, delta_time: float=None):
-        # follow path steps
+        
+        # where are we and where should we go ?
         (i, j) = nearest_cell_ij(self.center_x, self.center_y)
         if is_in_cell(self, i,j) and ((i,j) in self.path_to_follow):
+            # we are on one of the path's cells; our target should be the next cell in the path
             self.next_path_step = self.path_to_follow.index((i,j))+1
-        # target next path step
         if self.next_path_step < len(self.path_to_follow):
             target_i, target_j = self.path_to_follow[self.next_path_step]
             target_x, target_y = cell_centerxy(target_i, target_j)
-            dx = target_x - self.center_x
-            dy = target_y - self.center_y
-            norm = sqrt(dx*dx + dy*dy)
-            if norm == 0:
-                norm = 0.001
-            self.velocity = (self.speed*dx/norm, self.speed*dy/norm)
-            self.angle = atan2(self.velocity[1], self.velocity[0])*180/pi
+            # spice it up : add a bit of randomness
+            target_x += self.wander_r*cos(self.wander_theta0 + self.next_path_step*self.wander_omega)
+            target_y += self.wander_r*sin(self.wander_theta0 + self.next_path_step*self.wander_omega)
+        else: # we have finished the path, just go down
+            target_x, target_y = (self.center_x, self.center_y-200)
+
+        # move towards the target
+        dx = target_x - self.center_x
+        dy = target_y - self.center_y
+        tgt_vx, tgt_vy = normalize_tuple((dx,dy), new_length=self.speed)
+        old_vx, old_vy = self.velocity
+        new_vx, new_vy = (0.15*tgt_vx + 0.85*old_vx, 0.15*tgt_vy + 0.85*old_vy)
+        self.velocity = normalize_tuple((new_vx,new_vy), new_length=self.speed)
+        self.angle = atan2(self.velocity[1], self.velocity[0])*180/pi
+
         # set own targeting priority vis-a-vis towers
         # Priority mostly depends on how many steps are left on the path to your target.
         # If your priority is lower than other enemies', towers will try to shoot you first.

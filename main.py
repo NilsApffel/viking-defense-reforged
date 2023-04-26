@@ -14,10 +14,11 @@ from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire,
                     OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage, SanctumOfTempest,
                     TempleOfThor, Forge, TempleOfOdin, ChamberOfTheChief, TempleOfFreyr)
+from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.3 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -36,16 +37,6 @@ def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact")
         arcade.Text(text, start_x=start_x, start_y=start_y, font_size=font_size, 
                         font_name=font_name)]
     return text_objects_list
-
-def timestr(seconds: float):
-    s = ''
-    if seconds >= 60:
-        mins = floor(seconds / 60)
-        s += str(mins) + 'min'
-        seconds = seconds - mins*60
-    if seconds >= 1:
-        s += str(floor(seconds)) + 'sec'
-    return s
 
 class GameWindow(arcade.Window):
     def __init__(self):
@@ -1630,7 +1621,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
 # runes on towers are drawn as part of a big spriteList
@@ -1642,6 +1633,5 @@ if __name__ == "__main__":
 # abilities and shop items get highlighted on mouse-over
 # score calculation
 # vfx for enemies exploding
-# wave system compatible with infinite free-play
-# free-play mode
-# smoother trajectories for floating enemies
+# warning messages when trying illegal actions
+# tower unlock messages
