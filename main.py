@@ -17,7 +17,7 @@ from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.1 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.2 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -125,6 +125,7 @@ class GameWindow(arcade.Window):
         self.enemies_left_to_spawn = 0
         self.next_enemy_index = 0
         self.is_air_wave = False
+        self.time_to_next_spawn = 1.0
         self.paused = False
         self.load_shop_items() # first index is page, second is position in page
         self.current_shop_tab = 0
@@ -1009,11 +1010,13 @@ class GameWindow(arcade.Window):
         if self.wave_is_happening:
             # spawn next enemy, if needed, and decrement enemies_left_to_spawn
             if self.enemies_left_to_spawn > 0:
-                if random() < delta_time: # decide to spawn new enemy
+                if self.time_to_next_spawn <= 0.0: # time to spawn new enemy
                     new_enemy = self.wave_list[self.wave_number-1].spawn(self.next_enemy_index)
                     new_enemy.bottom = SCREEN_HEIGHT
                     if new_enemy.is_flying:
                         new_enemy.left = randint(0, floor(MAP_WIDTH-new_enemy.width))
+                        if (new_enemy.left < 2*CELL_SIZE) or (new_enemy.right > MAP_WIDTH-2*CELL_SIZE):
+                            new_enemy.left = randint(0, floor(MAP_WIDTH-new_enemy.width)) # re-roll the dice
                     else:
                         test_j = 99
                         while not (test_j in self.spawnable_cell_js):
@@ -1031,11 +1034,15 @@ class GameWindow(arcade.Window):
                         self.all_sprites.append(new_enemy.buff_sprite)
                     self.enemies_left_to_spawn -= 1
                     self.next_enemy_index += 1
+                    self.time_to_next_spawn = 0.25 + random()*1.5 # seconds
+                else:
+                    self.time_to_next_spawn -= delta_time
             # check if wave is over 
             elif self.enemies_left_to_spawn == 0 and len(self.enemies_list.sprite_list) == 0:
                 self.wave_is_happening = False
                 self.time_to_next_wave = 75 if self.map_number < 5 else 60
-                self.wave_list.append(self.wave_maker.make_wave())
+                if self.is_freeplay:
+                    self.wave_list.append(self.wave_maker.make_wave())
                 for tower in self.towers_list.sprite_list:
                     if tower.name == 'Sanctum of Tempest':
                         tower.hit_counter = 0
@@ -1626,8 +1633,6 @@ if __name__ == "__main__":
 # TODO next step :
 
 # Roadmap items : 
-# more balanced timing and positioning of enemy spawns
-# regen gives +5HP/s instead of +100%/min
 # runes on towers are drawn as part of a big spriteList
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)

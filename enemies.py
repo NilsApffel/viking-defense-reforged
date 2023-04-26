@@ -64,7 +64,7 @@ class Enemy(Sprite):
             self.speed /= 1.5
             self.velocity = (self.velocity[0]/1.5, self.velocity[1]/1.5)
         if ('regen' in modifier) and not ('regen' in old_modifier):
-            self.regen_rate = self.max_health / 60
+            self.regen_rate = 5 # hit points per second
         elif ('regen' in old_modifier) and not ('regen' in modifier):
             self.regen_rate = 0
 
