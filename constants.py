@@ -65,6 +65,9 @@ ASSETS = {'platform': load_texture('./images/platform.png'),
           'sanctum2': load_texture('./images/SanctumOfTempest2.png'),
           'sanctum3': load_texture('./images/SanctumOfTempest3.png'),
           'sanctum4': load_texture('./images/SanctumOfTempest4.png'),
+          'tinybird0': load_texture('./images/TinyBird0.png'),
+          'tinybird1': load_texture('./images/TinyBird1.png'),
+          'tinybird2': load_texture('./images/TinyBird2.png'),
 }
 zaps_names = ['zap-'+str(10*k+10) for k in range(15)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]

@@ -1,8 +1,8 @@
-from arcade import Sprite, SpriteSolidColor, SpriteList, draw_scaled_texture_rectangle, load_texture
+from arcade import Sprite, SpriteSolidColor, SpriteList, Texture, draw_scaled_texture_rectangle, load_texture
 from arcade.color import RED, GREEN
 from math import atan2, cos, sin, pi
 from random import randint, random
-from constants import MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR, is_debug
+from constants import ASSETS, MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR, is_debug
 from effects import Effect
 from grid import *
 from pathfind import find_path
@@ -10,7 +10,8 @@ from utils import normalize_tuple
 
 class Enemy(Sprite):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, speed: float = 0.8,
-                    reward: float = 30, is_flying: bool = True, can_hide: bool = False):
+                    reward: float = 30, is_flying: bool = True, can_hide: bool = False, 
+                    animation_transition_times: list = None):
         super().__init__(filename, scale)
         self.current_health = health
         self.max_health = health
@@ -29,6 +30,15 @@ class Enemy(Sprite):
         self.redbar = SpriteSolidColor(width=1, height=HBAR_HEIGHT, color=RED)
         self.redbar.visible = False
         self.buff_sprite = None
+        if animation_transition_times:
+            self.animation_transition_times = animation_transition_times
+            self.number_of_textures = len(self.animation_transition_times) - 1
+            self.is_animated = (self.number_of_textures >= 2)
+        else:
+            self.animation_transition_times = []
+            self.number_of_textures = 1
+            self.is_animated = False
+        self.animation_time = 0.0
 
     def take_damage_give_money(self, damage: float):
         starting_health = self.current_health
@@ -97,6 +107,20 @@ class Enemy(Sprite):
         if 'regen' in self.modifier.lower():
             self.current_health += self.regen_rate * delta_time
             self.current_health = min(self.current_health, self.max_health)
+
+        # animation update, but only if needed
+        if self.is_animated:
+            old_time = self.animation_time
+            new_time = old_time + delta_time
+            # did we cross a threshold ? 
+            for k, transition_time in enumerate(self.animation_transition_times):
+                if old_time < transition_time <= new_time:
+                    # we crossed a threshold, update my texture
+                    new_texture_num = k % self.number_of_textures
+                    self.set_texture(new_texture_num)
+            self.animation_time = new_time
+            if self.animation_time > self.animation_transition_times[-1]:
+                self.animation_time -= self.animation_transition_times[-1]
 
         # go through effects in reverse order because some of them might get removed in this loop
         n = len(self.temporary_effects)
@@ -169,8 +193,10 @@ class Enemy(Sprite):
         return super().remove_from_sprite_lists()
 
 class FlyingEnemy(Enemy):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, reward: float = 30):
-        super().__init__(filename=filename, scale=scale, health=health, reward=reward, is_flying=True)
+    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
+                 reward: float = 30, animation_transition_times: list = None):
+        super().__init__(filename=filename, scale=scale, health=health, reward=reward, 
+                         is_flying=True, animation_transition_times=animation_transition_times)
 
     def on_update(self, delta_time: float = None):
         priority_millions = round(self.priority/1000000)
@@ -181,7 +207,13 @@ class FlyingEnemy(Enemy):
 
 class TinyBird(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename="images/TinyBird.png", scale=1.0, health=10, reward=30)
+        super().__init__(filename=None, scale=1.0, health=10, reward=30, 
+                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48])
+        self.append_texture(ASSETS['tinybird0'])
+        self.append_texture(ASSETS['tinybird1'])
+        self.append_texture(ASSETS['tinybird2'])
+        self.append_texture(ASSETS['tinybird1'])
+        self.set_texture(0)
 
 
 class SmallShip(FlyingEnemy):
@@ -201,9 +233,11 @@ class BigDragon(FlyingEnemy):
 
 class FloatingEnemy(Enemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                    reward: float = 30, speed: float = 0.8, can_hide: bool = False):
+                    reward: float = 30, speed: float = 0.8, can_hide: bool = False, 
+                    animation_transition_times: list = None):
         super().__init__(filename=filename, scale=scale, health=health, speed=speed,
-                            reward=reward, is_flying=False, can_hide=can_hide)
+                            reward=reward, is_flying=False, can_hide=can_hide, 
+                            animation_transition_times=animation_transition_times)
         self.path_to_follow = None
         self.next_path_step = 0
         # these parameters determine the "wobble" of my trajectory around the path connecting centers of path cells
@@ -258,9 +292,11 @@ class FloatingEnemy(Enemy):
 
 class UnderwaterEnemy(FloatingEnemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                    reward: float = 30, speed: float = 0.8, sumberged_texture_filename: str = None):
+                    reward: float = 30, speed: float = 0.8, sumberged_texture_filename: str = None,
+                    animation_transition_times: list = None):
         super().__init__(filename=filename, scale=scale, health=health, 
-                            reward=reward, speed=speed, can_hide=True)
+                            reward=reward, speed=speed, can_hide=True, 
+                            animation_transition_times=animation_transition_times)
         self.append_texture(load_texture(sumberged_texture_filename))
         self.set_texture(0)
 

@@ -18,7 +18,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.4 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1635,3 +1635,6 @@ if __name__ == "__main__":
 # vfx for enemies exploding
 # warning messages when trying illegal actions
 # tower unlock messages
+# mac and linux compatibility
+# support for idle animations for towers & enemies
+# textures / animations overhaul (towers, attacks, enemies)
