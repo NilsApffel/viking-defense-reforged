@@ -60,6 +60,8 @@ class Enemy(Sprite):
         self.rank = rank
         self.max_health *= rank/old_rank
         self.current_health *= rank/old_rank
+        base_reward = 2*self.reward/(1+old_rank)
+        self.reward = 0.5*base_reward*(1+self.rank)
 
     def set_modifier(self, modifier: str):
         old_modifier = self.modifier
@@ -77,7 +79,7 @@ class Enemy(Sprite):
             self.speed /= 1.5
             self.velocity = (self.velocity[0]/1.5, self.velocity[1]/1.5)
         if ('regen' in modifier) and not ('regen' in old_modifier):
-            self.regen_rate = 5 # hit points per second
+            self.regen_rate = 0.5 + self.max_health/30 # hit points per second
         elif ('regen' in old_modifier) and not ('regen' in modifier):
             self.regen_rate = 0
 
