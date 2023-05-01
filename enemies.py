@@ -11,7 +11,7 @@ from utils import normalize_tuple
 class Enemy(Sprite):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, speed: float = 0.8,
                     reward: float = 30, is_flying: bool = True, can_hide: bool = False, 
-                    animation_transition_times: list = None):
+                    animation_transition_times: list = None, underwater_textures_index: int = 0):
         super().__init__(filename, scale)
         self.current_health = health
         self.max_health = health
@@ -39,6 +39,7 @@ class Enemy(Sprite):
             self.number_of_textures = 1
             self.is_animated = False
         self.animation_time = 0.0
+        self.underwater_textures_index = underwater_textures_index
 
     def take_damage_give_money(self, damage: float):
         starting_health = self.current_health
@@ -116,7 +117,7 @@ class Enemy(Sprite):
             for k, transition_time in enumerate(self.animation_transition_times):
                 if old_time < transition_time <= new_time:
                     # we crossed a threshold, update my texture
-                    new_texture_num = k % self.number_of_textures
+                    new_texture_num = k % self.number_of_textures + self.underwater_textures_index * self.is_hidden
                     self.set_texture(new_texture_num)
             self.animation_time = new_time
             if self.animation_time > self.animation_transition_times[-1]:
@@ -326,13 +327,11 @@ class FloatingEnemy(Enemy):
 
 class UnderwaterEnemy(FloatingEnemy):
     def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                    reward: float = 30, speed: float = 0.8, sumberged_texture_filename: str = None,
+                    reward: float = 30, speed: float = 0.8,
                     animation_transition_times: list = None):
         super().__init__(filename=filename, scale=scale, health=health, 
                             reward=reward, speed=speed, can_hide=True, 
                             animation_transition_times=animation_transition_times)
-        self.append_texture(load_texture(sumberged_texture_filename))
-        self.set_texture(0)
 
 
 class TinyBoat(FloatingEnemy):
@@ -350,10 +349,23 @@ class TinyBoat(FloatingEnemy):
 
 class SmallSnake(UnderwaterEnemy):
     def __init__(self):
-        super().__init__(filename="images/SmallSnake.png", scale=1.0, health=25, 
-                            reward=60, sumberged_texture_filename="images/SmallSnakeUnderwater.png")
+        super().__init__(filename=None, scale=1.0, health=25, reward=60, 
+                         animation_transition_times=[0.00, 0.08, 0.16, 0.24, 0.32, 0.40, 0.48])
+        self.append_texture(ASSETS['smallsnake0'])
+        self.append_texture(ASSETS['smallsnake1'])
+        self.append_texture(ASSETS['smallsnake2'])
+        self.append_texture(ASSETS['smallsnake3'])
+        self.append_texture(ASSETS['smallsnake4'])
+        self.append_texture(ASSETS['smallsnake5'])
+        self.append_texture(ASSETS['smallsnakeUW0'])
+        self.append_texture(ASSETS['smallsnakeUW1'])
+        self.append_texture(ASSETS['smallsnakeUW2'])
+        self.append_texture(ASSETS['smallsnakeUW3'])
+        self.append_texture(ASSETS['smallsnakeUW4'])
+        self.append_texture(ASSETS['smallsnakeUW5'])
+        self.set_texture(0)
+        self.underwater_textures_index = 6
         
-
 
 class MediumBoat(FloatingEnemy):
     def __init__(self):
@@ -368,5 +380,30 @@ class MediumBoat(FloatingEnemy):
 
 class BigWhale(UnderwaterEnemy):
     def __init__(self):
-        super().__init__(filename="images/BigWhale.png", scale=1.0, health=80, 
-                            reward=150, sumberged_texture_filename="images/BigWhaleUnderwater.png")
+        super().__init__(filename=None, scale=1.0, health=80, reward=150, 
+                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 0.96, 1.08, 1.20, 1.32])
+        # 0 at 0.00, 1 at 0.12, 0 at 0.24, 1 at 0.36, 0 at 0.48, 1 at 0.60, 0 at 0.72, 1 at 0.84, 2 at 0.96, 3 at 1.08, 4 at 1.20, rz at 1.32
+        self.append_texture(ASSETS['bigwhale0'])
+        self.append_texture(ASSETS['bigwhale1'])
+        self.append_texture(ASSETS['bigwhale0'])
+        self.append_texture(ASSETS['bigwhale1'])
+        self.append_texture(ASSETS['bigwhale0'])
+        self.append_texture(ASSETS['bigwhale1'])
+        self.append_texture(ASSETS['bigwhale0'])
+        self.append_texture(ASSETS['bigwhale1'])
+        self.append_texture(ASSETS['bigwhale2'])
+        self.append_texture(ASSETS['bigwhale3'])
+        self.append_texture(ASSETS['bigwhale4'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.append_texture(ASSETS['bigwhaleUW0'])
+        self.set_texture(0)
+        self.underwater_textures_index = 11

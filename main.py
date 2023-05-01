@@ -18,7 +18,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.5 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.6 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -992,10 +992,8 @@ class GameWindow(arcade.Window):
                 i, j = nearest_cell_ij(enemy.center_x, enemy.center_y)
                 if self.map_cells[i][j].terrain_type == "deep":
                     enemy.is_hidden = True
-                    enemy.set_texture(1)
                 else:
                     enemy.is_hidden = False
-                    enemy.set_texture(0)
     
     def update_wave_progress(self, delta_time: float):
         if self.wave_is_happening:
@@ -1621,10 +1619,10 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : working animations on underwater enemies
+# TODO next step : 
 
 # Roadmap items : 
-# balance edit : reward = 0.5*base_reward*rank+1
+# balance edit : reward = 0.5*base_reward*rank+1, return to older regen (full hp every 30 seconds)
 # runes on towers are drawn as part of a big spriteList
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
@@ -1637,5 +1635,6 @@ if __name__ == "__main__":
 # warning messages when trying illegal actions
 # tower unlock messages
 # mac and linux compatibility
-# support for idle animations for towers & enemies
-# textures / animations overhaul (towers, attacks, enemies)
+# support for idle animations for towers
+# textures / animations overhaul (towers, attacks, effects)
+# layered map & towers drawing i.e. water->swimmers->land->towers->flyers->projectiles->explosions
