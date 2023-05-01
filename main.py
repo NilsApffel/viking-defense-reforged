@@ -18,7 +18,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.4 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.5 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1621,9 +1621,10 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step : working animations on underwater enemies
 
 # Roadmap items : 
+# balance edit : reward = 0.5*base_reward*rank+1
 # runes on towers are drawn as part of a big spriteList
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)

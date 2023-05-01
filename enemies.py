@@ -218,17 +218,51 @@ class TinyBird(FlyingEnemy):
 
 class SmallShip(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename="images/SmallShip.png", scale=1.0, health=20, reward=60)
+        super().__init__(filename=None, scale=1.0, health=20, reward=60, 
+                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48])
+        self.append_texture(ASSETS['smallship0'])
+        self.append_texture(ASSETS['smallship1'])
+        self.append_texture(ASSETS['smallship2'])
+        self.append_texture(ASSETS['smallship1'])
+        self.set_texture(0)
 
 
 class MediumDragon(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename="images/MediumDragon.png", scale=1.0, health=30, reward=100)
+        super().__init__(filename=None, scale=1.0, health=30, reward=100, 
+                         animation_transition_times=[0.00, 1.20, 1.32, 1.44, 1.56, 1.68, 1.80, 1.92])
+        self.append_texture(ASSETS['mediumdragon0'])
+        self.append_texture(ASSETS['mediumdragon1'])
+        self.append_texture(ASSETS['mediumdragon2'])
+        self.append_texture(ASSETS['mediumdragon1'])
+        self.append_texture(ASSETS['mediumdragon2'])
+        self.append_texture(ASSETS['mediumdragon1'])
+        self.append_texture(ASSETS['mediumdragon2'])
+        self.set_texture(0)
+
 
 
 class BigDragon(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename="images/BigDragon.png", scale=1.0, health=70, reward=150)
+        super().__init__(filename=None, scale=1.0, health=70, reward=150,
+                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 0.96, 1.08, 1.20, 1.32, 1.44, 1.56, 1.68, 1.80, 1.92])
+        self.append_texture(ASSETS['bigdragon0'])
+        self.append_texture(ASSETS['bigdragon1'])
+        self.append_texture(ASSETS['bigdragon0'])
+        self.append_texture(ASSETS['bigdragon1'])
+        self.append_texture(ASSETS['bigdragon0'])
+        self.append_texture(ASSETS['bigdragon1'])
+        self.append_texture(ASSETS['bigdragon0'])
+        self.append_texture(ASSETS['bigdragon1'])
+        self.append_texture(ASSETS['bigdragon0'])
+        self.append_texture(ASSETS['bigdragon1'])
+        self.append_texture(ASSETS['bigdragon0'])
+        self.append_texture(ASSETS['bigdragon1'])
+        self.append_texture(ASSETS['bigdragon2'])
+        self.append_texture(ASSETS['bigdragon3'])
+        self.append_texture(ASSETS['bigdragon2'])
+        self.append_texture(ASSETS['bigdragon1'])
+        self.set_texture(0)
 
 
 class FloatingEnemy(Enemy):
@@ -303,18 +337,33 @@ class UnderwaterEnemy(FloatingEnemy):
 
 class TinyBoat(FloatingEnemy):
     def __init__(self):
-        super().__init__(filename="images/boat.png", scale=0.3, health=15, reward=30)
+        super().__init__(filename=None, scale=1.0, health=15, reward=30, 
+                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72])
+        self.append_texture(ASSETS['tinyboat0'])
+        self.append_texture(ASSETS['tinyboat1'])
+        self.append_texture(ASSETS['tinyboat0'])
+        self.append_texture(ASSETS['tinyboat2'])
+        self.append_texture(ASSETS['tinyboat3'])
+        self.append_texture(ASSETS['tinyboat4'])
+        self.set_texture(0)
 
 
 class SmallSnake(UnderwaterEnemy):
     def __init__(self):
         super().__init__(filename="images/SmallSnake.png", scale=1.0, health=25, 
                             reward=60, sumberged_texture_filename="images/SmallSnakeUnderwater.png")
+        
 
 
 class MediumBoat(FloatingEnemy):
     def __init__(self):
-        super().__init__(filename="images/MediumBoat.png", scale=1.0, health=50, reward=100)
+        super().__init__(filename=None, scale=1.0, health=50, reward=100, 
+                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48])
+        self.append_texture(ASSETS['mediumboat0'])
+        self.append_texture(ASSETS['mediumboat1'])
+        self.append_texture(ASSETS['mediumboat2'])
+        self.append_texture(ASSETS['mediumboat1'])
+        self.set_texture(0)
 
 
 class BigWhale(UnderwaterEnemy):
