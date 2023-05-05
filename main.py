@@ -18,7 +18,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.7 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.8 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -532,7 +532,7 @@ class GameWindow(arcade.Window):
             for k, tower in enumerate(self.towers_list.sprite_list):
                 if self.hover_target == "tower:"+str(k):
                     self.draw_range(tower)
-                if tower.animation_ontime_remaining > 0:
+                if tower.attack_animation_remaining > 0:
                     tower.draw_shoot_animation()
             self.ctx.flush()
 
@@ -1628,6 +1628,7 @@ if __name__ == "__main__":
 # organize the zones way better instead of having tons of hard-coded variables
 # towers, projectiles, effects and enemies should use pre-loaded textures when initialized
 # high quality mjolnir explosion
+# nicer level select
 # abilities and shop items get highlighted on mouse-over
 # score calculation
 # vfx for enemies exploding

@@ -104,6 +104,9 @@ ASSETS = {'platform': load_texture('./images/platform.png'),
           'bigwhale3': load_texture('./images/BigWhale3.png'),
           'bigwhale4': load_texture('./images/BigWhale4.png'),
           'bigwhaleUW0': load_texture('./images/BigWhaleUnderwater0.png'),
+          'watchtower0' : load_texture('./images/Watchtower0.png'),
+          'watchtower1' : load_texture('./images/Watchtower1.png'),
+          'watchtower2' : load_texture('./images/Watchtower2.png'),
 }
 zaps_names = ['zap-'+str(10*k+10) for k in range(15)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]

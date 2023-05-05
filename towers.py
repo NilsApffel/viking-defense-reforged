@@ -15,7 +15,8 @@ class Tower(Sprite):
                     range: float = 100, damage: float = 5, 
                     name: str = None, description: str = None, can_see_types: list = None, 
                     has_rotating_top: bool = False, is_2x2: bool = False, 
-                    constant_attack: bool = False, projectiles_are_homing: bool = False):
+                    constant_attack: bool = False, projectiles_are_homing: bool = False, 
+                    animation_transition_times: list = None):
         super().__init__(filename=filename, scale=scale)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
@@ -33,12 +34,21 @@ class Tower(Sprite):
         self.target = None
         self.target_x = MAP_WIDTH/2
         self.target_y = SCREEN_HEIGHT * 100000
-        self.animation_ontime_remaining = 0
+        self.attack_animation_remaining = 0
         self.does_rotate = has_rotating_top
         self.is_2x2 = is_2x2
         self.do_constant_attack = constant_attack
         self.rune = None
         self.projectiles_are_homing = projectiles_are_homing
+        if animation_transition_times:
+            self.animation_transition_times = animation_transition_times
+            self.number_of_textures = len(self.animation_transition_times) - 1
+            self.is_animated = (self.number_of_textures >= 2)
+        else:
+            self.animation_transition_times = []
+            self.number_of_textures = 1
+            self.is_animated = False
+        self.animation_time = 0.0
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
@@ -103,6 +113,21 @@ class Tower(Sprite):
             dx = self.target_x - self.center_x
             dy = self.target_y - self.center_y
             self.angle = atan2(-dx, dy)*180/pi
+
+        # animation update, but only if needed
+        if self.is_animated:
+            old_time = self.animation_time
+            new_time = old_time + delta_time
+            # did we cross a threshold ? 
+            for k, transition_time in enumerate(self.animation_transition_times):
+                if old_time < transition_time <= new_time:
+                    # we crossed a threshold, update my texture
+                    new_texture_num = k % self.number_of_textures
+                    self.set_texture(new_texture_num)
+            self.animation_time = new_time
+            if self.animation_time > self.animation_transition_times[-1]:
+                self.animation_time -= self.animation_transition_times[-1]
+
         return super().on_update(delta_time)
 
     def can_see(self, enemy: Enemy):
@@ -211,16 +236,21 @@ class InstaAirTower(Tower):
 
 class WatchTower(Tower):
     def __init__(self):
-        super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=2.0, 
+        super().__init__(filename=None, scale=1.0, cooldown=2.0, 
                             range=112, damage=5, name="Watchtower", 
                             description="Fires at floating\nNever misses", 
-                            can_see_types=['floating'])
+                            can_see_types=['floating'], 
+                            animation_transition_times=[0.00, 0.08, 0.16, 0.24])
+        self.append_texture(ASSETS['watchtower0'])
+        self.append_texture(ASSETS['watchtower1'])
+        self.append_texture(ASSETS['watchtower2'])
+        self.set_texture(0)
 
     def make_another(self):
         return WatchTower()
 
     def attack(self, enemy: Enemy):
-        self.animation_ontime_remaining = 0.1
+        self.attack_animation_remaining = 0.1
         self.enemy_x = enemy.center_x
         self.enemy_y = enemy.center_y
         return super().attack(enemy)
@@ -236,9 +266,9 @@ class WatchTower(Tower):
         )
 
     def on_update(self, delta_time: float = 1 / 60):
-        self.animation_ontime_remaining -= delta_time
-        if self.animation_ontime_remaining < 0:
-            self.animation_ontime_remaining = 0
+        self.attack_animation_remaining -= delta_time
+        if self.attack_animation_remaining < 0:
+            self.attack_animation_remaining = 0
         return super().on_update(delta_time)
         
 
@@ -477,7 +507,7 @@ class SparklingPillar(Tower):
         return SparklingPillar()
     
     def attack(self, enemy: Enemy):
-        self.animation_ontime_remaining = 0.05
+        self.attack_animation_remaining = 0.05
         self.enemy_x = enemy.center_x
         self.enemy_y = enemy.center_y
         return super().attack(enemy)
@@ -496,9 +526,9 @@ class SparklingPillar(Tower):
             )
 
     def on_update(self, delta_time: float = 1 / 60):
-        self.animation_ontime_remaining -= delta_time
-        if self.animation_ontime_remaining < 0:
-            self.animation_ontime_remaining = 0
+        self.attack_animation_remaining -= delta_time
+        if self.attack_animation_remaining < 0:
+            self.attack_animation_remaining = 0
         return super().on_update(delta_time)
 
 
@@ -544,7 +574,7 @@ class SanctumOfTempest(Tower):
         self.hit_counter = self.hit_counter + 1
         self.hit_counter = self.hit_counter % 5
         if self.hit_counter != 0:
-            self.animation_ontime_remaining = 0.1
+            self.attack_animation_remaining = 0.1
             self.enemy_x = enemy.center_x
             self.enemy_y = enemy.center_y
             self.set_texture(self.hit_counter)
@@ -572,9 +602,9 @@ class SanctumOfTempest(Tower):
             return 0, [zap_blast]
         
     def on_update(self, delta_time: float = 1 / 60):
-        self.animation_ontime_remaining -= delta_time
-        if self.animation_ontime_remaining < 0:
-            self.animation_ontime_remaining = 0
+        self.attack_animation_remaining -= delta_time
+        if self.attack_animation_remaining < 0:
+            self.attack_animation_remaining = 0
         return super().on_update(delta_time)
     
     def draw_shoot_animation(self):
