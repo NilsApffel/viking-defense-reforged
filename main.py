@@ -18,7 +18,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.10 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.11 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -137,6 +137,8 @@ class GameWindow(arcade.Window):
         self.all_health_bars = arcade.SpriteList()
         self.enemy_effects = arcade.SpriteList()
         self.enemies_list = arcade.SpriteList()
+        self.swimmers_list = arcade.SpriteList()
+        self.flyers_list = arcade.SpriteList()
         self.towers_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
@@ -262,6 +264,7 @@ class GameWindow(arcade.Window):
         # load the map image, if it exists
         if self.map_number > 0:
             self.map_image = arcade.load_texture('./images/map'+str(self.map_number)+'.png')
+            self.map_land_only_image = arcade.load_texture('./images/map'+str(self.map_number)+'LandOnly.png')
 
         self.abilities_list[2] = PlatformAbility(map_reference=self.map_cells)
 
@@ -518,14 +521,17 @@ class GameWindow(arcade.Window):
         arcade.start_render()
         if self.game_state == 'level select':
             self.draw_level_select()
-            return   
-        self.draw_map()
+            return  
+         
+        self.draw_map_background()
+        self.swimmers_list.draw()
+        self.draw_map_land()
 
         self.towers_list.draw()
         for tower in self.towers_list.sprite_list:
             tower.draw_runes()
 
-        self.enemies_list.draw()
+        self.flyers_list.draw()
         self.enemy_effects.draw()
         self.all_health_bars.draw()
 
@@ -574,7 +580,7 @@ class GameWindow(arcade.Window):
             self.perf_graph.draw()
     
     # draw sub-methods used to make self.on_draw more legible
-    def draw_map(self):
+    def draw_map_background(self):
         if self.map_number > 0:
             arcade.draw_scaled_texture_rectangle(
                 center_x=MAP_WIDTH/2,
@@ -584,6 +590,14 @@ class GameWindow(arcade.Window):
         else:
             # draw the map using colored rectangles representing terrain type of each cell
             self.map_shape_list.draw()
+
+    def draw_map_land(self):
+        if self.map_number > 0:
+            arcade.draw_scaled_texture_rectangle(
+                center_x=MAP_WIDTH/2,
+                center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
+                texture=self.map_land_only_image
+            )
         self.platforms.draw()
 
     def draw_range(self, tower):
@@ -992,7 +1006,7 @@ class GameWindow(arcade.Window):
                 enemy.remove_from_sprite_lists()
 
         # underwater enemy hiding
-        for enemy in self.enemies_list: 
+        for enemy in self.swimmers_list: 
             if enemy.can_hide:
                 i, j = nearest_cell_ij(enemy.center_x, enemy.center_y)
                 if self.map_cells[i][j].terrain_type == "deep":
@@ -1018,6 +1032,10 @@ class GameWindow(arcade.Window):
                         new_enemy.center_x, _ = cell_centerxy(i=0, j=test_j)
                         new_enemy.calc_path(map=self.map_cells)
                     self.enemies_list.append(new_enemy)
+                    if new_enemy.is_flying:
+                        self.flyers_list.append(new_enemy)
+                    else:
+                        self.swimmers_list.append(new_enemy)
                     self.all_sprites.append(new_enemy)
                     self.all_health_bars.append(new_enemy.greenbar)
                     self.all_health_bars.append(new_enemy.redbar)
@@ -1286,9 +1304,8 @@ class GameWindow(arcade.Window):
                             self.all_sprites.append(new_platform)
                             self.ability_selected = 0
                             self.quest_tracker['platforms placed'] += 1
-                            for enemy in self.enemies_list:
-                                if not (enemy.is_flying):
-                                    enemy.calc_path(map=self.map_cells)
+                            for enemy in self.swimmers_list:
+                                enemy.calc_path(map=self.map_cells)
                 elif self.ability_selected == 4: # Command
                     if self.abilities_list[3].cooldown_remaining <= 0.01:
                         priority_delta, effect_radius2 = self.abilities_list[3].trigger(x, y)
@@ -1631,7 +1648,7 @@ if __name__ == "__main__":
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
-# towers, projectiles, effects and enemies should use pre-loaded textures when initialized
+# towers, projectiles, effects should use pre-loaded textures when initialized
 # high quality mjolnir explosion
 # nicer level select
 # abilities and shop items get highlighted on mouse-over
@@ -1641,4 +1658,3 @@ if __name__ == "__main__":
 # tower unlock messages
 # mac and linux compatibility
 # textures / animations overhaul (towers, attacks, effects)
-# layered map & towers drawing i.e. water->swimmers->land->towers->flyers->projectiles->explosions

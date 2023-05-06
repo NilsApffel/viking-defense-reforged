@@ -384,7 +384,6 @@ class BigWhale(UnderwaterEnemy):
     def __init__(self):
         super().__init__(filename=None, scale=1.0, health=80, reward=150, 
                          animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 0.96, 1.08, 1.20, 1.32])
-        # 0 at 0.00, 1 at 0.12, 0 at 0.24, 1 at 0.36, 0 at 0.48, 1 at 0.60, 0 at 0.72, 1 at 0.84, 2 at 0.96, 3 at 1.08, 4 at 1.20, rz at 1.32
         self.append_texture(ASSETS['bigwhale0'])
         self.append_texture(ASSETS['bigwhale1'])
         self.append_texture(ASSETS['bigwhale0'])
