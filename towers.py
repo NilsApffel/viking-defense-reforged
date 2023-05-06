@@ -625,9 +625,11 @@ class BigBuilding(Tower):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 120, 
                     name: str = None, description: str = None, 
                     unlocked_rune_indxs: list = None, 
-                    unlocked_power_indxs: list = None):
+                    unlocked_power_indxs: list = None, 
+                    animation_transition_times: list = None):
         super().__init__(filename=filename, scale=scale, cooldown=cooldown, 
-                            name=name, description=description, is_2x2=True)
+                            name=name, description=description, is_2x2=True, 
+                            animation_transition_times=animation_transition_times)
         if unlocked_rune_indxs is None:
             self.unlocked_rune_indxs = []
         else:
@@ -655,11 +657,16 @@ class TempleOfThor(BigBuilding):
 
 class Forge(BigBuilding):
     def __init__(self):
-        super().__init__(filename="images/Forge-transparent.png", scale=1.0, cooldown=90, 
+        super().__init__(filename=None, scale=1.0, cooldown=90, 
                             name="Forge", 
                             description="Grants Platform ability\nGrants Hagalaz rune", 
                             unlocked_rune_indxs=[1], 
-                            unlocked_power_indxs=[2])
+                            unlocked_power_indxs=[2], 
+                            animation_transition_times=[0.00, 0.08, 0.16, 0.24])
+        self.append_texture(ASSETS['forge0'])
+        self.append_texture(ASSETS['forge1'])
+        self.append_texture(ASSETS['forge2'])
+        self.set_texture(0)
 
     def make_another(self):
         return Forge()
