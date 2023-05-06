@@ -117,4 +117,4 @@ ZAPS = dict(zip(zaps_names, zaps_list))
 flames_names = ['flame_particle_'+str(k) for k in range(8)]
 FLAMES = [load_texture('./images/flames/'+s+'.png') for s in flames_names]
 
-is_debug = True
+is_debug = False

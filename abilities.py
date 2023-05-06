@@ -18,28 +18,7 @@ class Ability():
         self.range = range
         self.has_range = (abs(range) > 0.01)
 
-    def preview(self, x, y, color): 
-        if self.has_range:
-            draw_circle_filled(
-                center_x=x,
-                center_y=y,
-                radius=self.range, 
-                color=make_transparent_color(color, transparency=32.0)
-            )
-            draw_circle_outline(
-                center_x=x,
-                center_y=y,
-                radius=self.range, 
-                color=make_transparent_color(color, transparency=128.0), 
-                border_width=2
-            )
-            draw_circle_outline(
-                center_x=x,
-                center_y=y,
-                radius=self.range-15, 
-                color=make_transparent_color(color, transparency=128.0), 
-                border_width=2
-            )
+    def preview(self, x, y): 
         draw_scaled_texture_rectangle(
             center_x=x,
             center_y=y,
@@ -73,10 +52,7 @@ class SellTowerAbility(Ability):
         super().__init__(name='sell tower', icon_file='./images/sell-tower-icon.png', 
                          preview_image_file='./images/coin.png', 
                          cooldown = 0.0, range = 0.0)
-        
-    def preview(self, x, y):
-        return super().preview(x, y, color=YELLOW)
-        
+       
     def trigger(self, x, y):
         # sell tower ability can't actually handle its own trigger actions. 
         # GameWindow.attempt_tower_sell() needs to be called instead...
@@ -88,9 +64,6 @@ class MjolnirAbility(Ability):
                          preview_image_file='./images/mjolnir-preview.png', 
                          cooldown = 120.0, range = 3.0*CELL_SIZE)
         
-    def preview(self, x, y):
-        return super().preview(x, y, color=RED)
-
     def trigger(self, x, y):
         explosion = Explosion(
             filename='./images/cannonball-explosion.png',
@@ -189,10 +162,7 @@ class CommandAbility(Ability):
                          preview_image_file='./images/command-preview.png', 
                          cooldown=60, range=1.5*CELL_SIZE)
         self.priority_increase = -1000000
-        
-    def preview(self, x, y):
-        return super().preview(x, y, color=RED)
-    
+          
     def trigger(self, x, y):
         super().trigger(x, y)
         return self.priority_increase, self.range**2
@@ -204,9 +174,6 @@ class HarvestAbility(Ability):
                          preview_image_file='./images/harvest-preview.png', 
                          cooldown=120, range=1.5*CELL_SIZE)
         
-    def preview(self, x, y):
-        return super().preview(x, y, color=YELLOW)
-    
     def trigger(self, x, y):
         super().trigger(x, y)
         return 0.25, self.range**2

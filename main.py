@@ -18,7 +18,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.9 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.10 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -71,6 +71,11 @@ class GameWindow(arcade.Window):
             self.perf_graph = arcade.PerfGraph(width=80, height=80, background_color=TRANSPARENT_BLACK)
             self.perf_graph.center_x = 40
             self.perf_graph.center_y = SCREEN_HEIGHT - 40
+
+        self.range_preview = arcade.Sprite()
+        self.range_preview.append_texture(load_texture('./images/TowerRange.png'))
+        self.range_preview.append_texture(load_texture('./images/AbilityRange.png'))
+        self.range_preview.set_texture(0)
 
     def read_score_file(self):
         self.best_waves = []
@@ -550,6 +555,12 @@ class GameWindow(arcade.Window):
                 self.runes_list[k].preview(x=self._mouse_x, y=self._mouse_y)
             elif self.ability_selected:
                 k = self.ability_selected - 1
+                if self.abilities_list[k].has_range:
+                    self.preview_ability_range(
+                        x=self._mouse_x, 
+                        y=self._mouse_y, 
+                        ability_range=self.abilities_list[k].range
+                    )
                 self.abilities_list[k].preview(x=self._mouse_x, y=self._mouse_y)
 
         self.gui_elements.draw()
@@ -578,26 +589,12 @@ class GameWindow(arcade.Window):
     def draw_range(self, tower):
         if tower.is_2x2:
             return
-        arcade.draw_circle_filled(
-            center_x=tower.center_x,
-            center_y=tower.center_y,
-            radius=tower.range, 
-            color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=32.0)
-        )
-        arcade.draw_circle_outline(
-            center_x=tower.center_x,
-            center_y=tower.center_y,
-            radius=tower.range, 
-            color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=128.0), 
-            border_width=2
-        )
-        arcade.draw_circle_outline(
-            center_x=tower.center_x,
-            center_y=tower.center_y,
-            radius=tower.range-15, 
-            color=arcade.make_transparent_color(arcade.color.SKY_BLUE, transparency=128.0), 
-            border_width=2
-        )
+        self.range_preview.set_texture(0)
+        self.range_preview.center_x = tower.center_x
+        self.range_preview.center_y = tower.center_y
+        self.range_preview.scale = tower.range/137.0
+        self.range_preview.draw()
+        self.range_preview.angle -= 0.5 # degrees
 
     def preview_tower_placement(self, x: float, y: float, tower_shopitem: ShopItem):
         center_x, center_y = nearest_cell_centerxy(x, y)
@@ -632,6 +629,14 @@ class GameWindow(arcade.Window):
         )
         self.draw_range(fake_tower)
         fake_tower.draw()
+
+    def preview_ability_range(self, x:float, y:float, ability_range: float):
+        self.range_preview.set_texture(1)
+        self.range_preview.center_x = x
+        self.range_preview.center_y = y
+        self.range_preview.scale = ability_range/137.0
+        self.range_preview.draw()
+        self.range_preview.angle -= 0.5 # degrees
 
     def draw_chin_menu(self):
         # Background and attack button are Sprites in the gui_elements list, already drawn
@@ -1635,6 +1640,5 @@ if __name__ == "__main__":
 # warning messages when trying illegal actions
 # tower unlock messages
 # mac and linux compatibility
-# support for idle animations for towers
 # textures / animations overhaul (towers, attacks, effects)
 # layered map & towers drawing i.e. water->swimmers->land->towers->flyers->projectiles->explosions
