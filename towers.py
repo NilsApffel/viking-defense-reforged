@@ -1,4 +1,4 @@
-from arcade import Sprite, draw_line, draw_scaled_texture_rectangle
+from arcade import Sprite, Texture, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
 from math import atan2, pi, sqrt, cos, sin, ceil
 from random import random
@@ -9,6 +9,7 @@ from enemies import Enemy
 from explosions import Explosion
 from projectiles import Projectile, Falcon, FlameParticle
 from runes import Rune
+from utils import normalize_tuple
 
 class Tower(Sprite):
     def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
@@ -16,8 +17,8 @@ class Tower(Sprite):
                     name: str = None, description: str = None, can_see_types: list = None, 
                     has_rotating_top: bool = False, is_2x2: bool = False, 
                     constant_attack: bool = False, projectiles_are_homing: bool = False, 
-                    animation_transition_times: list = None):
-        super().__init__(filename=filename, scale=scale)
+                    animation_transition_times: list = None, texture: Texture = None):
+        super().__init__(filename=filename, scale=scale, texture=texture)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
         self.range = range
@@ -223,6 +224,14 @@ class Tower(Sprite):
         return projectile
     
 
+class TowerBase(Tower):
+    def __init__(self, filename: str = None, scale: float = 1, name: str = None, texture: Texture = None):
+        super().__init__(filename=filename, scale=scale, damage=0, range=0, cooldown=0,  name=name, texture=texture)
+
+    def can_see(self, enemy: Enemy):
+        return False
+
+
 class InstaAirTower(Tower):
     def __init__(self):
         super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=2.0, 
@@ -256,9 +265,11 @@ class WatchTower(Tower):
         return super().attack(enemy)
 
     def draw_shoot_animation(self):
+        enemy_vector = (self.enemy_x-self.center_x, self.enemy_y-self.center_y)
+        start_offset_x, start_offset_y = normalize_tuple(xytup=enemy_vector, new_length=11)
         draw_line(
-            start_x=self.center_x, 
-            start_y=self.center_y, 
+            start_x=self.center_x + start_offset_x, 
+            start_y=self.center_y + start_offset_y, 
             end_x=self.enemy_x, 
             end_y=self.enemy_y, 
             color=LIGHT_GRAY, 
@@ -275,8 +286,8 @@ class WatchTower(Tower):
 class Catapult(Tower):
     def __init__(self):
         super().__init__(
-            filename="images/catapult_top.png", 
-            scale=1.0, 
+            filename="images/catapult_top_large.png", 
+            scale=0.8, 
             cooldown=3.5, 
             range=208, 
             damage=10, 
@@ -285,15 +296,23 @@ class Catapult(Tower):
             can_see_types=['floating', 'underwater'], 
             has_rotating_top=True
         )
+        self.base_sprite = None
 
     def make_another(self):
         return Catapult()
+
+    def make_base_tower(self):
+        self.base_sprite = TowerBase(name='CatapultBase', texture=ASSETS['catapult_base'])
+        self.base_sprite.center_x = self.center_x
+        self.base_sprite.center_y = self.center_y
+        return self.base_sprite
 
     def attack(self, enemy: Enemy):
         super().attack(enemy)
         cannonball = Projectile(
             filename="images/cannonball.png", scale=0.3, speed=2.5, angle_rate=0,
-            center_x=self.center_x, center_y=self.center_y, 
+            center_x=self.center_x + 9*sin(self.angle*pi/180), 
+            center_y=self.center_y - 9*cos(self.angle*pi/180), 
             target=None,
             target_x=enemy.center_x, target_y=enemy.center_y, 
             damage=self.damage, do_splash_damage=True, splash_radius=32, 
@@ -303,9 +322,10 @@ class Catapult(Tower):
             
         return 0, [cannonball] # damage will be dealt by projectile
 
-    # TODO : add an un-moving base
-    # (bonus: use rotation to slightly adjust starting position of projectile)
-
+    def remove_from_sprite_lists(self):
+        self.base_sprite.remove_from_sprite_lists()
+        return super().remove_from_sprite_lists()
+    
 
 class FalconCliff(Tower):
     def __init__(self):
@@ -413,6 +433,7 @@ class GreekFire(Tower):
         self.particles_per_second = 60*10
         self.effect_probability_per_second = 0.05
         self.effect_probability_per_particle = 1-(1-self.effect_probability_per_second)**(1.0/self.particles_per_second)
+        self.base_sprite = None
 
     def make_another(self):
         return GreekFire()
@@ -427,6 +448,12 @@ class GreekFire(Tower):
         else:
             return super().make_runed_projectile(projectile)
         return projectile
+
+    def make_base_tower(self):
+        self.base_sprite = TowerBase(name='GreekFireBase', texture=ASSETS['greek_fire_base'])
+        self.base_sprite.center_x = self.center_x
+        self.base_sprite.center_y = self.center_y
+        return self.base_sprite
 
     def on_update(self, delta_time: float = 1 / 60):
         self.latest_dt = delta_time
@@ -451,6 +478,9 @@ class GreekFire(Tower):
 
         return 0, flame_particles
 
+    def remove_from_sprite_lists(self):
+        self.base_sprite.remove_from_sprite_lists()
+        return super().remove_from_sprite_lists()
 
 class OakTreeTower(Tower):
     def __init__(self):
@@ -481,20 +511,33 @@ class StoneHead(Tower):
                          description="Fires at flying & floating\nHoming. Slows down enemies", 
                          can_see_types=['flying', 'floating'], has_rotating_top=True, 
                          projectiles_are_homing=True)
+        self.base_sprite = None
         
     def make_another(self):
         return StoneHead()
     
+    def make_base_tower(self):
+        self.base_sprite = TowerBase(name='StoneHeadBase', texture=ASSETS['stone_head_base'])
+        self.base_sprite.center_x = self.center_x
+        self.base_sprite.center_y = self.center_y
+        return self.base_sprite
+    
     def attack(self, enemy: Enemy):
         super().attack(enemy)
+        enemy_vector = (enemy.center_x-self.center_x, enemy.center_y-self.center_y)
+        start_offset_x, start_offset_y = normalize_tuple(xytup=enemy_vector, new_length=13)
         wind_gust = Projectile(
             filename="images/wind-gust.png", scale=1.0, speed=2.0, angle_rate=0,
-            center_x=self.center_x, center_y=self.center_y, 
+            center_x=self.center_x+start_offset_x, 
+            center_y=self.center_y+start_offset_y, 
             target=enemy, damage=self.damage, effects=[SlowDown()]
         )
         wind_gust = self.make_runed_projectile(wind_gust)
         return 0, [wind_gust] # effect will be dealt by projectile
-        
+
+    def remove_from_sprite_lists(self):
+        self.base_sprite.remove_from_sprite_lists()
+        return super().remove_from_sprite_lists()       
 
 class SparklingPillar(Tower):
     def __init__(self):

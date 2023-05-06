@@ -18,7 +18,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.11 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.6.12 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -642,6 +642,8 @@ class GameWindow(arcade.Window):
             left=left, right=right, top=top, bottom=bottom, color=outline_color
         )
         self.draw_range(fake_tower)
+        if fake_tower.does_rotate:
+            fake_tower.make_base_tower().draw()
         fake_tower.draw()
 
     def preview_ability_range(self, x:float, y:float, ability_range: float):
@@ -1411,6 +1413,8 @@ class GameWindow(arcade.Window):
         new_tower = shop_item.tower.make_another()
         new_tower.center_x = center_x
         new_tower.center_y = center_y
+        if new_tower.does_rotate:
+            self.towers_list.append(new_tower.make_base_tower())
         self.towers_list.append(new_tower)
         self.all_sprites.append(new_tower)
         self.map_cells[i][j].is_occupied = True
@@ -1435,7 +1439,7 @@ class GameWindow(arcade.Window):
             if tower.is_2x2: # we'll deal with 2x2 towers later
                 continue
             ti, tj = nearest_cell_ij(tower.center_x, tower.center_y)
-            if (i == ti) and (j == tj):
+            if (i == ti) and (j == tj) and not('base' in tower.name.lower()):
                 # found the tower
                 price = self.find_tower_price(tower.name)
                 self.money += int(floor(price/2))
@@ -1443,6 +1447,8 @@ class GameWindow(arcade.Window):
                 tower.remove_from_sprite_lists()
                 if tower.name == "Falcon Cliff":
                     tower.falcon.remove_from_sprite_lists()
+                elif tower.does_rotate:
+                    tower.base_sprite.remove_from_sprite_lists()
                 return
             
         # if we reach this line, then the cell is occupied by a 2x2 tower
@@ -1476,6 +1482,8 @@ class GameWindow(arcade.Window):
         for tower in self.towers_list.sprite_list:
             if tower.is_2x2: # 2x2 towers are un-enchantable so skip this
                 continue
+            if 'base' in tower.name.lower():
+                continue # tower bases don't get runes, tower tops do
             ti, tj = nearest_cell_ij(tower.center_x, tower.center_y)
             if (i == ti) and (j == tj):
                 # found the tower
@@ -1488,6 +1496,7 @@ class GameWindow(arcade.Window):
             for shop_item in shop_list:
                 if shop_item.tower.name == tower_name:
                     return shop_item.cost
+        return 0
 
     def update_quests(self):
         # 1. update the state-based quests in the self.quest_tracker
@@ -1504,7 +1513,7 @@ class GameWindow(arcade.Window):
                 runed_towers += 1
         self.quest_tracker["current oaks"] = oaks
         self.quest_tracker["current_temples"] = temples
-        self.quest_tracker["current structures"] = len(self.towers_list.sprite_list)
+        self.quest_tracker["current structures"] = len([tower for tower in self.towers_list.sprite_list if not('base' in tower.name.lower())])
         self.quest_tracker["current gold"] = self.money
         self.quest_tracker["current enchanted towers"] = runed_towers
 
@@ -1592,8 +1601,9 @@ class GameWindow(arcade.Window):
         if (x < MAP_WIDTH) and (CHIN_HEIGHT < y):
             for k, tower in enumerate(self.towers_list.sprite_list):
                 if ((tower.left < x < tower.right) and (tower.bottom < y < tower.top)):
-                    self.hover_target = 'tower:'+str(k)
-                    return ret
+                    if not('base' in tower.name.lower()):
+                        self.hover_target = 'tower:'+str(k)
+                        return ret
                 
         return ret
 
@@ -1641,7 +1651,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
 # runes on towers are drawn as part of a big spriteList
