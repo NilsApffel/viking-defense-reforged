@@ -6,7 +6,7 @@ from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS
 from copy import deepcopy
 from effects import SlowDown, Inflame, Freeze
 from enemies import Enemy
-from explosions import Explosion
+from explosions import CatapultExplosion, GrowingExplosion
 from projectiles import Projectile, Falcon, FlameParticle
 from runes import Rune
 from utils import normalize_tuple
@@ -316,7 +316,7 @@ class Catapult(Tower):
             target=None,
             target_x=enemy.center_x, target_y=enemy.center_y, 
             damage=self.damage, do_splash_damage=True, splash_radius=32, 
-            impact_effect=Explosion(filename='./images/cannonball-explosion.png'), 
+            impact_effect=CatapultExplosion(), 
         )
         cannonball = self.make_runed_projectile(cannonball)
             
@@ -405,10 +405,7 @@ class Bastion(Tower):
                 target_x=self.center_x + self.explode_distance*cos(theta_k), 
                 target_y=self.center_y + self.explode_distance*sin(theta_k), 
                 damage=self.damage, do_splash_damage=True, splash_radius=self.splash_radius, 
-                impact_effect=Explosion(
-                    filename='./images/cannonball-explosion.png',
-                    starting_scale=0.2, lifetime_seconds=0.2, scale_increase_rate=4
-                ), 
+                impact_effect=CatapultExplosion(scale=0.8, speed_factor=1.5), 
             )
             proj = self.make_runed_projectile(proj)
             explosives.append(proj)
@@ -624,7 +621,7 @@ class SanctumOfTempest(Tower):
             return super().attack(enemy)
         else:
             # Special AoE giant hit
-            blast_effect = Explosion(
+            blast_effect = GrowingExplosion(
                 filename='./images/zap_blast.png', starting_scale=0.1, 
                 lifetime_seconds=0.15, 
                 scale_increase_rate = 10 if self.has_rune('tiwaz') else 6, 

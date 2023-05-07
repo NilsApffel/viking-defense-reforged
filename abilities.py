@@ -1,11 +1,12 @@
 from arcade import (Sprite, draw_arc_filled, draw_circle_filled, draw_circle_outline, 
 draw_scaled_texture_rectangle, load_texture, make_transparent_color, draw_rectangle_filled)
-from arcade.color import YELLOW, RED, GREEN
+from arcade.color import RED, GREEN
 from copy import deepcopy
 from constants import ASSETS, CELL_SIZE, CHIN_HEIGHT, MAP_TARGET_J, MAP_WIDTH, TRANSPARENT_BLACK
+from explosions import MjolnirExplosion
 from grid import nearest_cell_ij, cell_centerxy
 from pathfind import find_path
-from towers import Projectile, Explosion
+from towers import Projectile
 
 class Ability():
     def __init__(self, name: str, icon_file: str, preview_image_file: str, 
@@ -65,12 +66,6 @@ class MjolnirAbility(Ability):
                          cooldown = 120.0, range = 3.0*CELL_SIZE)
         
     def trigger(self, x, y):
-        explosion = Explosion(
-            filename='./images/cannonball-explosion.png',
-            starting_scale=1.0,
-            lifetime_seconds=0.75,
-            scale_increase_rate=3.33,
-        )
         mjolnir = Projectile(
             filename='./images/mjolnir-full-1.png', 
             scale=1.0,
@@ -83,7 +78,7 @@ class MjolnirAbility(Ability):
             damage=100,
             do_splash_damage=True,
             splash_radius=self.range,
-            impact_effect=explosion
+            impact_effect=MjolnirExplosion()
         )
         super().trigger(x, y)
         return mjolnir

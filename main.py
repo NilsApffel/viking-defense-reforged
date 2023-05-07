@@ -18,7 +18,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.6.12 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.0 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -688,7 +688,7 @@ class GameWindow(arcade.Window):
         # info bar
         self.population_counter_text.text = str(self.population)
         self.population_counter_text.draw()
-        self.money_counter_text.text = str(self.money)
+        self.money_counter_text.text = str(floor(self.money))
         self.money_counter_text.draw()
 
     def draw_shop(self): 
@@ -722,7 +722,7 @@ class GameWindow(arcade.Window):
                 self.shop_text[k]['name'].text = "Task: " + shop_item.tower.name
                 self.shop_text[k]['description'].text = shop_item.quest
                 self.shop_text[k]['price'].text = ''
-                self.shop_text[k]['quest progress'].text = str(shop_item.quest_progress) + '/' + str(shop_item.quest_thresh)
+                self.shop_text[k]['quest progress'].text = str(floor(shop_item.quest_progress)) + '/' + str(shop_item.quest_thresh)
                 for txt in self.shop_text[k].values():
                     txt.draw()
  
@@ -1651,7 +1651,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : vfx for enemies exploding
 
 # Roadmap items : 
 # runes on towers are drawn as part of a big spriteList
@@ -1663,7 +1663,6 @@ if __name__ == "__main__":
 # nicer level select
 # abilities and shop items get highlighted on mouse-over
 # score calculation
-# vfx for enemies exploding
 # warning messages when trying illegal actions
 # tower unlock messages
 # mac and linux compatibility

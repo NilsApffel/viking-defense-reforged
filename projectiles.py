@@ -4,7 +4,7 @@ from math import atan2, pi, sqrt, cos, sin
 from random import random, randint
 from constants import FLAMES, MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug
 from enemies import Enemy
-from explosions import Explosion
+from explosions import FramedExplosion
 from runes import Rune
 
 class Projectile(Sprite):
@@ -12,7 +12,7 @@ class Projectile(Sprite):
                     center_x: float = 0, center_y: float = 0, angle: float = 0, angle_rate: float = 0,
                     target: Enemy = None, target_x: float = None, target_y: float = None, 
                     damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10, 
-                    impact_effect: Explosion = None, is_retargeting: bool = False, 
+                    impact_effect: FramedExplosion = None, is_retargeting: bool = False, 
                     parent_tower: Sprite = None, effects: list = None, name: str = '', 
                     num_secondary_projectiles: int = 0, texture: Texture = None):
         super().__init__(filename=filename, scale=scale, center_x=center_x, 
