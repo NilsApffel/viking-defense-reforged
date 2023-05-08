@@ -7,6 +7,8 @@ from math import floor, atan2, pi
 from random import randint, random
 from abilities import MjolnirAbility, SellTowerAbility, PlatformAbility, CommandAbility, HarvestAbility
 from constants import *
+from enemies import Enemy
+from explosions import AirExplosion, WaterExplosion
 from grid import *
 from projectiles import Projectile
 from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil, Laguz
@@ -18,7 +20,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.0 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.1 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -142,6 +144,7 @@ class GameWindow(arcade.Window):
         self.towers_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
+        self.water_explosions_list = arcade.SpriteList()
         self.init_gui_elements()
         self.all_sprites = arcade.SpriteList()    
         self.time_to_next_wave = 75 if self.map_number < 5 else 60 # seconds
@@ -524,6 +527,7 @@ class GameWindow(arcade.Window):
             return  
          
         self.draw_map_background()
+        self.water_explosions_list.draw()
         self.swimmers_list.draw()
         self.draw_map_land()
 
@@ -938,6 +942,8 @@ class GameWindow(arcade.Window):
         self.projectiles_list.on_update(delta_time)
         self.effects_list.update()
         self.effects_list.on_update(delta_time)
+        self.water_explosions_list.update()
+        self.water_explosions_list.on_update(delta_time)
 
         # check for loss condition
         if self.population <= 0:
@@ -991,15 +997,7 @@ class GameWindow(arcade.Window):
             for eff in enemy.temporary_effects:
                 if eff.damage_per_second > 0:
                     dmg = eff.damage_per_second*delta_time
-                    earnings = enemy.take_damage_give_money(damage=dmg)
-                    self.money += earnings
-                    # increment quest trackers
-                    if earnings > 0:
-                        self.quest_tracker["enemies killed"] += 1
-                        if enemy.is_flying:
-                            self.quest_tracker["flying enemies killed"] += 1
-                        elif enemy.is_hidden:
-                            self.quest_tracker["submerged enemies killed"] += 1
+                    self.process_enemy_damage(enemy, dmg)
 
         # check if any enemies get kills
         for enemy in self.enemies_list.sprite_list:
@@ -1094,20 +1092,12 @@ class GameWindow(arcade.Window):
                                     self.quest_tracker['enemies frozen'] += 1
                                 elif effect.name == 'inflame':
                                     self.quest_tracker['enemies inflamed'] += 1
-                            
-                        earnings = enemy.take_damage_give_money(dmg)
-                        self.money += earnings
+                        
+                        self.process_enemy_damage(enemy, dmg)
                         # deal with projectiles created by tower.attack()
                         for proj in projlist: 
                             self.projectiles_list.append(proj)
                             self.all_sprites.append(proj)
-                        # increment quest trackers
-                        if earnings > 0:
-                            self.quest_tracker["enemies killed"] += 1
-                            if enemy.is_flying:
-                                self.quest_tracker["flying enemies killed"] += 1
-                            elif enemy.is_hidden:
-                                self.quest_tracker["submerged enemies killed"] += 1
                     else : # not ready to fire
                         tower.cooldown_remaining -= delta_time
                         if tower.cooldown_remaining < 0.0:
@@ -1141,16 +1131,9 @@ class GameWindow(arcade.Window):
                             self.quest_tracker['enemies frozen'] += 1
                         elif effect.name == 'inflame':
                             self.quest_tracker['enemies inflamed'] += 1
-                    earnings = enemy.take_damage_give_money(damage=projectile.damage)
-                    self.money += earnings
-                    # increment quest trackers
-                    if earnings > 0:
+                    got_kill = self.process_enemy_damage(enemy, damage=projectile.damage)
+                    if got_kill:
                         projectile_kills += 1
-                        self.quest_tracker["enemies killed"] += 1
-                        if enemy.is_flying:
-                            self.quest_tracker["flying enemies killed"] += 1
-                        elif enemy.is_hidden:
-                            self.quest_tracker["submerged enemies killed"] += 1
             if projectile.damage == 100: # this is a mjolnir
                 if projectile_kills > self.quest_tracker["max mjolnir kills"]:
                     self.quest_tracker["max mjolnir kills"] = projectile_kills
@@ -1177,15 +1160,7 @@ class GameWindow(arcade.Window):
                     self.quest_tracker['enemies frozen'] += 1
                 elif effect.name == 'inflame':
                     self.quest_tracker['enemies inflamed'] += 1
-            earnings = projectile.target.take_damage_give_money(projectile.damage)
-            self.money += earnings
-            # increment quest trackers
-            if earnings > 0:
-                self.quest_tracker["enemies killed"] += 1
-                if projectile.target.is_flying:
-                    self.quest_tracker["flying enemies killed"] += 1
-                elif projectile.target.is_hidden:
-                    self.quest_tracker["submerged enemies killed"] += 1
+            self.process_enemy_damage(enemy=projectile.target, damage=projectile.damage)
         # ""pretty"" explosions
         if projectile.impact_effect:
             explosion = deepcopy(projectile.impact_effect)
@@ -1202,6 +1177,26 @@ class GameWindow(arcade.Window):
             self.projectiles_list.append(sub)
             self.all_sprites.append(sub)
         projectile.remove_from_sprite_lists()
+
+    def process_enemy_damage(self, enemy: Enemy, damage: float) -> bool:
+        """Inflicts damage, updates money and quests, initializes death animations. Returns True if the enemy died"""
+        earnings = enemy.take_damage_give_money(damage=damage)
+        self.money += earnings
+        # did the enemy die ?
+        if earnings > 0:
+            self.quest_tracker["enemies killed"] += 1
+            if enemy.is_flying:
+                self.quest_tracker["flying enemies killed"] += 1
+                explosion = AirExplosion(center_x=enemy.center_x, center_y=enemy.center_y)
+                self.effects_list.append(explosion)
+            else:
+                explosion = WaterExplosion(center_x=enemy.center_x, center_y=enemy.center_y)
+                self.water_explosions_list.append(explosion)
+                if enemy.is_hidden:
+                    self.quest_tracker["submerged enemies killed"] += 1
+            self.all_sprites.append(explosion)
+            return True
+        return False
 
     def update_score_file(self, map_number: int, waves_survived: int, did_win: bool):
         # read the entire file
@@ -1651,7 +1646,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : vfx for enemies exploding
+# TODO next step :
 
 # Roadmap items : 
 # runes on towers are drawn as part of a big spriteList
@@ -1659,11 +1654,10 @@ if __name__ == "__main__":
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
 # towers, projectiles, effects should use pre-loaded textures when initialized
-# high quality mjolnir explosion
 # nicer level select
 # abilities and shop items get highlighted on mouse-over
 # score calculation
 # warning messages when trying illegal actions
 # tower unlock messages
 # mac and linux compatibility
-# textures / animations overhaul (towers, attacks, effects)
+# textures / animations overhaul (attacks, effects, backgrounds)

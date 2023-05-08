@@ -3,6 +3,8 @@ from math import floor
 
 CATAPULT_EXPLOSIONS = [load_texture('./images/explosions/catapult'+str(k)+'.png') for k in range(6)]
 MJOLNIR_EXPLOSIONS = [load_texture('./images/explosions/mjolnir'+str(k)+'.png') for k in range(15)]
+AIR_EXPLOSIONS = [load_texture('./images/explosions/FlyerDeath'+str(k)+'.png') for k in range(10)]
+WATER_EXPLOSIONS = [load_texture('./images/explosions/SwimmerDeath'+str(k)+'.png') for k in range(14)]
 
 
 class GrowingExplosion(Sprite):
@@ -65,5 +67,19 @@ class CatapultExplosion(FramedExplosion):
 class MjolnirExplosion(FramedExplosion):
     def __init__(self, center_x: float = 0, center_y: float = 0):
         super().__init__(frames=MJOLNIR_EXPLOSIONS, 
+                         center_x=center_x, center_y=center_y, 
+                         frame_duration=0.04)
+
+
+class AirExplosion(FramedExplosion):
+    def __init__(self, scale: float = 1, center_x: float = 0, center_y: float = 0):
+        super().__init__(frames=AIR_EXPLOSIONS, scale=scale,
+                         center_x=center_x, center_y=center_y, 
+                         frame_duration=0.04)
+
+
+class WaterExplosion(FramedExplosion):
+    def __init__(self, scale: float = 1, center_x: float = 0, center_y: float = 0):
+        super().__init__(frames=WATER_EXPLOSIONS, scale=scale,
                          center_x=center_x, center_y=center_y, 
                          frame_duration=0.04)
