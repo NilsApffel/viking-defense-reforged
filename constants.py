@@ -1,6 +1,7 @@
 from arcade import load_texture, make_transparent_color
 from arcade.color import BLACK
 from pathlib import Path
+from platform import system
 
 # there's probably a better way than gloabl variables to handle all this sizing...
 SCREEN_WIDTH = 700
@@ -32,7 +33,12 @@ FIRE_SHIELD_TEXTURE = load_texture('./images/fireshield.png')
 REGEN_TEXTURE = load_texture('./images/regen.png')
 
 home_folder = Path.home()
-SCORE_FOLDER = home_folder.joinpath('./AppData/Local/viking-defense-refoged/')
+if system() == "Windows":
+    SCORE_FOLDER = home_folder.joinpath('AppData/Local/viking-defense-refoged/')
+elif system() == "Darwin":
+    SCORE_FOLDER = home_folder.joinpath('Library/Application Support/viking-defense-refoged/')
+else: # assuming this is Linux
+    SCORE_FOLDER = home_folder.joinpath('.local/share/viking-defense-refoged/')
 SCORE_FILE = SCORE_FOLDER.joinpath('./scores.csv')
 
 ABILITY_NAMES = ["Dismantle", "Mjolnir", "Platform", "Command", "Harvest"]
