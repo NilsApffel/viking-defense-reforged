@@ -20,7 +20,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.3 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -43,7 +43,7 @@ def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact")
 class GameWindow(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
-        arcade.set_background_color(arcade.color.ORANGE)
+        arcade.set_background_color((255, 255, 255))
         self.enemies_list = arcade.SpriteList()
         self.towers_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
@@ -78,6 +78,8 @@ class GameWindow(arcade.Window):
         self.range_preview.append_texture(load_texture('./images/TowerRange.png'))
         self.range_preview.append_texture(load_texture('./images/AbilityRange.png'))
         self.range_preview.set_texture(0)
+        self.water_shimmer_ind = 0 
+        self.water_shimmer_timer = 0.04
 
     def read_score_file(self):
         self.best_waves = []
@@ -101,9 +103,10 @@ class GameWindow(arcade.Window):
             self.maps_beaten += 1
 
     def setup(self, map_number: int = 1, is_freeplay: bool = False):
-        arcade.set_background_color(arcade.color.ORANGE)
         self.map_number = map_number
-        self.map_image = None
+        self.map_water_static = None
+        self.map_water_animation = None
+        self.map_land = None
         self.is_freeplay = is_freeplay
         self.read_score_file()
         self.wave_is_happening = False
@@ -266,8 +269,27 @@ class GameWindow(arcade.Window):
 
         # load the map image, if it exists
         if self.map_number > 0:
-            self.map_image = arcade.load_texture('./images/map'+str(self.map_number)+'.png')
-            self.map_land_only_image = arcade.load_texture('./images/map'+str(self.map_number)+'LandOnly.png')
+            self.map_water_animation = arcade.Sprite(
+                center_x=MAP_WIDTH/2,
+                center_y=CHIN_HEIGHT+MAP_HEIGHT/2
+            )
+            for k in range(24):
+                self.map_water_animation.append_texture(arcade.load_texture('./images/water_shimmer/'+str(k+1)+'.png'))
+            self.map_water_animation.set_texture(0)
+
+            self.map_water_static = arcade.Sprite(
+                center_x=MAP_WIDTH/2,
+                center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
+                texture=arcade.load_texture('./images/map'+str(self.map_number)+'-water.png')
+            )
+
+            self.map_land = arcade.Sprite(
+                center_x=MAP_WIDTH/2,
+                center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
+                texture=arcade.load_texture('./images/map'+str(self.map_number)+'LandOnly.png')
+            )
+        self.water_shimmer_ind = 0 
+        self.water_shimmer_timer = 0.04
 
         self.abilities_list[2] = PlatformAbility(map_reference=self.map_cells)
 
@@ -586,22 +608,15 @@ class GameWindow(arcade.Window):
     # draw sub-methods used to make self.on_draw more legible
     def draw_map_background(self):
         if self.map_number > 0:
-            arcade.draw_scaled_texture_rectangle(
-                center_x=MAP_WIDTH/2,
-                center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
-                texture=self.map_image
-            )
+            self.map_water_static.draw()
+            self.map_water_animation.draw(blend_function=(self.ctx.DST_COLOR, self.ctx.SRC_COLOR))
         else:
             # draw the map using colored rectangles representing terrain type of each cell
             self.map_shape_list.draw()
 
     def draw_map_land(self):
         if self.map_number > 0:
-            arcade.draw_scaled_texture_rectangle(
-                center_x=MAP_WIDTH/2,
-                center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
-                texture=self.map_land_only_image
-            )
+            self.map_land.draw()
         self.platforms.draw()
 
     def draw_range(self, tower):
@@ -899,6 +914,14 @@ class GameWindow(arcade.Window):
             self.paused = True
             return
         ret = super().on_update(delta_time)
+
+        # update some animations
+        self.water_shimmer_timer -= delta_time
+        if self.water_shimmer_timer <= 0:
+            self.water_shimmer_ind = (self.water_shimmer_ind + 1) % 24
+            self.map_water_animation.set_texture(self.water_shimmer_ind)
+            while self.water_shimmer_timer <= 0:
+                self.water_shimmer_timer += 0.04
 
         # check if any shop item is selected
         self.shop_item_selected = 0
