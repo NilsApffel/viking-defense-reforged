@@ -290,6 +290,16 @@ class GameWindow(arcade.Window):
             )
         self.water_shimmer_ind = 0 
         self.water_shimmer_timer = 0.04
+        if self.map_number == 1:
+            self.waterfall = arcade.Sprite(
+                center_x=408,
+                center_y=254
+            )
+            self.waterfall.append_texture(arcade.load_texture('./images/waterfall0.png'))
+            self.waterfall.append_texture(arcade.load_texture('./images/waterfall1.png'))
+            self.waterfall.append_texture(arcade.load_texture('./images/waterfall2.png'))
+            self.waterfall.set_texture(0)
+            self.waterfall_timer = 0.0
 
         self.abilities_list[2] = PlatformAbility(map_reference=self.map_cells)
 
@@ -617,6 +627,8 @@ class GameWindow(arcade.Window):
     def draw_map_land(self):
         if self.map_number > 0:
             self.map_land.draw()
+            if self.map_number == 1:
+                self.waterfall.draw()
         self.platforms.draw()
 
     def draw_range(self, tower):
@@ -922,6 +934,11 @@ class GameWindow(arcade.Window):
             self.map_water_animation.set_texture(self.water_shimmer_ind)
             while self.water_shimmer_timer <= 0:
                 self.water_shimmer_timer += 0.04
+        if self.map_number == 1:
+            self.waterfall_timer += delta_time
+            while self.waterfall_timer >= 0.36:
+                self.waterfall_timer -= 0.36
+            self.waterfall.set_texture(floor(self.waterfall_timer*100 / 12))
 
         # check if any shop item is selected
         self.shop_item_selected = 0
@@ -1669,7 +1686,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
 # runes on towers are drawn as part of a big spriteList
