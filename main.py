@@ -20,7 +20,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.5 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1305,6 +1305,7 @@ class GameWindow(arcade.Window):
                 self.game_state = 'playing'
             elif (SCREEN_WIDTH/2 <= x <= SCREEN_WIDTH/2+203) and (SCREEN_HEIGHT/2-105 <= y <= SCREEN_HEIGHT/2): # Yes exit
                 # return to level select
+                self.update_score_file(self.map_number, self.wave_number-1, did_win=False)
                 self.setup(map_number=0)
             return
         elif self.paused and (self.game_state == 'won' or self.game_state == 'lost'):
@@ -1686,10 +1687,11 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : fix platform not working on the left-most column of map 3
 
 # Roadmap items : 
-# runes on towers are drawn as part of a big spriteList
+# AnimatedSprite class + convert everything to that
+# runes on towers are drawn as part of a big spriteList and are animated
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
@@ -1700,4 +1702,5 @@ if __name__ == "__main__":
 # warning messages when trying illegal actions
 # tower unlock messages
 # mac and linux compatibility
-# textures / animations overhaul (attacks, effects, backgrounds)
+# textures / animations overhaul (attacks, effects)
+# updated readme, with screenshots of the game and install instructions
