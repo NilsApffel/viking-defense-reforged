@@ -113,7 +113,7 @@ class PlatformAbility(Ability):
         
     def placement_would_block_path(self, i, j):
         """Returns True if placing a platform at (i,j) results in a map where some enemies would have no path to the exit"""
-        if j==0:
+        if i==0:
             return True
         
         # See if we've already tested this cell

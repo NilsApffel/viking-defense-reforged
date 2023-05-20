@@ -20,7 +20,7 @@ from utils import timestr
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.5 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.6 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1687,7 +1687,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : fix platform not working on the left-most column of map 3
+# TODO next step :
 
 # Roadmap items : 
 # AnimatedSprite class + convert everything to that
