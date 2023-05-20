@@ -16,11 +16,11 @@ from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire,
                     OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage, SanctumOfTempest,
                     TempleOfThor, Forge, TempleOfOdin, ChamberOfTheChief, TempleOfFreyr)
-from utils import timestr
+from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.6 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.7 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -291,15 +291,15 @@ class GameWindow(arcade.Window):
         self.water_shimmer_ind = 0 
         self.water_shimmer_timer = 0.04
         if self.map_number == 1:
-            self.waterfall = arcade.Sprite(
+            self.waterfall = AnimatedSprite(
+                texture_list=[arcade.load_texture('./images/waterfall0.png'),
+                              arcade.load_texture('./images/waterfall1.png'),
+                              arcade.load_texture('./images/waterfall2.png')],
+                transition_times=[0.00, 0.12, 0.24, 0.36],
+                transition_indxs=[0,    1,    2,    0],
                 center_x=408,
                 center_y=254
             )
-            self.waterfall.append_texture(arcade.load_texture('./images/waterfall0.png'))
-            self.waterfall.append_texture(arcade.load_texture('./images/waterfall1.png'))
-            self.waterfall.append_texture(arcade.load_texture('./images/waterfall2.png'))
-            self.waterfall.set_texture(0)
-            self.waterfall_timer = 0.0
 
         self.abilities_list[2] = PlatformAbility(map_reference=self.map_cells)
 
@@ -935,10 +935,7 @@ class GameWindow(arcade.Window):
             while self.water_shimmer_timer <= 0:
                 self.water_shimmer_timer += 0.04
         if self.map_number == 1:
-            self.waterfall_timer += delta_time
-            while self.waterfall_timer >= 0.36:
-                self.waterfall_timer -= 0.36
-            self.waterfall.set_texture(floor(self.waterfall_timer*100 / 12))
+            self.waterfall.on_update(delta_time=delta_time)
 
         # check if any shop item is selected
         self.shop_item_selected = 0
