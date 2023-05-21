@@ -8,7 +8,7 @@ from effects import SlowDown, Inflame, Freeze
 from enemies import Enemy
 from explosions import CatapultExplosion, GrowingExplosion
 from projectiles import Projectile, Falcon, FlameParticle
-from runes import Rune
+from runes import Rune, MiniRune
 from utils import normalize_tuple
 
 class Tower(Sprite):
@@ -40,6 +40,7 @@ class Tower(Sprite):
         self.is_2x2 = is_2x2
         self.do_constant_attack = constant_attack
         self.rune = None
+        self.minirune = None
         self.projectiles_are_homing = projectiles_are_homing
         if animation_transition_times:
             self.animation_transition_times = animation_transition_times
@@ -55,59 +56,6 @@ class Tower(Sprite):
     # place it on the map doesn't work
     def make_another(self): 
         return Tower()
-
-    def draw_runes(self):
-        if self.rune is None:
-            return
-        if self.rune.name == 'raidho':
-            draw_scaled_texture_rectangle(
-                center_x=self.center_x+10,
-                center_y=self.center_y-10,
-                texture=ASSETS['raidho-r'],
-                scale=1.0,
-            )
-        elif self.rune.name == 'hagalaz':
-            draw_scaled_texture_rectangle(
-                center_x=self.center_x+10,
-                center_y=self.center_y-10,
-                texture=ASSETS['hagalaz-h'],
-                scale=1.0,
-            )
-        elif self.rune.name == 'tiwaz':
-            draw_scaled_texture_rectangle(
-                center_x=self.center_x+10,
-                center_y=self.center_y-10,
-                texture=ASSETS['tiwaz-t'],
-                scale=1.0,
-            )
-        elif self.rune.name == 'kenaz':
-            draw_scaled_texture_rectangle(
-                center_x=self.center_x+10,
-                center_y=self.center_y-10,
-                texture=ASSETS['kenaz-c'],
-                scale=1.0,
-            )
-        elif self.rune.name == 'isa':
-            draw_scaled_texture_rectangle(
-                center_x=self.center_x+10,
-                center_y=self.center_y-10,
-                texture=ASSETS['isa-i'],
-                scale=1.0,
-            )
-        elif self.rune.name == 'sowil':
-            draw_scaled_texture_rectangle(
-                center_x=self.center_x+10,
-                center_y=self.center_y-10,
-                texture=ASSETS['sowil-s'],
-                scale=1.0,
-            )
-        elif self.rune.name == 'laguz':
-            draw_scaled_texture_rectangle(
-                center_x=self.center_x+10,
-                center_y=self.center_y-10,
-                texture=ASSETS['laguz-l'],
-                scale=1.0,
-            )
 
     def on_update(self, delta_time: float = 1 / 60):
         if self.does_rotate:
@@ -187,7 +135,9 @@ class Tower(Sprite):
             self.range = clean_tower.range
             self.damage = clean_tower.damage
             self.projectiles_are_homing = clean_tower.projectiles_are_homing
+            self.minirune.remove_from_sprite_lists()
         self.rune = rune
+        self.minirune = MiniRune(rune, center_x=self.center_x+10, center_y=self.center_y-10)
         if rune.name == 'raidho':
             self.projectiles_are_homing = True
         elif rune.name == 'hagalaz':
@@ -201,6 +151,7 @@ class Tower(Sprite):
             self.cooldown_remaining /= 2.00
             if self.do_constant_attack:
                 self.damage *= 2.00
+        return self.minirune
 
     def make_runed_projectile(self, projectile: Projectile):
         if self.has_rune('raidho'):
@@ -223,6 +174,10 @@ class Tower(Sprite):
             projectile.num_secondary_projectiles += 1
         return projectile
     
+    def remove_from_sprite_lists(self):
+        if self.minirune:
+            self.minirune.remove_from_sprite_lists()
+        return super().remove_from_sprite_lists()
 
 class TowerBase(Tower):
     def __init__(self, filename: str = None, scale: float = 1, name: str = None, texture: Texture = None):

@@ -1,5 +1,9 @@
 from arcade import load_texture, draw_scaled_texture_rectangle
 from effects import Inflame, Freeze
+from utils import AnimatedSprite
+
+rune_names = ['Raidho', 'Hagalaz', 'Tiwaz', 'Kenaz', 'Isa', 'Sowil', 'Laguz']
+MINI_RUNES = {name.lower() : [load_texture('./images/runes/'+name+'/'+str(k+1)+'.png') for k in range(24)] for name in rune_names}
 
 class Rune():
     def __init__(self, name: str, icon_file: str, preview_image_file: str, 
@@ -94,3 +98,11 @@ class Laguz(Rune):
     
     def make_another(self):
         return Laguz()
+
+
+class MiniRune(AnimatedSprite):
+    def __init__(self, rune: Rune, center_x: float = 0, center_y: float = 0):
+        super().__init__(texture_list=MINI_RUNES[rune.name] ,
+                         transition_times=[0.04*k for k in range(len(MINI_RUNES[rune.name])+1)], 
+                         transition_indxs=list(range(len(MINI_RUNES[rune.name])))+[0], 
+                         center_x=center_x, center_y=center_y)

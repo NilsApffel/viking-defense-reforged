@@ -11,7 +11,7 @@ from enemies import Enemy
 from explosions import AirExplosion, WaterExplosion
 from grid import *
 from projectiles import Projectile
-from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil, Laguz
+from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil, Laguz, MiniRune
 from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire,
                     OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage, SanctumOfTempest,
@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.9 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.10 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -145,6 +145,7 @@ class GameWindow(arcade.Window):
         self.swimmers_list = arcade.SpriteList()
         self.flyers_list = arcade.SpriteList()
         self.towers_list = arcade.SpriteList()
+        self.minirunes_list = arcade.SpriteList()
         self.projectiles_list = arcade.SpriteList()
         self.effects_list = arcade.SpriteList()
         self.water_explosions_list = arcade.SpriteList()
@@ -564,8 +565,7 @@ class GameWindow(arcade.Window):
         self.draw_map_land()
 
         self.towers_list.draw()
-        for tower in self.towers_list.sprite_list:
-            tower.draw_runes()
+        self.minirunes_list.draw()
 
         self.flyers_list.draw()
         self.enemy_effects.draw()
@@ -936,6 +936,7 @@ class GameWindow(arcade.Window):
                 self.water_shimmer_timer += 0.04
         if self.map_number == 1:
             self.waterfall.on_update(delta_time=delta_time)
+        self.minirunes_list.on_update(delta_time=delta_time)
 
         # check if any shop item is selected
         self.shop_item_selected = 0
@@ -1477,6 +1478,8 @@ class GameWindow(arcade.Window):
                 price = self.find_tower_price(tower.name)
                 self.money += int(floor(price/2))
                 self.map_cells[i][j].is_occupied = False
+                if tower.has_rune('any'):
+                    tower.minirune.remove_from_sprite_lists()
                 tower.remove_from_sprite_lists()
                 if tower.name == "Falcon Cliff":
                     tower.falcon.remove_from_sprite_lists()
@@ -1522,7 +1525,9 @@ class GameWindow(arcade.Window):
                 # found the tower
                 if not tower.has_rune(rune.name):
                     self.money -= rune.cost
-                    tower.set_rune(rune)
+                    new_minirune = tower.set_rune(rune)
+                    if new_minirune:
+                        self.minirunes_list.append(new_minirune)
             
     def find_tower_price(self, tower_name):
         for shop_list in self.shop_listlist:
@@ -1684,11 +1689,10 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : make Runes texture handling less dumb
 
 # Roadmap items : 
-# AnimatedSprite class + convert everything to that
-# runes on towers are drawn as part of a big spriteList and are animated
+# convert backgrounds to AnimatedSprite ?
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables

@@ -59,13 +59,6 @@ RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting abil
                      "Tower missiles spring to another enemy after hitting a target.\nSpring damage: 50%\nInsert to a tower"]
 
 ASSETS = {'platform': load_texture('./images/platform.png'),
-          'raidho-r': load_texture('./images/raidho-r.png'), 
-          'hagalaz-h': load_texture('./images/hagalaz-h.png'),
-          'tiwaz-t': load_texture('./images/tiwaz-t.png'),
-          'kenaz-c': load_texture('./images/kenaz-c.png'),
-          'isa-i': load_texture('./images/isa-i.png'),
-          'sowil-s': load_texture('./images/sowil-s.png'),
-          'laguz-l': load_texture('./images/laguz-l.png'),
           'sanctum0': load_texture('./images/SanctumOfTempest0.png'),
           'sanctum1': load_texture('./images/SanctumOfTempest1.png'),
           'sanctum2': load_texture('./images/SanctumOfTempest2.png'),
