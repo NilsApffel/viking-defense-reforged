@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.8 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.9 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1047,9 +1047,9 @@ class GameWindow(arcade.Window):
             if enemy.can_hide:
                 i, j = nearest_cell_ij(enemy.center_x, enemy.center_y)
                 if self.map_cells[i][j].terrain_type == "deep":
-                    enemy.is_hidden = True
+                    enemy.hide()
                 else:
-                    enemy.is_hidden = False
+                    enemy.unhide()
     
     def update_wave_progress(self, delta_time: float):
         if self.wave_is_happening:

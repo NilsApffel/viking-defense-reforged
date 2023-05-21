@@ -1,18 +1,20 @@
-from arcade import Sprite, SpriteSolidColor, SpriteList, Texture, draw_scaled_texture_rectangle, load_texture
+from arcade import Sprite, SpriteSolidColor, SpriteList
 from arcade.color import RED, GREEN
+from copy import deepcopy
 from math import atan2, cos, sin, pi
 from random import randint, random
 from constants import ASSETS, MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR, is_debug
 from effects import Effect
 from grid import *
 from pathfind import find_path
-from utils import normalize_tuple
+from utils import normalize_tuple, AnimatedSprite
 
-class Enemy(Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, speed: float = 0.8,
-                    reward: float = 30, is_flying: bool = True, can_hide: bool = False, 
-                    animation_transition_times: list = None, underwater_textures_index: int = 0):
-        super().__init__(filename, scale)
+class Enemy(AnimatedSprite):
+    def __init__(self, texture_list: list, transition_times: list, transition_indxs: list,
+                scale: float = 1, health: float = 4, speed: float = 0.8, reward: float = 30, 
+                is_flying: bool = True, can_hide: bool = False):
+        super().__init__(texture_list=texture_list, transition_times=transition_times, 
+                         transition_indxs=transition_indxs, scale=scale)
         self.current_health = health
         self.max_health = health
         self.reward = reward
@@ -30,16 +32,6 @@ class Enemy(Sprite):
         self.redbar = SpriteSolidColor(width=1, height=HBAR_HEIGHT, color=RED)
         self.redbar.visible = False
         self.buff_sprite = None
-        if animation_transition_times:
-            self.animation_transition_times = animation_transition_times
-            self.number_of_textures = len(self.animation_transition_times) - 1
-            self.is_animated = (self.number_of_textures >= 2)
-        else:
-            self.animation_transition_times = []
-            self.number_of_textures = 1
-            self.is_animated = False
-        self.animation_time = 0.0
-        self.underwater_textures_index = underwater_textures_index
 
     def take_damage_give_money(self, damage: float):
         starting_health = self.current_health
@@ -110,20 +102,6 @@ class Enemy(Sprite):
         if 'regen' in self.modifier.lower():
             self.current_health += self.regen_rate * delta_time
             self.current_health = min(self.current_health, self.max_health)
-
-        # animation update, but only if needed
-        if self.is_animated:
-            old_time = self.animation_time
-            new_time = old_time + delta_time
-            # did we cross a threshold ? 
-            for k, transition_time in enumerate(self.animation_transition_times):
-                if old_time < transition_time <= new_time:
-                    # we crossed a threshold, update my texture
-                    new_texture_num = k % self.number_of_textures + self.underwater_textures_index * self.is_hidden
-                    self.set_texture(new_texture_num)
-            self.animation_time = new_time
-            if self.animation_time > self.animation_transition_times[-1]:
-                self.animation_time -= self.animation_transition_times[-1]
 
         # go through effects in reverse order because some of them might get removed in this loop
         n = len(self.temporary_effects)
@@ -196,10 +174,11 @@ class Enemy(Sprite):
         return super().remove_from_sprite_lists()
 
 class FlyingEnemy(Enemy):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                 reward: float = 30, animation_transition_times: list = None):
-        super().__init__(filename=filename, scale=scale, health=health, reward=reward, 
-                         is_flying=True, animation_transition_times=animation_transition_times)
+    def __init__(self, texture_list: list, transition_times: list, transition_indxs: list,
+                 scale: float = 1, health: float = 4, reward: float = 30,):
+        super().__init__(texture_list=texture_list, transition_times=transition_times, 
+                         transition_indxs=transition_indxs, scale=scale, health=health, 
+                         reward=reward, is_flying=True)
 
     def on_update(self, delta_time: float = None):
         priority_millions = round(self.priority/1000000)
@@ -210,71 +189,43 @@ class FlyingEnemy(Enemy):
 
 class TinyBird(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, health=10, reward=30, 
-                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48])
-        self.append_texture(ASSETS['tinybird0'])
-        self.append_texture(ASSETS['tinybird1'])
-        self.append_texture(ASSETS['tinybird2'])
-        self.append_texture(ASSETS['tinybird1'])
-        self.set_texture(0)
+        super().__init__(texture_list=[ASSETS['tinybird0'], ASSETS['tinybird1'], ASSETS['tinybird2']], 
+                         transition_times=[0.00, 0.12, 0.24, 0.36, 0.48], 
+                         transition_indxs=[0,    1,    2,    1,    0], 
+                         scale=1.0, health=10, reward=30)
 
 
 class SmallShip(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, health=20, reward=60, 
-                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48])
-        self.append_texture(ASSETS['smallship0'])
-        self.append_texture(ASSETS['smallship1'])
-        self.append_texture(ASSETS['smallship2'])
-        self.append_texture(ASSETS['smallship1'])
-        self.set_texture(0)
+        super().__init__(texture_list=[ASSETS['smallship0'], ASSETS['smallship1'], ASSETS['smallship2']], 
+                         transition_times=[0.00, 0.12, 0.24, 0.36, 0.48], 
+                         transition_indxs=[0,    1,    2,    1,    0], 
+                         scale=1.0, health=20, reward=60)
 
 
 class MediumDragon(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, health=30, reward=100, 
-                         animation_transition_times=[0.00, 1.20, 1.32, 1.44, 1.56, 1.68, 1.80, 1.92])
-        self.append_texture(ASSETS['mediumdragon0'])
-        self.append_texture(ASSETS['mediumdragon1'])
-        self.append_texture(ASSETS['mediumdragon2'])
-        self.append_texture(ASSETS['mediumdragon1'])
-        self.append_texture(ASSETS['mediumdragon2'])
-        self.append_texture(ASSETS['mediumdragon1'])
-        self.append_texture(ASSETS['mediumdragon2'])
-        self.set_texture(0)
-
+        super().__init__(texture_list=[ASSETS['mediumdragon0'], ASSETS['mediumdragon1'], ASSETS['mediumdragon2']], 
+                         transition_times=[0.00, 1.20, 1.32, 1.44, 1.56, 1.68, 1.80, 1.92], 
+                         transition_indxs=[0,    1,    2,    1,    2,    1,    2,    0], 
+                         scale=1.0, health=30, reward=100)
 
 
 class BigDragon(FlyingEnemy):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, health=70, reward=150,
-                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 0.96, 1.08, 1.20, 1.32, 1.44, 1.56, 1.68, 1.80, 1.92])
-        self.append_texture(ASSETS['bigdragon0'])
-        self.append_texture(ASSETS['bigdragon1'])
-        self.append_texture(ASSETS['bigdragon0'])
-        self.append_texture(ASSETS['bigdragon1'])
-        self.append_texture(ASSETS['bigdragon0'])
-        self.append_texture(ASSETS['bigdragon1'])
-        self.append_texture(ASSETS['bigdragon0'])
-        self.append_texture(ASSETS['bigdragon1'])
-        self.append_texture(ASSETS['bigdragon0'])
-        self.append_texture(ASSETS['bigdragon1'])
-        self.append_texture(ASSETS['bigdragon0'])
-        self.append_texture(ASSETS['bigdragon1'])
-        self.append_texture(ASSETS['bigdragon2'])
-        self.append_texture(ASSETS['bigdragon3'])
-        self.append_texture(ASSETS['bigdragon2'])
-        self.append_texture(ASSETS['bigdragon1'])
-        self.set_texture(0)
+        super().__init__(texture_list=[ASSETS['bigdragon0'], ASSETS['bigdragon1'], ASSETS['bigdragon2'], ASSETS['bigdragon3']], 
+                         transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 0.96, 1.08, 1.20, 1.32, 1.44, 1.56, 1.68, 1.80, 1.92],
+                         transition_indxs=[0,    1,    0,    1,    0,    1,    0,    1,    0,    1,    0,    1,    2,    3,    2,    1,    0], 
+                         scale=1.0, health=70, reward=150)
 
 
 class FloatingEnemy(Enemy):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                    reward: float = 30, speed: float = 0.8, can_hide: bool = False, 
-                    animation_transition_times: list = None):
-        super().__init__(filename=filename, scale=scale, health=health, speed=speed,
-                            reward=reward, is_flying=False, can_hide=can_hide, 
-                            animation_transition_times=animation_transition_times)
+    def __init__(self, texture_list: list, transition_times: list, transition_indxs: list, 
+                 scale: float = 1, health: float = 4, reward: float = 30, speed: float = 0.8, 
+                 can_hide: bool = False):
+        super().__init__(texture_list=texture_list, transition_times=transition_times, 
+                         transition_indxs=transition_indxs, scale=scale, health=health, 
+                         speed=speed, reward=reward, is_flying=False, can_hide=can_hide)
         self.path_to_follow = None
         self.next_path_step = 0
         # these parameters determine the "wobble" of my trajectory around the path connecting centers of path cells
@@ -328,83 +279,65 @@ class FloatingEnemy(Enemy):
 
 
 class UnderwaterEnemy(FloatingEnemy):
-    def __init__(self, filename: str = None, scale: float = 1, health: float = 4, 
-                    reward: float = 30, speed: float = 0.8,
-                    animation_transition_times: list = None):
-        super().__init__(filename=filename, scale=scale, health=health, 
-                            reward=reward, speed=speed, can_hide=True, 
-                            animation_transition_times=animation_transition_times)
+    def __init__(self, texture_list: list, visible_transition_times: list, visible_transition_indxs: list, 
+                 underwater_transition_times: list, underwater_transition_indxs: list,
+                 scale: float = 1, health: float = 4, reward: float = 30, speed: float = 0.8):
+        super().__init__(texture_list=texture_list, transition_times=visible_transition_times, 
+                         transition_indxs=visible_transition_indxs, scale=scale, health=health, 
+                        reward=reward, speed=speed, can_hide=True)
+        self.visible_tranistion_times = deepcopy(visible_transition_times)
+        self.visible_tranistion_indxs = deepcopy(visible_transition_indxs)
+        self.underwater_tranistion_times = deepcopy(underwater_transition_times)
+        self.underwater_tranistion_indxs = deepcopy(underwater_transition_indxs)
+
+    def hide(self):
+        if not self.is_hidden:
+            self.is_hidden = True
+            self.transition_times = self.underwater_tranistion_times
+            self.transition_indxs = self.underwater_tranistion_indxs
+
+    def unhide(self):
+        if self.is_hidden:
+            self.is_hidden = False
+            self.transition_times = self.visible_tranistion_times
+            self.transition_indxs = self.visible_tranistion_indxs
 
 
 class TinyBoat(FloatingEnemy):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, health=15, reward=30, 
-                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72])
-        self.append_texture(ASSETS['tinyboat0'])
-        self.append_texture(ASSETS['tinyboat1'])
-        self.append_texture(ASSETS['tinyboat0'])
-        self.append_texture(ASSETS['tinyboat2'])
-        self.append_texture(ASSETS['tinyboat3'])
-        self.append_texture(ASSETS['tinyboat4'])
-        self.set_texture(0)
+        super().__init__(texture_list=[ASSETS['tinyboat'+str(k)] for k in range(5)], 
+                         transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72], 
+                         transition_indxs=[0,    1,    0,    2,    3,    4,    0], 
+                         scale=1.0, health=15, reward=30)
 
 
 class SmallSnake(UnderwaterEnemy):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, health=25, reward=60, 
-                         animation_transition_times=[0.00, 0.08, 0.16, 0.24, 0.32, 0.40, 0.48])
-        self.append_texture(ASSETS['smallsnake0'])
-        self.append_texture(ASSETS['smallsnake1'])
-        self.append_texture(ASSETS['smallsnake2'])
-        self.append_texture(ASSETS['smallsnake3'])
-        self.append_texture(ASSETS['smallsnake4'])
-        self.append_texture(ASSETS['smallsnake5'])
-        self.append_texture(ASSETS['smallsnakeUW0'])
-        self.append_texture(ASSETS['smallsnakeUW1'])
-        self.append_texture(ASSETS['smallsnakeUW2'])
-        self.append_texture(ASSETS['smallsnakeUW3'])
-        self.append_texture(ASSETS['smallsnakeUW4'])
-        self.append_texture(ASSETS['smallsnakeUW5'])
-        self.set_texture(0)
-        self.underwater_textures_index = 6
-        
+        visible_textures = [ASSETS['smallsnake'+str(k)] for k in range(6)]
+        hidden_textures = [ASSETS['smallsnakeUW'+str(k)] for k in range(6)]
+        super().__init__(texture_list=visible_textures+hidden_textures, 
+                         visible_transition_times=[0.00, 0.08, 0.16, 0.24, 0.32, 0.40, 0.48], 
+                         visible_transition_indxs=[0,    1,    2,    3,    4,    5,    0], 
+                         underwater_transition_times=[0.00, 0.08, 0.16, 0.24, 0.32, 0.40, 0.48], 
+                         underwater_transition_indxs=[6,    7,    8,    9,    10,   11,   6], 
+                         scale=1.0, health=25, reward=60)
+   
 
 class MediumBoat(FloatingEnemy):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, health=50, reward=100, 
-                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48])
-        self.append_texture(ASSETS['mediumboat0'])
-        self.append_texture(ASSETS['mediumboat1'])
-        self.append_texture(ASSETS['mediumboat2'])
-        self.append_texture(ASSETS['mediumboat1'])
-        self.set_texture(0)
+        super().__init__(texture_list=[ASSETS['mediumboat0'], ASSETS['mediumboat1'], ASSETS['mediumboat2']], 
+                         transition_times=[0.00, 0.12, 0.24, 0.36, 0.48], 
+                         transition_indxs=[0,    1,    2,    1,    0], 
+                         scale=1.0, health=50, reward=100)
 
 
 class BigWhale(UnderwaterEnemy):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, health=80, reward=150, 
-                         animation_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 0.96, 1.08, 1.20, 1.32])
-        self.append_texture(ASSETS['bigwhale0'])
-        self.append_texture(ASSETS['bigwhale1'])
-        self.append_texture(ASSETS['bigwhale0'])
-        self.append_texture(ASSETS['bigwhale1'])
-        self.append_texture(ASSETS['bigwhale0'])
-        self.append_texture(ASSETS['bigwhale1'])
-        self.append_texture(ASSETS['bigwhale0'])
-        self.append_texture(ASSETS['bigwhale1'])
-        self.append_texture(ASSETS['bigwhale2'])
-        self.append_texture(ASSETS['bigwhale3'])
-        self.append_texture(ASSETS['bigwhale4'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.append_texture(ASSETS['bigwhaleUW0'])
-        self.set_texture(0)
-        self.underwater_textures_index = 11
+        visible_textures = [ASSETS['bigwhale'+str(k)] for k in range(5)]
+        hidden_textures = [ASSETS['bigwhaleUW0']]
+        super().__init__(texture_list=visible_textures+hidden_textures, 
+                         visible_transition_times=[0.00, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72, 0.84, 0.96, 1.08, 1.20, 1.32], 
+                         visible_transition_indxs=[0,    1,    0,    1,    0,    1,    0,    1,    2,    3,    4,    0], 
+                         underwater_transition_times=[0.00, 0.12, 0.24],
+                         underwater_transition_indxs=[5,    5,    5],
+                         scale=1.0, health=80, reward=150)
