@@ -57,6 +57,10 @@ RUNE_DESCRIPTIONS = ["Tower projectiles become homing and gain re-targeting abil
                      "Grants a tower ice damage, +5% freeze chance\nFreeze time : 3s\nInsert to a tower",
                      "Decreases a tower's shooting and loading time\nSpeed: 2.00x\nInsert to a tower", 
                      "Tower missiles spring to another enemy after hitting a target.\nSpring damage: 50%\nInsert to a tower"]
+RUNE_ICONS = {name.lower() : load_texture('./images/'+name.lower()+'-icon.png') for name in RUNE_NAMES}
+RUNE_ICONS_EXTENDED = {name.lower() : load_texture('./images/'+name.lower()+'-extended.png') for name in RUNE_NAMES}
+MINI_RUNES = {name.lower() : [load_texture('./images/runes/'+name+'/'+str(k+1)+'.png') for k in range(24)] for name in RUNE_NAMES}
+RUNE_PREVIEW = load_texture('./images/rune-preview.png')
 
 ASSETS = {'platform': load_texture('./images/platform.png'),
           'sanctum0': load_texture('./images/SanctumOfTempest0.png'),

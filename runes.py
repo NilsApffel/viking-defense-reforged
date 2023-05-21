@@ -1,17 +1,19 @@
-from arcade import load_texture, draw_scaled_texture_rectangle
+from arcade import draw_scaled_texture_rectangle
+from constants import MINI_RUNES, RUNE_ICONS, RUNE_ICONS_EXTENDED, RUNE_PREVIEW
 from effects import Inflame, Freeze
 from utils import AnimatedSprite
 
-rune_names = ['Raidho', 'Hagalaz', 'Tiwaz', 'Kenaz', 'Isa', 'Sowil', 'Laguz']
-MINI_RUNES = {name.lower() : [load_texture('./images/runes/'+name+'/'+str(k+1)+'.png') for k in range(24)] for name in rune_names}
 
 class Rune():
-    def __init__(self, name: str, icon_file: str, preview_image_file: str, 
-                 cost: float) -> None:
+    def __init__(self, name: str, cost: float) -> None:
         self.name = name
-        self.icon = load_texture(icon_file)
-        self.extended_icon = load_texture(icon_file[:-8]+'extended.png')
-        self.preview_image = load_texture(preview_image_file)
+        try:
+            self.icon = RUNE_ICONS[name]
+            self.extended_icon = RUNE_ICONS_EXTENDED[name]
+        except:
+            self.icon = RUNE_ICONS['laguz']
+            self.extended_icon = RUNE_ICONS_EXTENDED['laguz']
+        self.preview_image = RUNE_PREVIEW
         self.cost = cost
         self.effect = None
 
@@ -32,13 +34,12 @@ class Rune():
         )
 
     def make_another(self):
-        return Rune('Example Rune', self.icon_file, self.preview_image_file, self.cost)
+        return Rune('Example Rune', self.cost)
 
 
 class Raidho(Rune):
     def __init__(self) -> None:
-        super().__init__(name='raidho', icon_file='./images/raidho-icon.png', 
-                            preview_image_file='./images/rune-preview.png', cost=30)
+        super().__init__(name='raidho', cost=30)
     
     def make_another(self):
         return Raidho()
@@ -46,8 +47,7 @@ class Raidho(Rune):
 
 class Hagalaz(Rune):
     def __init__(self) -> None:
-        super().__init__(name='hagalaz', icon_file='./images/hagalaz-icon.png', 
-                            preview_image_file='./images/rune-preview.png', cost=50)
+        super().__init__(name='hagalaz', cost=50)
     
     def make_another(self):
         return Hagalaz()
@@ -55,8 +55,7 @@ class Hagalaz(Rune):
 
 class Tiwaz(Rune):
     def __init__(self) -> None:
-        super().__init__(name='tiwaz', icon_file='./images/tiwaz-icon.png', 
-                            preview_image_file='./images/rune-preview.png', cost=70)
+        super().__init__(name='tiwaz', cost=70)
     
     def make_another(self):
         return Tiwaz()
@@ -64,8 +63,7 @@ class Tiwaz(Rune):
 
 class Kenaz(Rune):
     def __init__(self) -> None:
-        super().__init__(name='kenaz', icon_file='./images/kenaz-icon.png', 
-                            preview_image_file='./images/rune-preview.png', cost=100)
+        super().__init__(name='kenaz', cost=100)
         self.effect = Inflame()
     
     def make_another(self):
@@ -74,8 +72,7 @@ class Kenaz(Rune):
 
 class Isa(Rune):
     def __init__(self) -> None:
-        super().__init__(name='isa', icon_file='./images/isa-icon.png', 
-                            preview_image_file='./images/rune-preview.png', cost=100)
+        super().__init__(name='isa', cost=100)
         self.effect = Freeze()
     
     def make_another(self):
@@ -84,8 +81,7 @@ class Isa(Rune):
 
 class Sowil(Rune):
     def __init__(self) -> None:
-        super().__init__(name='sowil', icon_file='./images/sowil-icon.png', 
-                         preview_image_file='./images/rune-preview.png', cost=120)
+        super().__init__(name='sowil', cost=120)
         
     def make_another(self):
         return Sowil()
@@ -93,8 +89,7 @@ class Sowil(Rune):
 
 class Laguz(Rune):
     def __init__(self) -> None:
-        super().__init__(name='laguz', icon_file='./images/laguz-icon.png', 
-                         preview_image_file='./images/rune-preview.png', cost=150)
+        super().__init__(name='laguz', cost=150)
     
     def make_another(self):
         return Laguz()
