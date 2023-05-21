@@ -1,5 +1,6 @@
 from arcade import Sprite, load_texture
 from math import floor
+from utils import AnimatedSprite
 
 CATAPULT_EXPLOSIONS = [load_texture('./images/explosions/catapult'+str(k)+'.png') for k in range(6)]
 MJOLNIR_EXPLOSIONS = [load_texture('./images/explosions/mjolnir'+str(k)+'.png') for k in range(15)]
@@ -23,36 +24,22 @@ class GrowingExplosion(Sprite):
         return super().on_update(delta_time)
     
 
-class FramedExplosion(Sprite):
-    def __init__(self, frames: list, scale: float = 1, center_x: float = 0, center_y: float = 0, 
-                 frame_duration: float = None, total_duration: float = None):
-        super().__init__(scale=scale, center_x=center_x, center_y=center_y)
-        for frame in frames:
-            self.append_texture(frame)
-        self.num_frames = len(frames)
-        self.set_texture(0)
-        if frame_duration:
-            self.frame_duration = frame_duration
-            self.total_duration = frame_duration * self.num_frames
-        elif total_duration:
-            self.total_duration = total_duration
-            self.frame_duration = total_duration / self.num_frames
-        else:
-            self.frame_duration = 0.04
-            self.total_duration = 0.04 * self.num_frames
-        self.animation_time = 0
+class FramedExplosion(AnimatedSprite):
+    def __init__(self, frames: list, frame_duration: float, scale: float = 1, 
+                 center_x: float = 0, center_y: float = 0, angle: float = 0):
+        transition_times=[k*frame_duration for k in range(len(frames)+1)]
+        transition_indxs = list(range(len(frames)))
+        transition_indxs = transition_indxs + [transition_indxs[-1]]
+        super().__init__(texture_list=frames, transition_times=transition_times, 
+                         transition_indxs=transition_indxs, scale=scale, 
+                         center_x=center_x, center_y=center_y, angle=angle)
+        self.lifetime = transition_times[-1]
 
     def on_update(self, delta_time: float = 1 / 60):
-        old_time = self.animation_time
         new_time = self.animation_time + delta_time
-        if new_time > self.total_duration:
+        if new_time > self.lifetime:
             self.remove_from_sprite_lists()
             return
-        old_frame_num = floor(old_time / self.frame_duration)
-        new_frame_num = floor(new_time / self.frame_duration)
-        if old_frame_num != new_frame_num:
-            self.set_texture(new_frame_num)
-        self.animation_time = new_time
         return super().on_update(delta_time)
 
 
