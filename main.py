@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.11 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.12 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -1692,7 +1692,6 @@ if __name__ == "__main__":
 # TODO next step : 
 
 # Roadmap items : 
-# convert backgrounds to AnimatedSprite ?
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
@@ -1705,3 +1704,4 @@ if __name__ == "__main__":
 # mac and linux compatibility
 # textures / animations overhaul (attacks, effects)
 # updated readme, with screenshots of the game and install instructions
+# should health bars eventually split into multiple stacked bars, or should they stay comically long to the point of exceeding the screen width ?

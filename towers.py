@@ -310,7 +310,9 @@ class FalconCliff(Tower):
             self.range = clean_tower.range
             self.damage = clean_tower.damage
             self.projectiles_are_homing = clean_tower.projectiles_are_homing
+            self.minirune.remove_from_sprite_lists()
         self.rune = rune
+        self.minirune = MiniRune(rune, center_x=self.center_x+10, center_y=self.center_y-10)
         if rune.name == 'raidho':
             self.projectiles_are_homing = True
         elif rune.name == 'hagalaz':
@@ -323,6 +325,7 @@ class FalconCliff(Tower):
             self.damage *= 2.00
 
         self.falcon.set_rune(rune)
+        return self.minirune
 
     def attack(self, enemy: Enemy):
         if self.can_see(enemy):
