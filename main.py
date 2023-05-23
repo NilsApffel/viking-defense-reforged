@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.12 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.7.13 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
@@ -151,7 +151,12 @@ class GameWindow(arcade.Window):
         self.water_explosions_list = arcade.SpriteList()
         self.init_gui_elements()
         self.all_sprites = arcade.SpriteList()    
-        self.time_to_next_wave = 75 if self.map_number < 5 else 60 # seconds
+        if self.map_number < 3:
+            self.time_to_next_wave = 90
+        elif self.map_number == 3:
+            self.time_to_next_wave = 75
+        else:
+            self.time_to_next_wave = 60
         self.init_text()
 
     def load_shop_items(self):
@@ -1090,7 +1095,12 @@ class GameWindow(arcade.Window):
             # check if wave is over 
             elif self.enemies_left_to_spawn == 0 and len(self.enemies_list.sprite_list) == 0:
                 self.wave_is_happening = False
-                self.time_to_next_wave = 75 if self.map_number < 5 else 60
+                if self.map_number < 3:
+                    self.time_to_next_wave = 90
+                elif self.map_number == 3:
+                    self.time_to_next_wave = 75
+                else:
+                    self.time_to_next_wave = 60
                 if self.is_freeplay:
                     self.wave_list.append(self.wave_maker.make_wave())
                 for tower in self.towers_list.sprite_list:
