@@ -20,24 +20,24 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.7.13 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.0 Dev"
 
 
-def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact"):
+def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
+                       outline_color : arcade.Color=BLACK, align : str='left', width : int=0):
     """Creates and returns a list of 5 arcade.Text objects with the given properties. 
     When drawn together, these 5 objects create an outlined text effect."""
-    black = arcade.color.BLACK
     text_objects_list = [
-        arcade.Text(text, start_x=start_x-1, start_y=start_y, font_size=font_size, 
-                        font_name=font_name, color=black), 
-        arcade.Text(text, start_x=start_x+1, start_y=start_y, font_size=font_size, 
-                        font_name=font_name, color=black),
-        arcade.Text(text, start_x=start_x, start_y=start_y-1, font_size=font_size, 
-                        font_name=font_name, color=black),
-        arcade.Text(text, start_x=start_x, start_y=start_y+1, font_size=font_size, 
-                        font_name=font_name, color=black),
+        arcade.Text(text, start_x=start_x-border, start_y=start_y, font_size=font_size, 
+                        font_name=font_name, color=outline_color, align=align, width=width), 
+        arcade.Text(text, start_x=start_x+border, start_y=start_y, font_size=font_size, 
+                        font_name=font_name, color=outline_color, align=align, width=width),
+        arcade.Text(text, start_x=start_x, start_y=start_y-border, font_size=font_size, 
+                        font_name=font_name, color=outline_color, align=align, width=width),
+        arcade.Text(text, start_x=start_x, start_y=start_y+border, font_size=font_size, 
+                        font_name=font_name, color=outline_color, align=align, width=width),
         arcade.Text(text, start_x=start_x, start_y=start_y, font_size=font_size, 
-                        font_name=font_name)]
+                        font_name=font_name, align=align, width=width)]
     return text_objects_list
 
 class GameWindow(arcade.Window):
@@ -158,6 +158,10 @@ class GameWindow(arcade.Window):
         else:
             self.time_to_next_wave = 60
         self.init_text()
+        self.income_score = 0
+        self.people_score = 0
+        self.unlocks_score = 0
+        self.score = 0
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -334,6 +338,131 @@ class GameWindow(arcade.Window):
     def init_text(self):
         """Initializes all text objects in order to avoid ever using draw_text, which has 
         terrible performance"""
+
+        # 1. Score displays 
+        self.scores_text = []
+        self.scores_text.append(arcade.Text(
+            'PEOPLE SAVED',
+            start_x=0.25*SCREEN_WIDTH-10,
+            start_y=0.6*SCREEN_HEIGHT-10,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact'
+        ))
+        self.scores_text.append(arcade.Text(
+            '0',
+            start_x=0.45*SCREEN_WIDTH,
+            start_y=0.6*SCREEN_HEIGHT-10,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact', 
+            align='right', 
+            width=100
+        ))
+        self.scores_text.append(arcade.Text(
+            '0',
+            start_x=0.63*SCREEN_WIDTH,
+            start_y=0.6*SCREEN_HEIGHT-10,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact', 
+            align='right', 
+            width=100
+        ))
+        self.scores_text.append(arcade.Text(
+            'GOLD INCOME',
+            start_x=0.25*SCREEN_WIDTH-10,
+            start_y=0.6*SCREEN_HEIGHT-37,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact'
+        ))
+        self.scores_text.append(arcade.Text(
+            '0',
+            start_x=0.45*SCREEN_WIDTH,
+            start_y=0.6*SCREEN_HEIGHT-37,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact', 
+            align='right', 
+            width=100
+        ))
+        self.scores_text.append(arcade.Text(
+            '0',
+            start_x=0.63*SCREEN_WIDTH,
+            start_y=0.6*SCREEN_HEIGHT-37,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact', 
+            align='right', 
+            width=100
+        ))
+        self.scores_text.append(arcade.Text(
+            'TOWERS UNLOCKED',
+            start_x=0.25*SCREEN_WIDTH-10,
+            start_y=0.6*SCREEN_HEIGHT-65,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact'
+        ))
+        self.scores_text.append(arcade.Text(
+            '2',
+            start_x=0.45*SCREEN_WIDTH,
+            start_y=0.6*SCREEN_HEIGHT-65,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact', 
+            align='right', 
+            width=100
+        ))
+        self.scores_text.append(arcade.Text(
+            '1000',
+            start_x=0.63*SCREEN_WIDTH,
+            start_y=0.6*SCREEN_HEIGHT-65,
+            color=arcade.color.BURGUNDY,
+            font_size=16,
+            font_name='impact', 
+            align='right', 
+            width=100
+        ))
+        self.scores_text.append(arcade.Text(
+            'MAP BONUS',
+            start_x=0.25*SCREEN_WIDTH-10,
+            start_y=0.6*SCREEN_HEIGHT-95,
+            color=arcade.color.CANDY_APPLE_RED,
+            font_size=16,
+            font_name='impact'
+        ))
+        self.scores_text.append(arcade.Text(
+            '0%',
+            start_x=0.625*SCREEN_WIDTH,
+            start_y=0.6*SCREEN_HEIGHT-95,
+            color=arcade.color.CANDY_APPLE_RED,
+            font_size=16,
+            font_name='impact', 
+            align='right', 
+            width=100
+        ))
+        self.scores_text += init_outlined_text(
+            'TOTAL SCORE',
+            start_x=0.25*SCREEN_WIDTH-8,
+            start_y=0.6*SCREEN_HEIGHT-125,
+            outline_color=arcade.color.CANDY_APPLE_RED,
+            font_size=16,
+            font_name='impact',
+            border=1.5 
+        )
+        self.scores_text += init_outlined_text(
+            '1750',
+            start_x=0.625*SCREEN_WIDTH,
+            start_y=0.6*SCREEN_HEIGHT-125,
+            outline_color=arcade.color.CANDY_APPLE_RED,
+            font_size=16,
+            font_name='impact', 
+            align='right', 
+            width=100, 
+            border=1.5
+        )
         
         # 2. Info box text
         title_text = arcade.Text(
@@ -843,16 +972,16 @@ class GameWindow(arcade.Window):
         )
         if self.game_state == 'playing' and self.paused:
             self.pause_splash.draw()
-            return
         elif self.game_state == 'exit confirmation':
             self.exit_splash.draw()
-            return
         elif self.game_state == 'won':
             self.win_splash.draw()
-            return
+            for txt in self.scores_text:
+                txt.draw()
         elif self.game_state == 'lost':
             self.lose_splash.draw()
-            return
+            for txt in self.scores_text:
+                txt.draw()
 
     def draw_level_select(self):
         arcade.draw_scaled_texture_rectangle(
@@ -992,15 +1121,36 @@ class GameWindow(arcade.Window):
         if self.population <= 0:
             self.paused = True
             self.game_state = 'lost'
+            self.calc_score()
             self.update_score_file(self.map_number, self.wave_number-1, did_win=False)
         # check for win condition
         elif self.wave_number >= len(self.wave_list) and not self.wave_is_happening:
             self.paused = True
             self.game_state = 'won'
+            self.calc_score()
             self.update_score_file(self.map_number, self.wave_number, did_win=True)
 
         return ret
     
+    def calc_score(self):
+        self.people_score = self.population * 1000
+        self.unlocks_score = -1000
+        for shop_list in self.shop_listlist:
+            for tower in shop_list:
+                if tower.is_unlocked:
+                    self.unlocks_score += 500
+        map_bonus = 0.25*(self.map_number-1)
+        self.score = (self.people_score + self.income_score + self.unlocks_score)*(1+map_bonus)
+        self.scores_text[1].text = str(round(self.population))
+        self.scores_text[2].text = str(round(self.people_score))
+        self.scores_text[4].text = str(round(self.income_score))
+        self.scores_text[5].text = str(round(self.income_score))
+        self.scores_text[7].text = str(round(self.unlocks_score/500))
+        self.scores_text[8].text = str(round(self.unlocks_score))
+        self.scores_text[10].text = str(round(map_bonus*100))+'%'
+        for k in range(16, 21):
+            self.scores_text[k].text = str(round(self.score))
+
     def update_abilities_and_runes(self, delta_time: float):
         # update cooldowns
         for ability in self.abilities_list:
@@ -1230,6 +1380,7 @@ class GameWindow(arcade.Window):
         """Inflicts damage, updates money and quests, initializes death animations. Returns True if the enemy died"""
         earnings = enemy.take_damage_give_money(damage=damage)
         self.money += earnings
+        self.income_score += earnings
         # did the enemy die ?
         if earnings > 0:
             self.quest_tracker["enemies killed"] += 1
@@ -1699,7 +1850,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
@@ -1708,7 +1859,7 @@ if __name__ == "__main__":
 # towers, projectiles, effects should use pre-loaded textures when initialized
 # nicer level select
 # abilities and shop items get highlighted on mouse-over
-# score calculation
+# score saving and loading
 # warning messages when trying illegal actions
 # tower unlock messages
 # mac and linux compatibility
