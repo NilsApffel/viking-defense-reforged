@@ -2,20 +2,20 @@ from arcade import Sprite, Texture
 from copy import deepcopy
 from math import atan2, pi, sqrt, cos, sin
 from random import random, randint
-from constants import FLAMES, MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug
+from constants import FLAMES, MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug, PROJECTILES
 from enemies import Enemy
 from explosions import FramedExplosion
 from runes import Rune
 
 class Projectile(Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, speed: float = 2.0,
+    def __init__(self, scale: float = 1, speed: float = 2.0,
                     center_x: float = 0, center_y: float = 0, angle: float = 0, angle_rate: float = 0,
                     target: Enemy = None, target_x: float = None, target_y: float = None, 
                     damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10, 
                     impact_effect: FramedExplosion = None, is_retargeting: bool = False, 
                     parent_tower: Sprite = None, effects: list = None, name: str = '', 
                     num_secondary_projectiles: int = 0, texture: Texture = None):
-        super().__init__(filename=filename, scale=scale, center_x=center_x, 
+        super().__init__(scale=scale, center_x=center_x, 
                          center_y=center_y, angle=angle, texture=texture)
         self.speed = speed
         self.angle_rate = angle_rate
@@ -109,7 +109,7 @@ class Projectile(Sprite):
 
             # make a copy of self but weaker and with no subs
             sub_proj = Projectile(
-                filename=None, scale=self.scale/2, speed=self.speed,
+                scale=self.scale/2, speed=self.speed,
                 center_x=self.center_x, center_y=self.center_y, angle_rate=self.angle_rate,
                 target=chosen_enemy if self.target else None, 
                 target_x=chosen_enemy.center_x, target_y=chosen_enemy.center_y, 
@@ -127,7 +127,7 @@ class Projectile(Sprite):
 
 class Falcon(Projectile):
     def __init__(self, parent_tower):
-        super().__init__(filename='./images/falcon.png', speed=2.5, 
+        super().__init__(texture=PROJECTILES['falcon'], speed=2.5, 
                          center_x=parent_tower.center_x, center_y=parent_tower.center_y, angle=90, 
                          target_x=parent_tower.center_x, target_y=parent_tower.center_y+100, 
                          damage=parent_tower.damage, is_retargeting=True, parent_tower=parent_tower, name='falcon')

@@ -2,7 +2,7 @@ from arcade import Sprite, Texture, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
 from math import atan2, pi, sqrt, cos, sin, ceil
 from random import random
-from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS
+from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS, PROJECTILES
 from copy import deepcopy
 from effects import SlowDown, Inflame, Freeze
 from enemies import Enemy
@@ -12,13 +12,13 @@ from runes import Rune, MiniRune
 from utils import normalize_tuple
 
 class Tower(Sprite):
-    def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 2, 
+    def __init__(self, scale: float = 1, cooldown: float = 2, 
                     range: float = 100, damage: float = 5, 
                     name: str = None, description: str = None, can_see_types: list = None, 
                     has_rotating_top: bool = False, is_2x2: bool = False, 
                     constant_attack: bool = False, projectiles_are_homing: bool = False, 
                     animation_transition_times: list = None, texture: Texture = None):
-        super().__init__(filename=filename, scale=scale, texture=texture)
+        super().__init__(scale=scale, texture=texture)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
         self.range = range
@@ -180,27 +180,16 @@ class Tower(Sprite):
         return super().remove_from_sprite_lists()
 
 class TowerBase(Tower):
-    def __init__(self, filename: str = None, scale: float = 1, name: str = None, texture: Texture = None):
-        super().__init__(filename=filename, scale=scale, damage=0, range=0, cooldown=0,  name=name, texture=texture)
+    def __init__(self, scale: float = 1, name: str = None, texture: Texture = None):
+        super().__init__(scale=scale, damage=0, range=0, cooldown=0,  name=name, texture=texture)
 
     def can_see(self, enemy: Enemy):
         return False
 
 
-class InstaAirTower(Tower):
-    def __init__(self):
-        super().__init__(filename="images/tower_model_1E.png", scale=1.0, cooldown=2.0, 
-                            range=100, damage=5, name="Arrow Tower", 
-                            description="Fires at flying\nNever misses", 
-                            can_see_types=['flying'])
-
-    def make_another(self):
-        return InstaAirTower()
-
-
 class WatchTower(Tower):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, cooldown=2.0, 
+        super().__init__(scale=1.0, cooldown=2.0, 
                             range=112, damage=5, name="Watchtower", 
                             description="Fires at floating\nNever misses", 
                             can_see_types=['floating'], 
@@ -241,7 +230,7 @@ class WatchTower(Tower):
 class Catapult(Tower):
     def __init__(self):
         super().__init__(
-            filename="images/catapult_top_large.png", 
+            texture=ASSETS['catapult_top'], 
             scale=0.8, 
             cooldown=3.5, 
             range=208, 
@@ -265,7 +254,7 @@ class Catapult(Tower):
     def attack(self, enemy: Enemy):
         super().attack(enemy)
         cannonball = Projectile(
-            filename="images/cannonball.png", scale=0.3, speed=2.5, angle_rate=0,
+            texture=PROJECTILES['cannonball'], scale=0.3, speed=2.5, angle_rate=0,
             center_x=self.center_x + 9*sin(self.angle*pi/180), 
             center_y=self.center_y - 9*cos(self.angle*pi/180), 
             target=None,
@@ -285,7 +274,7 @@ class Catapult(Tower):
 class FalconCliff(Tower):
     def __init__(self):
         super().__init__(
-            filename="images/falcon_cliff.png", 
+            texture=ASSETS['falcon_cliff'], 
             scale=1.0, 
             cooldown=0.1, 
             range=144, 
@@ -340,7 +329,7 @@ class FalconCliff(Tower):
 class Bastion(Tower):
     def __init__(self):
         super().__init__(
-            filename='./images/Bastion.png', cooldown=5, range=48, damage=25, name='Bastion', 
+            texture=ASSETS['bastion'], cooldown=5, range=48, damage=25, name='Bastion', 
             description='Fires at floating & underwater\nDamages all in range', 
             can_see_types=['floating', 'underwater'])
         self.splash_radius = 32
@@ -358,7 +347,7 @@ class Bastion(Tower):
         for k in range(3):
             theta_k = theta_0 + 2*pi*k/3
             proj = Projectile(
-                filename="images/cannonball.png", scale=0.3, speed=2.5, angle_rate=0,
+                texture=PROJECTILES['cannonball'], scale=0.3, speed=2.5, angle_rate=0,
                 center_x=self.center_x, center_y=self.center_y, target=None,
                 target_x=self.center_x + self.explode_distance*cos(theta_k), 
                 target_y=self.center_y + self.explode_distance*sin(theta_k), 
@@ -374,7 +363,7 @@ class Bastion(Tower):
 class GreekFire(Tower):
     def __init__(self):
         super().__init__(
-            filename='./images/greek_fire_top.png', 
+            texture=ASSETS['greek_fire_top'], 
             cooldown=0.001, 
             range=150, 
             damage=30, 
@@ -439,7 +428,7 @@ class GreekFire(Tower):
 
 class OakTreeTower(Tower):
     def __init__(self):
-        super().__init__(filename="images/Oak_32x32_transparent.png", scale=1.0, cooldown=2.0, 
+        super().__init__(texture=ASSETS['sacred_oak'], scale=1.0, cooldown=2.0, 
                             range=112, damage=5, name="Sacred Oak", 
                             description="Fires at flying\nHoming", 
                             can_see_types=['flying'], 
@@ -451,7 +440,7 @@ class OakTreeTower(Tower):
     def attack(self, enemy: Enemy):
         super().attack(enemy)
         leaf = Projectile(
-            filename="images/leaf.png", scale=1.0, speed=2.0, angle_rate=360,
+            texture=PROJECTILES['leaf'], scale=1.0, speed=2.0, angle_rate=360,
             center_x=self.center_x, center_y=self.center_y, 
             target=enemy, damage=self.damage
         )
@@ -461,7 +450,7 @@ class OakTreeTower(Tower):
 
 class StoneHead(Tower):
     def __init__(self):
-        super().__init__(filename='./images/stone_head_top.png', cooldown=3, 
+        super().__init__(texture=ASSETS['stone_head_top'], cooldown=3, 
                          range=112, damage=0, name='Stone Head', 
                          description="Fires at flying & floating\nHoming. Slows down enemies", 
                          can_see_types=['flying', 'floating'], has_rotating_top=True, 
@@ -482,7 +471,7 @@ class StoneHead(Tower):
         enemy_vector = (enemy.center_x-self.center_x, enemy.center_y-self.center_y)
         start_offset_x, start_offset_y = normalize_tuple(xytup=enemy_vector, new_length=13)
         wind_gust = Projectile(
-            filename="images/wind-gust.png", scale=1.0, speed=2.0, angle_rate=0,
+            texture=PROJECTILES['wind_gust'], scale=1.0, speed=2.0, angle_rate=0,
             center_x=self.center_x+start_offset_x, 
             center_y=self.center_y+start_offset_y, 
             target=enemy, damage=self.damage, effects=[SlowDown()]
@@ -494,9 +483,10 @@ class StoneHead(Tower):
         self.base_sprite.remove_from_sprite_lists()
         return super().remove_from_sprite_lists()       
 
+
 class SparklingPillar(Tower):
     def __init__(self):
-        super().__init__(filename='./images/sparkling_pillar.png', cooldown=0.3, 
+        super().__init__(texture=ASSETS['sparkling_pillar'], cooldown=0.3, 
                          range=75, damage=2, name='Sparkling Pillar', 
                          description="Fires at flying\nNever missies", 
                          can_see_types=['flying'], has_rotating_top=False)
@@ -532,7 +522,7 @@ class SparklingPillar(Tower):
 
 class QuarryOfRage(Tower):
     def __init__(self):
-        super().__init__(filename='./images/QuarryOfRage.png', cooldown=4.0, 
+        super().__init__(texture=ASSETS['quarry_of_rage'], cooldown=4.0, 
                          range=208, damage=30, name='Quarry Of Rage', 
                          description='Fires at floating\nHoming. Fragmentation blast', 
                          can_see_types=['floating'], projectiles_are_homing=True)
@@ -543,7 +533,7 @@ class QuarryOfRage(Tower):
     def attack(self, enemy: Enemy):
         super().attack(enemy)
         bomb = Projectile(
-            filename="images/bomb.png", scale=0.3, speed=5, angle_rate=0,
+            texture=PROJECTILES['bomb'], scale=0.3, speed=5, angle_rate=0,
             center_x=self.center_x, center_y=self.center_y, 
             target=enemy, target_x=enemy.center_x, target_y=enemy.center_y, 
             damage=self.damage, do_splash_damage=False, 
@@ -580,13 +570,13 @@ class SanctumOfTempest(Tower):
         else:
             # Special AoE giant hit
             blast_effect = GrowingExplosion(
-                filename='./images/zap_blast.png', starting_scale=0.1, 
+                texture=ASSETS['zap_blast'], starting_scale=0.1, 
                 lifetime_seconds=0.15, 
                 scale_increase_rate = 10 if self.has_rune('tiwaz') else 6, 
             )
             blast_effect.angle = random()*2*pi
             zap_blast = Projectile(
-                filename='./images/cannonball.png', scale=0.1, speed=0,
+                texture=PROJECTILES['cannonball'], scale=0.1, speed=0,
                 center_x=self.center_x, center_y=self.center_y, 
                 target_x=self.center_x, target_y=self.center_y, 
                 damage=self.damage, do_splash_damage=True, 
@@ -620,14 +610,16 @@ class SanctumOfTempest(Tower):
 
 
 class BigBuilding(Tower):
-    def __init__(self, filename: str = None, scale: float = 1, cooldown: float = 120, 
+    def __init__(self, scale: float = 1, cooldown: float = 120, 
                     name: str = None, description: str = None, 
                     unlocked_rune_indxs: list = None, 
                     unlocked_power_indxs: list = None, 
-                    animation_transition_times: list = None):
-        super().__init__(filename=filename, scale=scale, cooldown=cooldown, 
+                    animation_transition_times: list = None, 
+                    texture: Texture = None):
+        super().__init__(scale=scale, cooldown=cooldown, 
                             name=name, description=description, is_2x2=True, 
-                            animation_transition_times=animation_transition_times)
+                            animation_transition_times=animation_transition_times, 
+                            texture=texture)
         if unlocked_rune_indxs is None:
             self.unlocked_rune_indxs = []
         else:
@@ -643,7 +635,7 @@ class BigBuilding(Tower):
 
 class TempleOfThor(BigBuilding):
     def __init__(self):
-        super().__init__(filename="images/TempleOfThor.png", scale=1.0, cooldown=120, 
+        super().__init__(texture=ASSETS['temple_of_thor'], scale=1.0, cooldown=120, 
                             name="Temple of Thor", 
                             description="Grants Mjolnir ability\nGrants Raidho rune", 
                             unlocked_rune_indxs=[0], 
@@ -655,7 +647,7 @@ class TempleOfThor(BigBuilding):
 
 class Forge(BigBuilding):
     def __init__(self):
-        super().__init__(filename=None, scale=1.0, cooldown=90, 
+        super().__init__(scale=1.0, cooldown=90, 
                             name="Forge", 
                             description="Grants Platform ability\nGrants Hagalaz rune", 
                             unlocked_rune_indxs=[1], 
@@ -672,7 +664,7 @@ class Forge(BigBuilding):
 
 class TempleOfOdin(BigBuilding):
     def __init__(self):
-        super().__init__(filename="images/TempleOfOdin.png", scale=1.0, cooldown=0, 
+        super().__init__(texture=ASSETS['temple_of_odin'], scale=1.0, cooldown=0, 
                             name="Temple of Odin", 
                             description="Grants Tiwaz, Kenaz and Isa runes", 
                             unlocked_rune_indxs=[2, 3, 4], 
@@ -684,7 +676,7 @@ class TempleOfOdin(BigBuilding):
 
 class ChamberOfTheChief(BigBuilding):
     def __init__(self):
-        super().__init__(filename='./images/ChamberChief.png', cooldown=60, 
+        super().__init__(texture=ASSETS['chamber_of_the_chief'], cooldown=60, 
                          name='Chamber of the Chief', 
                          description='Grants Command ability\nGrants Sowil rune', 
                          unlocked_rune_indxs=[5], unlocked_power_indxs=[3])
@@ -695,7 +687,7 @@ class ChamberOfTheChief(BigBuilding):
 
 class TempleOfFreyr(BigBuilding):
     def __init__(self):
-        super().__init__(filename='./images/TempleOfFreyr.png', cooldown=120, 
+        super().__init__(texture=ASSETS['temple_of_freyr'], cooldown=120, 
                          name='Temple of Freyr', 
                          description='Grants Harvest ability\nGrants Laguz rune', 
                          unlocked_rune_indxs=[6], unlocked_power_indxs=[4])

@@ -1,4 +1,4 @@
-from arcade import Sprite, load_texture
+from arcade import Sprite, Texture, load_texture
 from math import floor
 from utils import AnimatedSprite
 
@@ -9,12 +9,12 @@ WATER_EXPLOSIONS = [load_texture('./images/explosions/SwimmerDeath'+str(k)+'.png
 
 
 class GrowingExplosion(Sprite):
-    def __init__(self, filename: str = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.15, 
+    def __init__(self, texture: Texture = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.15, 
                     scale_increase_rate: float = 5.0, center_x: float = 0, center_y: float = 0):
         self.max_lifetime = lifetime_seconds
         self.elapsed_lifetime = 0.0
         self.scale_increase_rate = scale_increase_rate
-        super().__init__(filename=filename, scale=starting_scale, center_x=center_x, center_y=center_y)
+        super().__init__(scale=starting_scale, center_x=center_x, center_y=center_y, texture=texture)
 
     def on_update(self, delta_time: float = 1 / 60):
         self.scale += self.scale_increase_rate * delta_time

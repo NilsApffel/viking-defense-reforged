@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.1 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.2 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -1873,7 +1873,6 @@ if __name__ == "__main__":
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
-# towers, projectiles, effects should use pre-loaded textures when initialized
 # nicer level select
 # abilities and shop items get highlighted on mouse-over
 # warning messages when trying illegal actions

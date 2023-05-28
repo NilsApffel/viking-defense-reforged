@@ -111,12 +111,39 @@ ASSETS = {'platform': load_texture('./images/platform.png'),
           'watchtower1' : load_texture('./images/Watchtower1.png'),
           'watchtower2' : load_texture('./images/Watchtower2.png'),
           'catapult_base' : load_texture('./images/catapult_base.png'),
+          'catapult_top' : load_texture('./images/catapult_top_large.png'),
+          'falcon_cliff' : load_texture('./images/falcon_cliff.png'),
+          'bastion' : load_texture('./images/Bastion.png'),
           'greek_fire_base' : load_texture('./images/greek_fire_base.png'),
+          'greek_fire_top' : load_texture('./images/greek_fire_top.png'),
+          'sacred_oak' : load_texture('./images/Oak_32x32_transparent.png'),
           'stone_head_base' : load_texture('./images/stone_head_base.png'),
+          'stone_head_top' : load_texture('./images/stone_head_top.png'),
+          'sparkling_pillar' : load_texture('./images/sparkling_pillar.png'),
+          'quarry_of_rage' : load_texture('./images/QuarryOfRage.png'),
+          'temple_of_thor' : load_texture('./images/TempleOfThor.png'),
           'forge0' : load_texture('./images/Forge0.png'),
           'forge1' : load_texture('./images/Forge1.png'),
           'forge2' : load_texture('./images/Forge2.png'),
+          'temple_of_odin' : load_texture('./images/TempleOfOdin.png'),
+          'chamber_of_the_chief' : load_texture('./images/ChamberChief.png'),
+          'temple_of_freyr' : load_texture('./images/TempleOfFreyr.png'),
+          'zap_blast' : load_texture('./images/zap_blast.png'),      
 }
+
+EFFECTS = {'slowdown' : load_texture('./images/slowdown.png'),
+           'inflame' : load_texture('./images/inflame-2.png'),
+           'freeze' : load_texture('./images/freeze.png'),
+}
+
+PROJECTILES = {'cannonball' : load_texture('./images/cannonball.png'),
+               'falcon' : load_texture('./images/falcon.png'),
+               'leaf' : load_texture('./images/leaf.png'),
+               'wind_gust' : load_texture('./images/wind-gust.png'),
+               'bomb' : load_texture('./images/bomb.png'),
+               'mjolnir' : load_texture('./images/mjolnir-full-1.png')
+}
+
 zaps_names = ['zap-'+str(10*k+10) for k in range(15)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]
 ZAPS = dict(zip(zaps_names, zaps_list))

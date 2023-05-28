@@ -2,7 +2,7 @@ from arcade import (Sprite, draw_arc_filled, draw_circle_filled, draw_circle_out
 draw_scaled_texture_rectangle, load_texture, make_transparent_color, draw_rectangle_filled)
 from arcade.color import RED, GREEN
 from copy import deepcopy
-from constants import ASSETS, CELL_SIZE, CHIN_HEIGHT, MAP_TARGET_J, MAP_WIDTH, TRANSPARENT_BLACK
+from constants import ASSETS, CELL_SIZE, CHIN_HEIGHT, MAP_TARGET_J, MAP_WIDTH, PROJECTILES, TRANSPARENT_BLACK
 from explosions import MjolnirExplosion
 from grid import nearest_cell_ij, cell_centerxy
 from pathfind import find_path
@@ -67,7 +67,7 @@ class MjolnirAbility(Ability):
         
     def trigger(self, x, y):
         mjolnir = Projectile(
-            filename='./images/mjolnir-full-1.png', 
+            texture=PROJECTILES['mjolnir'], 
             scale=1.0,
             speed=6.0,
             center_x=MAP_WIDTH+10,
