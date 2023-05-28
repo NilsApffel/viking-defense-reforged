@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.0 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.1 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -83,11 +83,13 @@ class GameWindow(arcade.Window):
 
     def read_score_file(self):
         self.best_waves = []
+        self.best_scores = []
         maps_unlocked = 0
         if not os.path.exists(SCORE_FILE):
             # print(SCORE_FILE, "does not appear to exist, assuming this is a new install of the game")
             self.maps_beaten = 0
             self.best_waves = [0] * 5
+            self.best_scores = [0] * 5
             return
         with open(SCORE_FILE, mode='r') as scorefile:
             score_reader = csv.reader(scorefile, delimiter=',', quotechar='|')
@@ -96,6 +98,8 @@ class GameWindow(arcade.Window):
                 is_map_unlocked = (map_data[1] == "True")
                 most_waves_survived = int(map_data[3])
                 self.best_waves.append(most_waves_survived)
+                highscore = int(map_data[4])
+                self.best_scores.append(highscore)
                 if is_map_unlocked:
                     maps_unlocked += 1
         self.maps_beaten = maps_unlocked - 1
@@ -1052,6 +1056,17 @@ class GameWindow(arcade.Window):
                 bold = True, 
                 multiline = True
             )
+            arcade.draw_text(
+                text = "High score:\n" + str(round(self.best_scores[k])), 
+                start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                start_y = 165,
+                color = arcade.color.BLACK,
+                font_size = 11,
+                width = LEVEL_WIDTH,
+                align = "center", 
+                bold = True, 
+                multiline = True
+            )
                 
     def on_update(self, delta_time: float = 1/30):
         if is_debug:
@@ -1414,6 +1429,8 @@ class GameWindow(arcade.Window):
         # overwrite the relevant waves_survived, and possibly the is_unlocked of the next map
         if waves_survived > int(scores_listlist[map_number][3]):
             scores_listlist[map_number][3] = str(waves_survived)
+        if round(self.score) > int(scores_listlist[map_number][4]):
+            scores_listlist[map_number][4] = str(round(self.score))
         if did_win:
             scores_listlist[map_number][2] = True
             if map_number < len(scores_listlist)-1:
@@ -1859,7 +1876,6 @@ if __name__ == "__main__":
 # towers, projectiles, effects should use pre-loaded textures when initialized
 # nicer level select
 # abilities and shop items get highlighted on mouse-over
-# score saving and loading
 # warning messages when trying illegal actions
 # tower unlock messages
 # mac and linux compatibility
