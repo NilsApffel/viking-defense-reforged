@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.2 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.3 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -166,6 +166,7 @@ class GameWindow(arcade.Window):
         self.people_score = 0
         self.unlocks_score = 0
         self.score = 0
+        self.message_timer = 0
 
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
@@ -497,7 +498,19 @@ class GameWindow(arcade.Window):
             multiline = True, 
             font_name="Agency FB" 
         ) 
-        self.info_box_text = [title_text, stats_text, description_text]
+        big_temp_text = arcade.Text(
+            '',
+            start_x = MAP_WIDTH + 14, 
+            start_y = SHOP_BOTTOMS[-1] - 104, 
+            width = SCREEN_WIDTH - MAP_WIDTH - 28,
+            color = arcade.color.PURPLE, 
+            font_size = 18,
+            multiline = True, 
+            font_name="Agency FB" ,
+            bold=True,
+            align='center'
+        )
+        self.info_box_text = [title_text, stats_text, description_text, big_temp_text]
 
         # 3. Next wave previews
         self.wave_previews_text = []
@@ -944,8 +957,12 @@ class GameWindow(arcade.Window):
             self.info_box_text[0].text = ''
             self.info_box_text[1].text = ''
             self.info_box_text[2].text = ''
-        for txt in self.info_box_text:
-            txt.draw()
+        if self.message_timer > 0:
+            self.info_box_text[3].draw()
+        else:
+            self.info_box_text[0].draw()
+            self.info_box_text[1].draw()
+            self.info_box_text[2].draw()
     
         # 3. Abilities bar
         for k in range(5):
@@ -1086,6 +1103,12 @@ class GameWindow(arcade.Window):
         if self.map_number == 1:
             self.waterfall.on_update(delta_time=delta_time)
         self.minirunes_list.on_update(delta_time=delta_time)
+        if self.message_timer > 0:
+            for (time, size) in self.message_animation_map.items():
+                if self.message_timer >= time:
+                    self.info_box_text[3].font_size = size
+                    break
+            self.message_timer -= delta_time
 
         # check if any shop item is selected
         self.shop_item_selected = 0
@@ -1736,14 +1759,20 @@ class GameWindow(arcade.Window):
         # 2. use self.quest_tracker to update each shopitem and perform unlocks
         for shop_list in self.shop_listlist:
             for k, shop_item in enumerate(shop_list):
-                if shop_item.is_unlockable:
+                if shop_item.is_unlockable and not shop_item.is_unlocked:
                     shop_item.quest_progress = self.quest_tracker[shop_item.quest_var_name]
-                    if ((shop_item.quest_progress >= shop_item.quest_thresh) and 
-                        not(shop_item.tower.name == "Example Tower")):
+                    if (shop_item.quest_progress >= shop_item.quest_thresh):
                         shop_item.is_unlocked = True
                         shop_item.is_unlockable = False
                         if k < len(shop_list) - 1: # there exists a next item
                             shop_list[k+1].is_unlockable = True
+                        self.set_temp_msg('Unlocked :\n'+shop_item.tower.name)
+
+    def set_temp_msg(self, message: str, duration : float = 2.5):
+        """Sends a temporary message to the info box, overwriting whatever is currently there"""
+        self.info_box_text[3].text = message
+        self.message_timer = duration
+        self.message_animation_map = {2.50: 16, 2.45: 17, 2.40: 18, 2.35: 19, 2.30: 18, 2.25: 17, 2.20: 16, 2.15: 17, 2.10: 18, 2.05: 17, 2.00: 16, 0.0: 17}
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
@@ -1871,13 +1900,10 @@ if __name__ == "__main__":
 
 # Roadmap items : 
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
-# cut down on the use of global variables (maybe bring ability and rune name+description into those classes, add textures to GameWindow.assets, etc)
 # organize the zones way better instead of having tons of hard-coded variables
 # nicer level select
 # abilities and shop items get highlighted on mouse-over
 # warning messages when trying illegal actions
-# tower unlock messages
 # mac and linux compatibility
-# textures / animations overhaul (attacks, effects)
+# textures / animations overhaul (attacks, effects, projectiles)
 # updated readme, with screenshots of the game and install instructions
-# should health bars eventually split into multiple stacked bars, or should they stay comically long to the point of exceeding the screen width ?
