@@ -20,11 +20,12 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.3 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.4 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
-                       outline_color : arcade.Color=BLACK, align : str='left', width : int=0):
+                       outline_color : arcade.Color=BLACK, align : str='left', width : int=0, 
+                       fill_color: arcade.Color=arcade.color.WHITE):
     """Creates and returns a list of 5 arcade.Text objects with the given properties. 
     When drawn together, these 5 objects create an outlined text effect."""
     text_objects_list = [
@@ -37,7 +38,7 @@ def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact",
         arcade.Text(text, start_x=start_x, start_y=start_y+border, font_size=font_size, 
                         font_name=font_name, color=outline_color, align=align, width=width),
         arcade.Text(text, start_x=start_x, start_y=start_y, font_size=font_size, 
-                        font_name=font_name, align=align, width=width)]
+                        font_name=font_name, color=fill_color, align=align, width=width)]
     return text_objects_list
 
 class GameWindow(arcade.Window):
@@ -59,12 +60,16 @@ class GameWindow(arcade.Window):
             "attack_button" : arcade.load_texture('./images/NextWaveButton.png'),
             "attack_button_lit" : arcade.load_texture('./images/NextWaveButtonLit.png'),
             "attack_button_grey" : arcade.load_texture('./images/NextWaveButtonGrey.png'),
-            "level_select_screen" : arcade.load_texture('./images/LevelSelectBlank.png'),
+            "level_select_screen" : arcade.load_texture('./images/level_select.png'),
             'info_box' : arcade.load_texture('./images/info_box.png'),
             'chin_menu' : arcade.load_texture('./images/chin_menu.png'),
             'shop_buildings' : arcade.load_texture('./images/shop_buildings.png'),
             'shop_combat' : arcade.load_texture('./images/shop_combat.png'),
             'shop_sacred' : arcade.load_texture('./images/shop_sacred.png'),
+            'play_unlit' : arcade.load_texture('./images/play_button_big.png'),
+            'play_lit' : arcade.load_texture('./images/play_button_lit_big.png'),
+            'freeplay_unlit' : arcade.load_texture('./images/freeplay_button_big.png'),
+            'freeplay_lit' : arcade.load_texture('./images/freeplay_button_lit_big.png'),
         }
         self.read_score_file()
         self.abilities_list = [SellTowerAbility(), MjolnirAbility(), PlatformAbility(), CommandAbility(), HarvestAbility()]
@@ -122,6 +127,9 @@ class GameWindow(arcade.Window):
         if map_number == 0: # level select screen
             self.game_state = 'level select'
             self.paused = True
+            self.load_shop_items()
+            self.init_gui_elements()
+            self.init_text()
             return
         self.game_state = 'playing'
         self.wave_number = 0
@@ -343,6 +351,51 @@ class GameWindow(arcade.Window):
     def init_text(self):
         """Initializes all text objects in order to avoid ever using draw_text, which has 
         terrible performance"""
+        # 0. Level select data
+        if self.map_number == 0:
+            self.level_select_text = []
+            for k in range(5):
+                self.level_select_text.append(init_outlined_text(
+                    text = "Waves survived", 
+                    start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                    start_y = 215,
+                    fill_color = arcade.color.RUBY_RED,
+                    outline_color=arcade.color.YELLOW,
+                    font_size = 13,
+                    width = LEVEL_WIDTH,
+                    align = "center", 
+                ))
+                self.level_select_text.append(init_outlined_text(
+                    text = str(self.best_waves[k]), 
+                    start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                    start_y = 190,
+                    fill_color = arcade.color.RUBY_RED,
+                    outline_color=arcade.color.YELLOW,
+                    font_size = 16,
+                    width = LEVEL_WIDTH,
+                    align = "center", 
+                ))
+                self.level_select_text.append(init_outlined_text(
+                    text = "High score", 
+                    start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                    start_y = 165,
+                    fill_color = arcade.color.RUBY_RED,
+                    outline_color=arcade.color.YELLOW,
+                    font_size = 13,
+                    width = LEVEL_WIDTH,
+                    align = "center", 
+                ))
+                self.level_select_text.append(init_outlined_text(
+                    text = str(self.best_scores[k]), 
+                    start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
+                    start_y = 140,
+                    fill_color = arcade.color.RUBY_RED,
+                    outline_color=arcade.color.YELLOW,
+                    font_size = 16,
+                    width = LEVEL_WIDTH,
+                    align = "center",  
+                ))
+            return
 
         # 1. Score displays 
         self.scores_text = []
@@ -604,6 +657,55 @@ class GameWindow(arcade.Window):
         """creates the SpriteList containing almost all parts of the gui (shop, corner menu, chin menu). 
         Speeds up future draw operations on these parts, which will be stored in the SpriteList self.gui_elements"""
         self.gui_elements = arcade.SpriteList()
+
+        # 0. Level select screen
+        self.level_select_screen = arcade.SpriteList()
+        self.level_select_screen.append(arcade.Sprite(
+            center_x=SCREEN_WIDTH/2, 
+            center_y=SCREEN_HEIGHT/2-1,
+            texture=self.assets["level_select_screen"], 
+            scale=1.0
+        ))
+        # initialize buttons
+        for k in range(5):
+            play_button = arcade.Sprite(
+                center_x=LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH/2, 
+                center_y=294,
+                scale=0.2,
+            )
+            play_button.append_texture(self.assets['play_unlit'])
+            play_button.append_texture(self.assets['play_lit'])
+            play_button.set_texture(0)
+            freeplay_button = arcade.Sprite(
+                center_x=LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH/2, 
+                center_y=260,
+                scale=0.2,
+            )
+            freeplay_button.append_texture(self.assets['freeplay_unlit'])
+            freeplay_button.append_texture(self.assets['freeplay_lit'])
+            freeplay_button.set_texture(0)
+            self.level_select_screen.append(play_button)
+            self.level_select_screen.append(freeplay_button)
+        # initialize map previews
+        for k in range(5):
+            self.level_select_screen.append(arcade.Sprite(
+                './images/map'+str(k+1)+'_grey.png',
+                center_x=LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH/2 + 1,
+                center_y=377.5,
+                scale=0.225
+            ))
+        # choose textures and visibilities
+        for k in range(5):
+            # 1. Play button visibility and lighting
+            if k <= self.maps_beaten:
+                self.level_select_screen.sprite_list[k+11].visible = False # hide grey map
+            else:
+                self.level_select_screen.sprite_list[2*k+1].visible = False # hide play button
+            # 2. Freeplay button visibility and lighting
+            if k >= self.maps_beaten:
+                self.level_select_screen.sprite_list[2*k+2].visible = False # hide freeplay button
+        if self.map_number == 0:
+            return
 
         # 1. Backgrounds
         chin_background = arcade.Sprite(
@@ -1005,85 +1107,22 @@ class GameWindow(arcade.Window):
                 txt.draw()
 
     def draw_level_select(self):
-        arcade.draw_scaled_texture_rectangle(
-            center_x=SCREEN_WIDTH/2, 
-            center_y=SCREEN_HEIGHT/2,
-            texture=self.assets["level_select_screen"], 
-            scale=1.0
-        ) 
         for k in range(5):
-            campaign_mode_label = "LOCKED"
-            if k <= self.maps_beaten:
-                campaign_mode_label = "PLAY"
-            else:
-                arcade.draw_lrtb_rectangle_filled(
-                    left = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + 5,
-                    right= LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH - 2,
-                    top=435,
-                    bottom= 320, 
-                    color=arcade.make_transparent_color(arcade.color.DIM_GRAY, transparency=230.0)
-                )
+            # 1. Play button lighting
             if ("start campaign" in self.hover_target) and (self.hover_target[-1] == str(k+1)):
-                arcade.draw_lrtb_rectangle_outline(
-                    left = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
-                    right= LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH,
-                    top=313,
-                    bottom= 278,
-                    color=arcade.color.BLACK,
-                    border_width=3
-                )
-            arcade.draw_text(
-                text = campaign_mode_label, 
-                start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
-                start_y = 284,
-                color = arcade.color.BLACK,
-                font_size = 20,
-                width = LEVEL_WIDTH,
-                align = "center", 
-                bold = True
-            )
+                self.level_select_screen.sprite_list[2*k+1].set_texture(1)
+            else:
+                self.level_select_screen.sprite_list[2*k+1].set_texture(0)
+            # 2. Freeplay button lighting
             if k < self.maps_beaten:
-                arcade.draw_text(
-                    text = 'FREEPLAY', 
-                    start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
-                    start_y = 245,
-                    color = arcade.color.BLACK,
-                    font_size = 17,
-                    width = LEVEL_WIDTH,
-                    align = "center", 
-                    bold = True
-                )
                 if ("start freeplay" in self.hover_target) and (self.hover_target[-1] == str(k+1)):
-                    arcade.draw_lrtb_rectangle_outline(
-                        left = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
-                        right= LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH,
-                        top=272,
-                        bottom= 235,
-                        color=arcade.color.BLACK,
-                        border_width=3
-                    )
-            arcade.draw_text(
-                text = "Waves survived:\n" + str(self.best_waves[k]), 
-                start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
-                start_y = 215,
-                color = arcade.color.BLACK,
-                font_size = 11,
-                width = LEVEL_WIDTH,
-                align = "center", 
-                bold = True, 
-                multiline = True
-            )
-            arcade.draw_text(
-                text = "High score:\n" + str(round(self.best_scores[k])), 
-                start_x = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k,
-                start_y = 165,
-                color = arcade.color.BLACK,
-                font_size = 11,
-                width = LEVEL_WIDTH,
-                align = "center", 
-                bold = True, 
-                multiline = True
-            )
+                    self.level_select_screen.sprite_list[2*k+2].set_texture(1)
+                else:
+                    self.level_select_screen.sprite_list[2*k+2].set_texture(0)
+        self.level_select_screen.draw()
+        for txt_list in self.level_select_text:
+            for txt in txt_list:
+                txt.draw()
                 
     def on_update(self, delta_time: float = 1/30):
         if is_debug:
@@ -1424,10 +1463,10 @@ class GameWindow(arcade.Window):
             self.quest_tracker["enemies killed"] += 1
             if enemy.is_flying:
                 self.quest_tracker["flying enemies killed"] += 1
-                explosion = AirExplosion(center_x=enemy.center_x, center_y=enemy.center_y)
+                explosion = AirExplosion(center_x=enemy.center_x, center_y=enemy.center_y, scale=enemy.width/35)
                 self.effects_list.append(explosion)
             else:
-                explosion = WaterExplosion(center_x=enemy.center_x, center_y=enemy.center_y)
+                explosion = WaterExplosion(center_x=enemy.center_x, center_y=enemy.center_y, scale=enemy.width/35)
                 self.water_explosions_list.append(explosion)
                 if enemy.is_hidden:
                     self.quest_tracker["submerged enemies killed"] += 1
@@ -1901,9 +1940,8 @@ if __name__ == "__main__":
 # Roadmap items : 
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # organize the zones way better instead of having tons of hard-coded variables
-# nicer level select
 # abilities and shop items get highlighted on mouse-over
-# warning messages when trying illegal actions
 # mac and linux compatibility
 # textures / animations overhaul (attacks, effects, projectiles)
 # updated readme, with screenshots of the game and install instructions
+# sounds ?
