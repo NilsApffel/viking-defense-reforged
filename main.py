@@ -1944,4 +1944,6 @@ if __name__ == "__main__":
 # mac and linux compatibility
 # textures / animations overhaul (attacks, effects, projectiles)
 # updated readme, with screenshots of the game and install instructions
+# better text rendering
+# fix tower price text
 # sounds ?
