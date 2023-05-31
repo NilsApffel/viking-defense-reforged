@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.4 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.5 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -1942,8 +1942,7 @@ if __name__ == "__main__":
 # organize the zones way better instead of having tons of hard-coded variables
 # abilities and shop items get highlighted on mouse-over
 # mac and linux compatibility
-# textures / animations overhaul (attacks, effects, projectiles)
-# updated readme, with screenshots of the game and install instructions
+# textures / animations overhaul (attacks, projectiles)
 # better text rendering
-# fix tower price text
+# fix tower price text (using bigger thumbnail images)
 # sounds ?

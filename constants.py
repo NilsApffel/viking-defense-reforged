@@ -30,7 +30,6 @@ TRANSPARENT_BLACK = make_transparent_color(BLACK, transparency=180)
 
 ICE_SHIELD_TEXTURE = load_texture('./images/iceshield.png')
 FIRE_SHIELD_TEXTURE = load_texture('./images/fireshield.png')
-REGEN_TEXTURE = load_texture('./images/regen.png')
 
 home_folder = Path.home()
 if system() == "Windows":
@@ -128,7 +127,11 @@ ASSETS = {'platform': load_texture('./images/platform.png'),
           'temple_of_odin' : load_texture('./images/TempleOfOdin.png'),
           'chamber_of_the_chief' : load_texture('./images/ChamberChief.png'),
           'temple_of_freyr' : load_texture('./images/TempleOfFreyr.png'),
-          'zap_blast' : load_texture('./images/zap_blast.png'),      
+          'zap_blast' : load_texture('./images/zap_blast.png'),   
+          'regen0' : load_texture('./images/regen0.png'),   
+          'regen1' : load_texture('./images/regen1.png'),  
+          'regen2' : load_texture('./images/regen2.png'),  
+          'regen3' : load_texture('./images/regen3.png'),  
 }
 
 EFFECTS = {'slowdown' : load_texture('./images/slowdown.png'),

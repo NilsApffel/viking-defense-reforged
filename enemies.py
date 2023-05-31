@@ -3,7 +3,7 @@ from arcade.color import RED, GREEN
 from copy import deepcopy
 from math import atan2, cos, sin, pi
 from random import randint, random
-from constants import ASSETS, MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, REGEN_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR, is_debug
+from constants import ASSETS, MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR, is_debug
 from effects import Effect
 from grid import *
 from pathfind import find_path
@@ -81,22 +81,33 @@ class Enemy(AnimatedSprite):
         elif 'fire shield' in self.modifier:
             effect_texture = FIRE_SHIELD_TEXTURE
         elif 'regen' in self.modifier:
-            effect_texture = REGEN_TEXTURE
+            effect_texture = ASSETS['regen3']
         if self.is_flying:
             shield_size = max(self.width, self.height*0.6) + 4
             vertical_offset = 2
         else:
             shield_size = max(self.width, self.height) + 4
             vertical_offset = 0
-        shield_scale = shield_size / 64
+        shield_scale = shield_size / 164
 
         if effect_texture:
-            self.buff_sprite = Sprite(
-                center_x=self.center_x, 
-                center_y=self.center_y + vertical_offset, 
-                texture=effect_texture, 
-                scale=shield_scale
-            )
+            if 'regen' in self.modifier:
+                self.buff_sprite = AnimatedSprite(
+                    center_x=self.center_x, 
+                    center_y=self.center_y + vertical_offset, 
+                    texture_list=[ASSETS['regen0'], ASSETS['regen1'], ASSETS['regen2'], ASSETS['regen3']], 
+                    transition_times=[0.00, 0.08, 0.16, 0.24, 0.60, 0.68, 0.76, 1.12],
+                    transition_indxs=[0,    1,    2,    3,    2,    1,    0,    0,],
+                    scale=shield_scale/1.5
+                )
+            else:
+                self.buff_sprite = Sprite(
+                    center_x=self.center_x, 
+                    center_y=self.center_y + vertical_offset, 
+                    texture=effect_texture, 
+                    scale=shield_scale
+                )
+        
 
     def on_update(self, delta_time: float = 1 / 60):
         if 'regen' in self.modifier.lower():
@@ -117,6 +128,7 @@ class Enemy(AnimatedSprite):
         if self.buff_sprite:
             self.buff_sprite.center_x = self.center_x
             self.buff_sprite.center_y = self.center_y
+            self.buff_sprite.on_update(delta_time=delta_time)
         self.update_health_bar()
         return super().on_update(delta_time)
     
