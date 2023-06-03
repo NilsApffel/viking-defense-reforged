@@ -2,7 +2,7 @@ from arcade import Sprite, Texture
 from copy import deepcopy
 from math import atan2, pi, sqrt, cos, sin
 from random import random, randint
-from constants import FLAMES, MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug, PROJECTILES
+from constants import FLAMES, MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug, PROJECTILES, RAGE_PROJECTILES
 from enemies import Enemy
 from explosions import FramedExplosion
 from runes import Rune
@@ -227,3 +227,43 @@ class FlameParticle(Projectile):
             do_splash_damage=False, is_retargeting=False, name='flame_particle', 
             texture=FLAMES[randint(0, 7)]
         )
+
+
+class RageBlast(Projectile):
+    def __init__(self, center_x: float = 0, center_y: float = 0, angle: float = 0, 
+                 target: Enemy = None, damage: float = 30):
+        super().__init__(scale=0.35, speed=5, center_x=center_x, center_y=center_y, angle=angle,
+                         angle_rate=0, target=target, target_x=target.center_x, 
+                         target_y=target.center_y, damage=damage, do_splash_damage=False, 
+                         name='rage-bomb', num_secondary_projectiles=4, texture=PROJECTILES['stone_shard']
+        )
+        for tx in RAGE_PROJECTILES:
+            self.append_texture(tx)
+        self.set_texture(0)
+        self.frame_indx = 0
+        self.transition_times = [0.04*k for k in range(13)]
+        self.transition_indxs = list(range(12)) + [0]
+        self.animation_time = 0
+
+    def on_update(self, delta_time: float):
+        self.animation_time += delta_time
+        # animation time cannot exceed return-to-zero time
+        while self.animation_time  >= self.transition_times[-1]: 
+            self.animation_time  -= self.transition_times[-1]
+        # find the index of the texture we should be using from now on : 
+        for (k, transition_k_time) in enumerate(self.transition_times):
+            if self.animation_time < transition_k_time:
+                # we haven't passed transition k yet, but it's the next one 
+                new_frame_indx = self.transition_indxs[k-1]
+                break
+        # update the texture if needed
+        if new_frame_indx != self.frame_indx:
+            self.set_texture(new_frame_indx)
+            self.frame_indx = new_frame_indx
+        return super().on_update(delta_time)
+    
+    def make_secondaries(self, all_enemies: list, not_allowed_targets: list):
+        # switch my texture so that the secondaries will also use this texture
+        self._texture = PROJECTILES['stone_shard']
+        self.scale = 0.5
+        return super().make_secondaries(all_enemies, not_allowed_targets)

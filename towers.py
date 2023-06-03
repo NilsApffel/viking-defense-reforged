@@ -7,7 +7,7 @@ from copy import deepcopy
 from effects import SlowDown, Inflame, Freeze
 from enemies import Enemy
 from explosions import CatapultExplosion, GrowingExplosion
-from projectiles import Projectile, Falcon, FlameParticle
+from projectiles import Projectile, Falcon, FlameParticle, RageBlast
 from runes import Rune, MiniRune
 from utils import normalize_tuple
 
@@ -532,13 +532,8 @@ class QuarryOfRage(Tower):
     
     def attack(self, enemy: Enemy):
         super().attack(enemy)
-        bomb = Projectile(
-            texture=PROJECTILES['bomb'], scale=0.3, speed=5, angle_rate=0,
-            center_x=self.center_x, center_y=self.center_y, 
-            target=enemy, target_x=enemy.center_x, target_y=enemy.center_y, 
-            damage=self.damage, do_splash_damage=False, 
-            name='rage-bomb', num_secondary_projectiles=4
-        )
+        bomb = RageBlast(center_x=self.center_x, center_y=self.center_y, 
+                         target=enemy, damage=self.damage)
         bomb = self.make_runed_projectile(bomb)
             
         return 0, [bomb] # damage will be dealt by projectile

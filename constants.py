@@ -139,13 +139,14 @@ EFFECTS = {'slowdown' : load_texture('./images/slowdown.png'),
            'freeze' : load_texture('./images/freeze.png'),
 }
 
-PROJECTILES = {'cannonball' : load_texture('./images/projectiles/cannonball.png'),
+PROJECTILES = {'cannonball' : load_texture('./images/projectiles/cannonballv2.png'),
                'falcon' : load_texture('./images/projectiles/falcon.png'),
                'leaf' : load_texture('./images/projectiles/leaf.png'),
+               'stone_shard' : load_texture('./images/projectiles/stone_shard.png'),
                'wind_gust' : load_texture('./images/projectiles/wind-gust.png'),
-               'bomb' : load_texture('./images/projectiles/bomb.png'),
                'mjolnir' : load_texture('./images/projectiles/mjolnir-full-1.png')
 }
+RAGE_PROJECTILES = [load_texture('./images/projectiles/rage'+str(k)+'.png') for k in range(12)]
 
 zaps_names = ['zap-'+str(10*k+10) for k in range(15)]
 zaps_list = [load_texture('./images/zaps/'+s+'.png') for s in zaps_names]
