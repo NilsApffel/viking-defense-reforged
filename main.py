@@ -179,63 +179,63 @@ class GameWindow(arcade.Window):
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/WatchtowerThumb.png",
+                        thumbnail="images/towers/WatchtowerThumb.png",
                         cost=100, tower=WatchTower()), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=True,
-                        thumbnail="images/catapult_cool.png",
+                        thumbnail="images/towers/catapult_cool.png",
                         cost=200, tower=Catapult(), quest="Destroy 10 enemies", 
                         quest_thresh=10, quest_var_name="enemies killed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/FalconCliffThumb.png",
+                        thumbnail="images/towers/FalconCliffThumb.png",
                         cost=500, tower=FalconCliff(), quest="Destroy 25 flying enemies", 
                         quest_thresh=25, quest_var_name="flying enemies killed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/BastionThumb.png",
+                        thumbnail="images/towers/BastionThumb.png",
                         cost=650, tower=Bastion(), quest="Place 10 platforms", 
                         quest_thresh=10, quest_var_name="platforms placed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/GreekFireThumb.png",
+                        thumbnail="images/towers/GreekFireThumb.png",
                         cost=1000, tower=GreekFire(), quest="Inflame 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies inflamed")
             ], [ # start Sacred towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/SacredOakThumb.png",
+                        thumbnail="images/towers/SacredOakThumb.png",
                         cost=120, tower=OakTreeTower()), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=True, 
-                        thumbnail="images/StoneHeadThumb.png",
+                        thumbnail="images/towers/StoneHeadThumb.png",
                         cost=180, tower=StoneHead(), quest="Plant 5 Sacred Oaks", 
                         quest_thresh=5, quest_var_name="current oaks"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/SparklingPillarThumb.png",
+                        thumbnail="images/towers/SparklingPillarThumb.png",
                         cost=400, tower=SparklingPillar(), quest="Destroy 4 enemies with 1\nmjolnir", 
                         quest_thresh=4, quest_var_name="max mjolnir kills"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/QuarryOfRageThumb.png",
+                        thumbnail="images/towers/QuarryOfRageThumb.png",
                         cost=650, tower=QuarryOfRage(), quest="Destroy 3 submerged enemies", 
                         quest_thresh=3, quest_var_name="submerged enemies killed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/SanctumOfTempestThumb.png",
+                        thumbnail="images/towers/SanctumOfTempestThumb.png",
                         cost=1000, tower=SanctumOfTempest(), quest="Freeze 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies frozen")
             ], [ # start Buildings
                 ShopItem(is_unlocked=is_debug, is_unlockable=True,
-                        thumbnail="images/ThorTempleThumb.png",
+                        thumbnail="images/towers/ThorTempleThumb.png",
                         cost=300, tower=TempleOfThor(), quest="Destroy 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies killed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/ForgeThumb.png",
+                        thumbnail="images/towers/ForgeThumb.png",
                         cost=500, tower=Forge(), quest="Build 15 structures", 
                         quest_thresh=15, quest_var_name="current structures"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/OdinTempleThumb.png",
+                        thumbnail="images/towers/OdinTempleThumb.png",
                         cost=700, tower=TempleOfOdin(), quest="Enchant 12 towers with runes", 
                         quest_thresh=12, quest_var_name="current enchanted towers"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/ChamberChiefThumb.png",
+                        thumbnail="images/towers/ChamberChiefThumb.png",
                         cost=1200, tower=ChamberOfTheChief(), quest="Reach 3000 gold", 
                         quest_thresh=3000, quest_var_name="current gold"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/FreyrTempleThumb.png",
+                        thumbnail="images/towers/FreyrTempleThumb.png",
                         cost=1500, tower=TempleOfFreyr(), quest="Build 3 temples", 
                         quest_thresh=3, quest_var_name="current_temples")
             ]]
@@ -297,27 +297,27 @@ class GameWindow(arcade.Window):
                 center_y=CHIN_HEIGHT+MAP_HEIGHT/2
             )
             for k in range(24):
-                self.map_water_animation.append_texture(arcade.load_texture('./images/water_shimmer/'+str(k+1)+'.png'))
+                self.map_water_animation.append_texture(arcade.load_texture('./images/maps/water_shimmer/'+str(k+1)+'.png'))
             self.map_water_animation.set_texture(0)
 
             self.map_water_static = arcade.Sprite(
                 center_x=MAP_WIDTH/2,
                 center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
-                texture=arcade.load_texture('./images/map'+str(self.map_number)+'-water.png')
+                texture=arcade.load_texture('./images/maps/map'+str(self.map_number)+'-water.png')
             )
 
             self.map_land = arcade.Sprite(
                 center_x=MAP_WIDTH/2,
                 center_y=CHIN_HEIGHT+MAP_HEIGHT/2,
-                texture=arcade.load_texture('./images/map'+str(self.map_number)+'LandOnly.png')
+                texture=arcade.load_texture('./images/maps/map'+str(self.map_number)+'LandOnly.png')
             )
         self.water_shimmer_ind = 0 
         self.water_shimmer_timer = 0.04
         if self.map_number == 1:
             self.waterfall = AnimatedSprite(
-                texture_list=[arcade.load_texture('./images/waterfall0.png'),
-                              arcade.load_texture('./images/waterfall1.png'),
-                              arcade.load_texture('./images/waterfall2.png')],
+                texture_list=[arcade.load_texture('./images/maps/waterfall0.png'),
+                              arcade.load_texture('./images/maps/waterfall1.png'),
+                              arcade.load_texture('./images/maps/waterfall2.png')],
                 transition_times=[0.00, 0.12, 0.24, 0.36],
                 transition_indxs=[0,    1,    2,    0],
                 center_x=408,
@@ -689,7 +689,7 @@ class GameWindow(arcade.Window):
         # initialize map previews
         for k in range(5):
             self.level_select_screen.append(arcade.Sprite(
-                './images/map'+str(k+1)+'_grey.png',
+                './images/maps/map'+str(k+1)+'_grey.png',
                 center_x=LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH/2 + 1,
                 center_y=377.5,
                 scale=0.225
@@ -1935,14 +1935,13 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : textures / animations overhaul (attacks, projectiles)
 
 # Roadmap items : 
 # further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
 # organize the zones way better instead of having tons of hard-coded variables
 # abilities and shop items get highlighted on mouse-over
 # mac and linux compatibility
-# textures / animations overhaul (attacks, projectiles)
 # better text rendering
 # fix tower price text (using bigger thumbnail images)
 # sounds ?
