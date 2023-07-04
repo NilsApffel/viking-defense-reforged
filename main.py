@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.7 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.8 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -179,63 +179,63 @@ class GameWindow(arcade.Window):
     def load_shop_items(self):
         self.shop_listlist = [[ # start Combat towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/towers/WatchtowerThumb.png",
+                        thumbnail="images/towers/WatchtowerThumbLarge.png",
                         cost=100, tower=WatchTower()), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=True,
-                        thumbnail="images/towers/catapult_cool.png",
+                        thumbnail="images/towers/CatapultThumbLarge.png",
                         cost=200, tower=Catapult(), quest="Destroy 10 enemies", 
                         quest_thresh=10, quest_var_name="enemies killed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/towers/FalconCliffThumb.png",
+                        thumbnail="images/towers/FalconCliffThumbLarge.png",
                         cost=500, tower=FalconCliff(), quest="Destroy 25 flying enemies", 
                         quest_thresh=25, quest_var_name="flying enemies killed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/towers/BastionThumb.png",
+                        thumbnail="images/towers/BastionThumbLarge.png",
                         cost=650, tower=Bastion(), quest="Place 10 platforms", 
                         quest_thresh=10, quest_var_name="platforms placed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/towers/GreekFireThumb.png",
+                        thumbnail="images/towers/GreekFireThumbLarge.png",
                         cost=1000, tower=GreekFire(), quest="Inflame 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies inflamed")
             ], [ # start Sacred towers
                 ShopItem(is_unlocked=True, is_unlockable=False, 
-                        thumbnail="images/towers/SacredOakThumb.png",
+                        thumbnail="images/towers/SacredOakThumbLarge.png",
                         cost=120, tower=OakTreeTower()), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=True, 
-                        thumbnail="images/towers/StoneHeadThumb.png",
+                        thumbnail="images/towers/StoneHeadThumbLarge.png",
                         cost=180, tower=StoneHead(), quest="Plant 5 Sacred Oaks", 
                         quest_thresh=5, quest_var_name="current oaks"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/towers/SparklingPillarThumb.png",
+                        thumbnail="images/towers/SparklingPillarThumbLarge.png",
                         cost=400, tower=SparklingPillar(), quest="Destroy 4 enemies with 1\nmjolnir", 
                         quest_thresh=4, quest_var_name="max mjolnir kills"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/towers/QuarryOfRageThumb.png",
+                        thumbnail="images/towers/QuarryOfRageThumbLarge.png",
                         cost=650, tower=QuarryOfRage(), quest="Destroy 3 submerged enemies", 
                         quest_thresh=3, quest_var_name="submerged enemies killed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/towers/SanctumOfTempestThumb.png",
+                        thumbnail="images/towers/SanctumOfTempestThumbLarge.png",
                         cost=1000, tower=SanctumOfTempest(), quest="Freeze 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies frozen")
             ], [ # start Buildings
                 ShopItem(is_unlocked=is_debug, is_unlockable=True,
-                        thumbnail="images/towers/ThorTempleThumb.png",
+                        thumbnail="images/towers/ThorTempleThumbLarge.png",
                         cost=300, tower=TempleOfThor(), quest="Destroy 20 enemies", 
                         quest_thresh=20, quest_var_name="enemies killed"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/towers/ForgeThumb.png",
+                        thumbnail="images/towers/ForgeThumbLarge.png",
                         cost=500, tower=Forge(), quest="Build 15 structures", 
                         quest_thresh=15, quest_var_name="current structures"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False,
-                        thumbnail="images/towers/OdinTempleThumb.png",
+                        thumbnail="images/towers/OdinTempleThumbLarge.png",
                         cost=700, tower=TempleOfOdin(), quest="Enchant 12 towers with runes", 
                         quest_thresh=12, quest_var_name="current enchanted towers"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/towers/ChamberChiefThumb.png",
+                        thumbnail="images/towers/ChamberChiefThumbLarge.png",
                         cost=1200, tower=ChamberOfTheChief(), quest="Reach 3000 gold", 
                         quest_thresh=3000, quest_var_name="current gold"), 
                 ShopItem(is_unlocked=is_debug, is_unlockable=False, 
-                        thumbnail="images/towers/FreyrTempleThumb.png",
+                        thumbnail="images/towers/FreyrTempleThumbLarge.png",
                         cost=1500, tower=TempleOfFreyr(), quest="Build 3 temples", 
                         quest_thresh=3, quest_var_name="current_temples")
             ]]
@@ -632,14 +632,6 @@ class GameWindow(arcade.Window):
                 # for cross-platform compatibility
                 font_name="Agency FB" 
             ) 
-            price = arcade.Text(
-                '', 
-                start_x = MAP_WIDTH + 11, 
-                start_y = SHOP_BOTTOMS[k] + 7, 
-                color = arcade.color.BLACK, 
-                font_size = 12,
-                bold = True
-            )
             quest_progress = arcade.Text( 
                 '', 
                 start_x = MAP_WIDTH + 100, 
@@ -650,8 +642,8 @@ class GameWindow(arcade.Window):
                 align="right", 
                 width=115
             )
-            self.shop_text.append({'name': name, 'description': description, 
-                                   'price': price, 'quest progress': quest_progress})
+            self.shop_text.append({'name': name, 'description': description,
+                                   'quest progress': quest_progress})
 
     def init_gui_elements(self):
         """creates the SpriteList containing almost all parts of the gui (shop, corner menu, chin menu). 
@@ -743,7 +735,7 @@ class GameWindow(arcade.Window):
         for tab in range(len(self.shop_listlist)):
             for k in range(len(self.shop_listlist[tab])):
                 self.shop_listlist[tab][k].center_x = MAP_WIDTH + SHOP_ITEM_THUMB_SIZE/2 + 4.5
-                self.shop_listlist[tab][k].center_y = SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2 + 10.5
+                self.shop_listlist[tab][k].center_y = SHOP_TOPS[k] - SHOP_ITEM_HEIGHT/2 + 2
                 self.gui_elements.append(self.shop_listlist[tab][k])
 
         # 4. Abilities bar
@@ -989,7 +981,6 @@ class GameWindow(arcade.Window):
             if shop_item.is_unlocked:
                 self.shop_text[k]['name'].text = shop_item.tower.name
                 self.shop_text[k]['description'].text = shop_item.tower.description
-                self.shop_text[k]['price'].text = str(shop_item.cost)
                 self.shop_text[k]['quest progress'].text = ''
                 for txt in self.shop_text[k].values():
                     txt.draw()
@@ -1005,7 +996,6 @@ class GameWindow(arcade.Window):
             elif shop_item.is_unlockable:
                 self.shop_text[k]['name'].text = "Task: " + shop_item.tower.name
                 self.shop_text[k]['description'].text = shop_item.quest
-                self.shop_text[k]['price'].text = ''
                 self.shop_text[k]['quest progress'].text = str(floor(shop_item.quest_progress)) + '/' + str(shop_item.quest_thresh)
                 for txt in self.shop_text[k].values():
                     txt.draw()
@@ -1940,5 +1930,4 @@ if __name__ == "__main__":
 # Roadmap items : 
 # abilities and shop items get highlighted on mouse-over
 # better text rendering
-# fix tower price text (using bigger thumbnail images)
 # sounds ?
