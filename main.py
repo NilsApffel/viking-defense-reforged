@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.9"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.10"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -714,12 +714,17 @@ class GameWindow(arcade.Window):
             center_x = MAP_WIDTH + SHOP_WIDTH/2,
             center_y = SCREEN_HEIGHT - SHOP_HEIGHT/2
         )
+        self.map_grid = arcade.Sprite(
+            filename='./images/map_grid.png',
+            center_x = MAP_WIDTH/2,
+            center_y = CHIN_HEIGHT + MAP_HEIGHT/2
+        )
         self.shop_background.append_texture(self.assets['shop_combat'])
         self.shop_background.append_texture(self.assets['shop_sacred'])
         self.shop_background.append_texture(self.assets['shop_buildings'])
         self.shop_background.set_texture(texture_no=0)
         self.gui_elements.extend([chin_background, corner_background, self.shop_background])
-
+        
         # 2. Attack button
         self.attack_button = arcade.Sprite(
             center_x = MAP_WIDTH - 5 - ATK_BUTT_HEIGHT/2,
@@ -918,6 +923,7 @@ class GameWindow(arcade.Window):
             left=left, right=right, top=top, bottom=bottom, color=outline_color
         )
         self.draw_range(fake_tower)
+        self.map_grid.draw()
         if fake_tower.does_rotate:
             fake_tower.make_base_tower().draw()
         fake_tower.draw()
@@ -1952,6 +1958,5 @@ if __name__ == "__main__":
 # TODO next step :
 
 # Roadmap items : 
-# grid overlay when placing towers
 # better text rendering
 # sounds ?
