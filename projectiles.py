@@ -222,7 +222,7 @@ class FlameParticle(Projectile):
         center_y = tower_y + r0*sin(theta) + dr*sin(theta) - dt*cos(theta)
 
         super().__init__(
-            speed=3.0, scale=0.75, center_x=center_x, center_y=center_y, angle=0, angle_rate=0, 
+            speed=4.0, scale=1.0, center_x=center_x, center_y=center_y, angle=0, angle_rate=0, 
             target=enemy, target_x=enemy.center_x, target_y=enemy.center_y, damage=damage, 
             do_splash_damage=False, is_retargeting=False, name='flame_particle', 
             texture=FLAMES[randint(0, 7)]

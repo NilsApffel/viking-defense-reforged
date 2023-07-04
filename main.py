@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.6 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.7 Dev"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -1935,13 +1935,10 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : look into better Greek Fire animations
+# TODO next step : 
 
 # Roadmap items : 
-# further perfomance improvements (never below 60fps => on_draw+on_update combined must be <= 16ms)
-# organize the zones way better instead of having tons of hard-coded variables
 # abilities and shop items get highlighted on mouse-over
-# mac and linux compatibility
 # better text rendering
 # fix tower price text (using bigger thumbnail images)
 # sounds ?

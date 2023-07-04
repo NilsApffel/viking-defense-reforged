@@ -374,7 +374,7 @@ class GreekFire(Tower):
             constant_attack=True, 
             projectiles_are_homing=True)
         self.latest_dt = 0.017
-        self.particles_per_second = 60*10
+        self.particles_per_second = 300
         self.effect_probability_per_second = 0.05
         self.effect_probability_per_particle = 1-(1-self.effect_probability_per_second)**(1.0/self.particles_per_second)
         self.base_sprite = None
@@ -569,7 +569,7 @@ class SanctumOfTempest(Tower):
                 lifetime_seconds=0.15, 
                 scale_increase_rate = 10 if self.has_rune('tiwaz') else 6, 
             )
-            blast_effect.angle = random()*2*pi
+            blast_effect.angle = random()*360
             zap_blast = Projectile(
                 texture=PROJECTILES['cannonball'], scale=0.1, speed=0,
                 center_x=self.center_x, center_y=self.center_y, 
