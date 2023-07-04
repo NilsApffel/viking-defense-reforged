@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.8 Dev"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.9"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -993,6 +993,14 @@ class GameWindow(arcade.Window):
                         color = arcade.color.BLUE_GREEN,
                         border_width = 4
                     )
+                if self.hover_target[0:5] == "shop:" and self.hover_target[-1] == str(k):
+                    arcade.draw_lrtb_rectangle_filled(
+                        left = MAP_WIDTH + 3,
+                        right = SCREEN_WIDTH - 3,
+                        top = SHOP_TOPS[k],
+                        bottom = SHOP_BOTTOMS[k],
+                        color = arcade.make_transparent_color(arcade.color.WHITE, transparency=128.0)
+                    ) 
             elif shop_item.is_unlockable:
                 self.shop_text[k]['name'].text = "Task: " + shop_item.tower.name
                 self.shop_text[k]['description'].text = shop_item.quest
@@ -1004,6 +1012,14 @@ class GameWindow(arcade.Window):
         # 1. Runes bar
         for k in range(7):
             self.rune_icons[k].visible = self.runes_unlocked[k]
+            if self.hover_target == "rune:"+str(k):
+                arcade.draw_lrtb_rectangle_filled(
+                    left = MAP_WIDTH + 7 + k*30,
+                    right = MAP_WIDTH + 6 + k*30 + 29,
+                    top = 214,
+                    bottom = 186,
+                    color = arcade.make_transparent_color(arcade.color.WHITE, transparency=128.0)
+                )
         if self.rune_selected > 0:
             k = self.rune_selected - 1
             arcade.draw_lrtb_rectangle_outline(
@@ -1064,6 +1080,14 @@ class GameWindow(arcade.Window):
                     x = MAP_WIDTH + 27 + k*42,
                     y=24
                 )
+            elif self.hover_target == "ability:"+str(k):
+                arcade.draw_lrtb_rectangle_filled(
+                    left = MAP_WIDTH + 9 + k*42,
+                    right = MAP_WIDTH + k*42 + 49,
+                    top = 45,
+                    bottom = 5,
+                    color = arcade.make_transparent_color(arcade.color.WHITE, transparency=128.0)
+                ) 
         if self.ability_selected > 0:
             k = self.ability_selected - 1
             arcade.draw_lrtb_rectangle_outline(
@@ -1925,9 +1949,9 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
+# TODO next step :
 
 # Roadmap items : 
-# abilities and shop items get highlighted on mouse-over
+# grid overlay when placing towers
 # better text rendering
 # sounds ?
