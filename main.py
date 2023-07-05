@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.10"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.11"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -696,6 +696,12 @@ class GameWindow(arcade.Window):
             # 2. Freeplay button visibility and lighting
             if k >= self.maps_beaten:
                 self.level_select_screen.sprite_list[2*k+2].visible = False # hide freeplay button
+        # 0.5 white hover highlight
+        self.highlight_box = arcade.SpriteSolidColor(
+            width=1,
+            height=1,
+            color=arcade.make_transparent_color(arcade.color.WHITE, transparency=128)
+        )
         if self.map_number == 0:
             return
 
@@ -859,6 +865,7 @@ class GameWindow(arcade.Window):
         self.draw_chin_menu()
         self.draw_shop()
         self.draw_corner_menu()
+        self.highlight_box.draw()
 
         if self.paused: 
             self.draw_pause_menu()
@@ -999,14 +1006,6 @@ class GameWindow(arcade.Window):
                         color = arcade.color.BLUE_GREEN,
                         border_width = 4
                     )
-                if self.hover_target[0:5] == "shop:" and self.hover_target[-1] == str(k):
-                    arcade.draw_lrtb_rectangle_filled(
-                        left = MAP_WIDTH + 3,
-                        right = SCREEN_WIDTH - 3,
-                        top = SHOP_TOPS[k],
-                        bottom = SHOP_BOTTOMS[k],
-                        color = arcade.make_transparent_color(arcade.color.WHITE, transparency=128.0)
-                    ) 
             elif shop_item.is_unlockable:
                 self.shop_text[k]['name'].text = "Task: " + shop_item.tower.name
                 self.shop_text[k]['description'].text = shop_item.quest
@@ -1018,14 +1017,6 @@ class GameWindow(arcade.Window):
         # 1. Runes bar
         for k in range(7):
             self.rune_icons[k].visible = self.runes_unlocked[k]
-            if self.hover_target == "rune:"+str(k):
-                arcade.draw_lrtb_rectangle_filled(
-                    left = MAP_WIDTH + 7 + k*30,
-                    right = MAP_WIDTH + 6 + k*30 + 29,
-                    top = 214,
-                    bottom = 186,
-                    color = arcade.make_transparent_color(arcade.color.WHITE, transparency=128.0)
-                )
         if self.rune_selected > 0:
             k = self.rune_selected - 1
             arcade.draw_lrtb_rectangle_outline(
@@ -1086,14 +1077,6 @@ class GameWindow(arcade.Window):
                     x = MAP_WIDTH + 27 + k*42,
                     y=24
                 )
-            elif self.hover_target == "ability:"+str(k):
-                arcade.draw_lrtb_rectangle_filled(
-                    left = MAP_WIDTH + 9 + k*42,
-                    right = MAP_WIDTH + k*42 + 49,
-                    top = 45,
-                    bottom = 5,
-                    color = arcade.make_transparent_color(arcade.color.WHITE, transparency=128.0)
-                ) 
         if self.ability_selected > 0:
             k = self.ability_selected - 1
             arcade.draw_lrtb_rectangle_outline(
@@ -1622,6 +1605,7 @@ class GameWindow(arcade.Window):
                             if dist2 < effect_radius2:
                                 enemy.set_modifier('') # Remove any buff
                                 self.money += reward_fraction*enemy.reward
+                        self.ability_selected = 0
             
         # 2. Deal with button clicks 
         # 2.1 Next Wave Start Button
@@ -1836,6 +1820,10 @@ class GameWindow(arcade.Window):
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
         self.hover_target = ''
+        self.highlight_box.width = 1
+        self.highlight_box.height = 1
+        self.highlight_box.center_x = SCREEN_WIDTH+2
+        self.highlight_box.center_y = SCREEN_HEIGHT+2
 
         # 0. Deal with level select screen
         if self.game_state == "level select":
@@ -1863,6 +1851,10 @@ class GameWindow(arcade.Window):
                 if SHOP_BOTTOMS[k] <= y <= SHOP_TOPS[k]:
                     if shop_item.is_unlockable or shop_item.is_unlocked:
                         self.hover_target = 'shop:' + str(self.current_shop_tab) + ':' + str(k)
+                        self.highlight_box.width = SCREEN_WIDTH-MAP_WIDTH-6
+                        self.highlight_box.height = SHOP_TOPS[k]-SHOP_BOTTOMS[k]
+                        self.highlight_box.center_x = MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)/2
+                        self.highlight_box.center_y = (SHOP_TOPS[k]+SHOP_BOTTOMS[k])/2
                         return ret
         
         # 2. Are we hovering over a rune ?
@@ -1873,6 +1865,10 @@ class GameWindow(arcade.Window):
                 if left <= x <= right:
                     if self.runes_unlocked[k]:
                         self.hover_target = 'rune:' + str(k)
+                        self.highlight_box.width = 28
+                        self.highlight_box.height = 28
+                        self.highlight_box.center_x = MAP_WIDTH + k*30 + 21
+                        self.highlight_box.center_y = 200
                         return ret
                     
         # 3. Are we hovering over an ability ?
@@ -1883,6 +1879,11 @@ class GameWindow(arcade.Window):
                 if left <= x <= right:
                     if self.abilities_unlocked[k]:
                         self.hover_target = 'ability:' + str(k)
+                        if self.abilities_list[k].cooldown_remaining < 0.01:
+                            self.highlight_box.width = 40
+                            self.highlight_box.height = 40
+                            self.highlight_box.center_x = MAP_WIDTH + k*42 + 29
+                            self.highlight_box.center_y = 25
                         return ret
                 
         # 4. Are we hovering over the attack button ?
@@ -1958,5 +1959,8 @@ if __name__ == "__main__":
 # TODO next step :
 
 # Roadmap items : 
+# Exit confirmation on window close 
+# More visual feedback on rune application ?
+# continuous attack button ?
 # better text rendering
 # sounds ?
