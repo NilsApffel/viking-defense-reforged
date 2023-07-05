@@ -6,7 +6,7 @@ CATAPULT_EXPLOSIONS = [load_texture('./images/explosions/catapult'+str(k)+'.png'
 MJOLNIR_EXPLOSIONS = [load_texture('./images/explosions/mjolnir'+str(k)+'.png') for k in range(15)]
 AIR_EXPLOSIONS = [load_texture('./images/explosions/FlyerDeath'+str(k)+'.png') for k in range(10)]
 WATER_EXPLOSIONS = [load_texture('./images/explosions/SwimmerDeath'+str(k)+'.png') for k in range(14)]
-
+RUNE_EXPLOSION = load_texture('./images/explosions/rune_placement.png')
 
 class GrowingExplosion(Sprite):
     def __init__(self, texture: Texture = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.15, 
@@ -22,6 +22,12 @@ class GrowingExplosion(Sprite):
         if self.elapsed_lifetime > self.max_lifetime:
             self.remove_from_sprite_lists()
         return super().on_update(delta_time)
+    
+
+class RuneApplyMarker(GrowingExplosion):
+    def __init__(self, center_x: float = 0, center_y: float = 0):
+        super().__init__(texture=RUNE_EXPLOSION, starting_scale=0.1, lifetime_seconds=0.25, 
+                         scale_increase_rate=3.6, center_x=center_x, center_y=center_y)
     
 
 class FramedExplosion(AnimatedSprite):

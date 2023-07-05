@@ -8,7 +8,7 @@ from random import randint, random
 from abilities import MjolnirAbility, SellTowerAbility, PlatformAbility, CommandAbility, HarvestAbility
 from constants import *
 from enemies import Enemy
-from explosions import AirExplosion, WaterExplosion
+from explosions import AirExplosion, WaterExplosion, RuneApplyMarker
 from grid import *
 from projectiles import Projectile
 from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil, Laguz, MiniRune
@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.11"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.12"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -1772,6 +1772,8 @@ class GameWindow(arcade.Window):
                     new_minirune = tower.set_rune(rune)
                     if new_minirune:
                         self.minirunes_list.append(new_minirune)
+                    x, y = cell_centerxy(i,j)
+                    self.effects_list.append(RuneApplyMarker(x, y))
             
     def find_tower_price(self, tower_name):
         for shop_list in self.shop_listlist:
@@ -1960,7 +1962,6 @@ if __name__ == "__main__":
 
 # Roadmap items : 
 # Exit confirmation on window close 
-# More visual feedback on rune application ?
 # continuous attack button ?
 # better text rendering
 # sounds ?
