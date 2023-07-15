@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.12"
+SCREEN_TITLE = "Viking Defense Reforged v0.8.13"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -85,6 +85,7 @@ class GameWindow(arcade.Window):
         self.range_preview.set_texture(0)
         self.water_shimmer_ind = 0 
         self.water_shimmer_timer = 0.04
+        self.user_wants_to_close = False
 
     def read_score_file(self):
         self.best_waves = []
@@ -1515,6 +1516,7 @@ class GameWindow(arcade.Window):
             elif self.paused and self.game_state == 'exit confirmation':
                 self.paused = False
                 self.game_state = 'playing'
+                self.user_wants_to_close = False
             else:
                 self.paused = True
 
@@ -1544,10 +1546,16 @@ class GameWindow(arcade.Window):
             if (SCREEN_WIDTH/2-203 <= x <= SCREEN_WIDTH/2) and (SCREEN_HEIGHT/2-105 <= y <= SCREEN_HEIGHT/2): # No exit
                 self.paused = False
                 self.game_state = 'playing'
+                self.user_wants_to_close = False
             elif (SCREEN_WIDTH/2 <= x <= SCREEN_WIDTH/2+203) and (SCREEN_HEIGHT/2-105 <= y <= SCREEN_HEIGHT/2): # Yes exit
-                # return to level select
-                self.update_score_file(self.map_number, self.wave_number-1, did_win=False)
-                self.setup(map_number=0)
+                if self.user_wants_to_close:
+                    # exit the whole app
+                    arcade.close_window()
+                    return
+                else:
+                    # return to level select
+                    self.update_score_file(self.map_number, self.wave_number-1, did_win=False)
+                    self.setup(map_number=0)
             return
         elif self.paused and (self.game_state == 'won' or self.game_state == 'lost'):
             self.setup(map_number=0)
@@ -1950,6 +1958,14 @@ class GameWindow(arcade.Window):
             if not (ability is None):
                 ability.cooldown_remaining -= max(self.time_to_next_wave, 0)
 
+    def on_close(self):
+        if self.user_wants_to_close or self.game_state == 'level select':
+            arcade.close_window()
+            return
+        self.user_wants_to_close = True
+        self.paused = True
+        self.game_state = 'exit confirmation'
+        
 
 if __name__ == "__main__":
     app = GameWindow()
