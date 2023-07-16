@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.8.13"
+SCREEN_TITLE = "Viking Defense Reforged v0.9.0"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -86,6 +86,8 @@ class GameWindow(arcade.Window):
         self.water_shimmer_ind = 0 
         self.water_shimmer_timer = 0.04
         self.user_wants_to_close = False
+        self.is_sound_on = True
+        self.load_sounds()
 
     def read_score_file(self):
         self.best_waves = []
@@ -112,6 +114,14 @@ class GameWindow(arcade.Window):
         if self.best_waves[-1] >= 70:
             self.maps_beaten += 1
 
+    def load_sounds(self):
+        sound_contents = os.listdir('./sounds')
+        self.sounds = {}
+        for name in sound_contents:
+            if 'Sound.mp3' in name:
+                shortname = name.split('Sound')[0]
+                self.sounds[shortname] = arcade.Sound(file_name='./sounds/'+name, streaming=False)
+                
     def setup(self, map_number: int = 1, is_freeplay: bool = False):
         self.map_number = map_number
         self.map_water_static = None
@@ -1277,6 +1287,7 @@ class GameWindow(arcade.Window):
         for enemy in self.enemies_list.sprite_list:
             if enemy.center_y <= CHIN_HEIGHT - 0.4*CELL_SIZE:
                 self.population -= 1
+                self.sounds['VillageChaos'].play()
                 enemy.remove_from_sprite_lists()
 
         # underwater enemy hiding
@@ -1468,9 +1479,11 @@ class GameWindow(arcade.Window):
             if enemy.is_flying:
                 self.quest_tracker["flying enemies killed"] += 1
                 explosion = AirExplosion(center_x=enemy.center_x, center_y=enemy.center_y, scale=enemy.width/35)
+                self.sounds['AirDeath'].play(volume=0.5)
                 self.effects_list.append(explosion)
             else:
                 explosion = WaterExplosion(center_x=enemy.center_x, center_y=enemy.center_y, scale=enemy.width/35)
+                self.sounds['WaterDeath'].play(volume=0.5)
                 self.water_explosions_list.append(explosion)
                 if enemy.is_hidden:
                     self.quest_tracker["submerged enemies killed"] += 1
@@ -1670,6 +1683,7 @@ class GameWindow(arcade.Window):
             if is_item_buyable:
                 break
         if not is_item_buyable:
+            self.set_temp_msg('Not Enough\nMoney!', duration=2.5, sound_name='Error')
             return
         # if we reach this line, then there exists a selected, affordable ShopItem named shop_item
                 
@@ -1690,6 +1704,7 @@ class GameWindow(arcade.Window):
                     else:
                         is_spot_available = False 
         if not is_spot_available:
+            self.set_temp_msg("You Can't\nBuild Here!", duration=2.5, sound_name='Error')
             return
         # if we reach this line, it means shop_item is a selected and affordable tower that is
         # hovering over an available location
@@ -1714,6 +1729,7 @@ class GameWindow(arcade.Window):
             self.all_sprites.append(new_tower.falcon)
             new_tower.falcon.center_x = new_tower.center_x
             new_tower.falcon.center_y = new_tower.center_y
+        self.sounds['Construction'].play()
 
     def attempt_tower_sell(self, x: float, y: float):
         i, j = nearest_cell_ij(x, y)
@@ -1737,6 +1753,7 @@ class GameWindow(arcade.Window):
                     tower.falcon.remove_from_sprite_lists()
                 elif tower.does_rotate:
                     tower.base_sprite.remove_from_sprite_lists()
+                self.sounds['Sell'].play()
                 return
             
         # if we reach this line, then the cell is occupied by a 2x2 tower
@@ -1754,12 +1771,14 @@ class GameWindow(arcade.Window):
                 self.map_cells[ti+1][tj+1].is_occupied = False
                 tower.remove_from_sprite_lists()
                 self.update_ability_cooldowns()
+                self.sounds['Sell'].play()
                 return
 
     def attempt_tower_enchant(self, x: float, y: float):
         if not self.rune_selected:
             return
         if self.money < self.runes_list[self.rune_selected-1].cost:
+            self.set_temp_msg('Not Enough\nMoney !', duration=2.5, sound_name='Error')
             return
         rune = self.runes_list[self.rune_selected-1].make_another()
         i, j = nearest_cell_ij(x, y)
@@ -1782,6 +1801,7 @@ class GameWindow(arcade.Window):
                         self.minirunes_list.append(new_minirune)
                     x, y = cell_centerxy(i,j)
                     self.effects_list.append(RuneApplyMarker(x, y))
+                    self.sounds['Rune'].play()
             
     def find_tower_price(self, tower_name):
         for shop_list in self.shop_listlist:
@@ -1819,13 +1839,15 @@ class GameWindow(arcade.Window):
                         shop_item.is_unlockable = False
                         if k < len(shop_list) - 1: # there exists a next item
                             shop_list[k+1].is_unlockable = True
-                        self.set_temp_msg('Unlocked :\n'+shop_item.tower.name)
+                        self.set_temp_msg('Unlocked :\n'+shop_item.tower.name, sound_name='QuestComplete')
 
-    def set_temp_msg(self, message: str, duration : float = 2.5):
+    def set_temp_msg(self, message: str, duration: float = 2.5, sound_name: str = None):
         """Sends a temporary message to the info box, overwriting whatever is currently there"""
         self.info_box_text[3].text = message
         self.message_timer = duration
         self.message_animation_map = {2.50: 16, 2.45: 17, 2.40: 18, 2.35: 19, 2.30: 18, 2.25: 17, 2.20: 16, 2.15: 17, 2.10: 18, 2.05: 17, 2.00: 16, 0.0: 17}
+        if sound_name:
+            self.sounds[sound_name].play()
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int):
         ret = super().on_mouse_motion(x, y, dx, dy)
@@ -1965,7 +1987,7 @@ class GameWindow(arcade.Window):
         self.user_wants_to_close = True
         self.paused = True
         self.game_state = 'exit confirmation'
-        
+
 
 if __name__ == "__main__":
     app = GameWindow()
@@ -1974,10 +1996,12 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : implement more sounds
 
 # Roadmap items : 
-# Exit confirmation on window close 
-# continuous attack button ?
 # better text rendering
-# sounds ?
+# more / better error messages (duration is kind of useless currently + needs customizable color)
+# sounds :
+#   tower shoot (1 per tower type), item select, ability trigger (1 per ability), 
+#   unselect, main menu, background, dive/surface? explosions?
+#   also a mute button, and some better volume management
