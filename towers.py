@@ -1,4 +1,4 @@
-from arcade import Sound, Sprite, Texture, draw_line, draw_scaled_texture_rectangle
+from arcade import Sprite, Texture, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
 from math import atan2, pi, sqrt, cos, sin, ceil
 from pyglet.media import Player
@@ -10,7 +10,7 @@ from enemies import Enemy
 from explosions import CatapultExplosion, GrowingExplosion
 from projectiles import Projectile, Falcon, FlameParticle, RageBlast
 from runes import Rune, MiniRune
-from utils import normalize_tuple
+from utils import MutableSound, normalize_tuple
 
 class Tower(Sprite):
     def __init__(self, scale: float = 1, cooldown: float = 2, 
@@ -408,7 +408,7 @@ class GreekFire(Tower):
         self.effect_probability_per_second = 0.05
         self.effect_probability_per_particle = 1-(1-self.effect_probability_per_second)**(1.0/self.particles_per_second)
         self.base_sprite = None
-        self.sounds = [Sound('./sounds/FlameSound2.mp3'), Sound('./sounds/FlameSound2.mp3')]
+        self.sounds = [MutableSound('./sounds/FlameSound2.mp3'), MutableSound('./sounds/FlameSound2.mp3')]
         self.players = [Player(), Player()]
         self.next_sound = 0
         self.time_to_next_sound = 0

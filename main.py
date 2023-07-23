@@ -16,12 +16,12 @@ from shop import ShopItem
 from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire,
                     OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage, SanctumOfTempest,
                     TempleOfThor, Forge, TempleOfOdin, ChamberOfTheChief, TempleOfFreyr)
-from utils import timestr, AnimatedSprite
+from utils import timestr, AnimatedSprite, MutableSound
 from waves import Wave, WaveMaker
+import glb
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.9.1"
-
+SCREEN_TITLE = "Viking Defense Reforged v0.9.2"
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
                        outline_color : arcade.Color=BLACK, align : str='left', width : int=0, 
@@ -120,7 +120,7 @@ class GameWindow(arcade.Window):
         for name in sound_contents:
             if 'Sound.mp3' in name:
                 shortname = name.split('Sound')[0]
-                self.sounds[shortname] = arcade.Sound(file_name='./sounds/'+name, streaming=False)
+                self.sounds[shortname] = MutableSound(file_name='./sounds/'+name, streaming=False)
                 
     def setup(self, map_number: int = 1, is_freeplay: bool = False):
         self.map_number = map_number
@@ -791,6 +791,14 @@ class GameWindow(arcade.Window):
             center_y = 12,
         )
         self.gui_elements.append(self.pause_button)
+        self.mute_button = arcade.Sprite(
+            center_x = 60,
+            center_y = 12,
+        )
+        self.mute_button.append_texture(arcade.load_texture('./images/mute-button.png'))
+        self.mute_button.append_texture(arcade.load_texture('./images/mute-button-pressed.png'))
+        self.mute_button.set_texture(int(glb.MUTED))
+        self.gui_elements.append(self.mute_button)
         self.exit_button = arcade.Sprite(
             filename='./images/exit-button.png',
             center_x = 25.5,
@@ -1677,6 +1685,14 @@ class GameWindow(arcade.Window):
         elif (3 <= x <= 48) and (2 <= y <= 22):
             self.paused = True
             self.game_state = 'exit confirmation'
+        # 2.8 Mute button
+        elif (50 <= x <= 70) and (2 <= y <= 22):
+            if glb.MUTED:
+                glb.MUTED = False
+                self.mute_button.set_texture(0)
+            else:
+                glb.MUTED = True
+                self.mute_button.set_texture(1)
 
         return super().on_mouse_press(x, y, button, modifiers)
 

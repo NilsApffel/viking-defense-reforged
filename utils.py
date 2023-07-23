@@ -1,5 +1,7 @@
-from arcade import Sprite
+from arcade import Sprite, Sound
 from math import floor, sqrt
+from pyglet.media import Player
+import glb
 
 def timestr(seconds: float):
     s = ''
@@ -68,3 +70,12 @@ class AnimatedSprite(Sprite):
             self.set_texture(new_frame_indx)
             self.frame_indx = new_frame_indx
         return super().on_update(delta_time)
+
+class MutableSound(Sound):
+    def __init__(self, file_name: str, streaming: bool = False):
+        super().__init__(file_name, streaming)
+
+    def play(self, volume: float = 1, pan: float = 0, loop: bool = False, speed: float = 1) -> Player:
+        if glb.MUTED: 
+            return Player()
+        return super().play(volume, pan, loop, speed)
