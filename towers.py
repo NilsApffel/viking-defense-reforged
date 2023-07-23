@@ -1,6 +1,7 @@
-from arcade import Sprite, Texture, draw_line, draw_scaled_texture_rectangle
+from arcade import Sound, Sprite, Texture, draw_line, draw_scaled_texture_rectangle
 from arcade.color import LIGHT_GRAY
 from math import atan2, pi, sqrt, cos, sin, ceil
+from pyglet.media import Player
 from random import random
 from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS, PROJECTILES
 from copy import deepcopy
@@ -17,7 +18,8 @@ class Tower(Sprite):
                     name: str = None, description: str = None, can_see_types: list = None, 
                     has_rotating_top: bool = False, is_2x2: bool = False, 
                     constant_attack: bool = False, projectiles_are_homing: bool = False, 
-                    animation_transition_times: list = None, texture: Texture = None):
+                    animation_transition_times: list = None, texture: Texture = None, 
+                    attack_sound_name: str = None):
         super().__init__(scale=scale, texture=texture)
         self.cooldown = cooldown
         self.cooldown_remaining = 0.0
@@ -51,6 +53,7 @@ class Tower(Sprite):
             self.number_of_textures = 1
             self.is_animated = False
         self.animation_time = 0.0
+        self.attack_sound_name = attack_sound_name
 
     # this is a total hack, using it because creating a deepcopy of a shop's tower attribute to 
     # place it on the map doesn't work
@@ -107,7 +110,8 @@ class Tower(Sprite):
         self.cooldown_remaining = self.cooldown
         self.target = enemy
         projectiles_created = []
-        return self.damage, projectiles_created
+        sounds = [self.attack_sound_name]
+        return self.damage, projectiles_created, sounds
 
     def draw_shoot_animation(self):
         pass
@@ -179,6 +183,7 @@ class Tower(Sprite):
             self.minirune.remove_from_sprite_lists()
         return super().remove_from_sprite_lists()
 
+
 class TowerBase(Tower):
     def __init__(self, scale: float = 1, name: str = None, texture: Texture = None):
         super().__init__(scale=scale, damage=0, range=0, cooldown=0,  name=name, texture=texture)
@@ -193,7 +198,8 @@ class WatchTower(Tower):
                             range=112, damage=5, name="Watchtower", 
                             description="Fires at floating\nNever misses", 
                             can_see_types=['floating'], 
-                            animation_transition_times=[0.00, 0.08, 0.16, 0.24])
+                            animation_transition_times=[0.00, 0.08, 0.16, 0.24], 
+                            attack_sound_name='Arrow')
         self.append_texture(ASSETS['watchtower0'])
         self.append_texture(ASSETS['watchtower1'])
         self.append_texture(ASSETS['watchtower2'])
@@ -238,7 +244,8 @@ class Catapult(Tower):
             name="Catapult", 
             description="Fires at Floating & Underwater\nUnhoming. Splash damage", 
             can_see_types=['floating', 'underwater'], 
-            has_rotating_top=True
+            has_rotating_top=True,
+            attack_sound_name='Catapult'
         )
         self.base_sprite = None
 
@@ -264,7 +271,7 @@ class Catapult(Tower):
         )
         cannonball = self.make_runed_projectile(cannonball)
             
-        return 0, [cannonball] # damage will be dealt by projectile
+        return 0, [cannonball], [self.attack_sound_name] # damage will be dealt by projectile
 
     def remove_from_sprite_lists(self):
         self.base_sprite.remove_from_sprite_lists()
@@ -282,9 +289,20 @@ class FalconCliff(Tower):
             name="Falcon Cliff", 
             description="Fires at Floating & Flying\nFalcon stays within range", 
             can_see_types=['floating', 'flying'], 
-            constant_attack=True
+            constant_attack=True,
+            attack_sound_name='Falcon'
         )
         self.falcon = Falcon(parent_tower=self)
+        self.old_target = None
+        self.yell_cooldown = 0.0
+        self.hit_sound_cooldown = 0.0
+
+    def on_update(self, delta_time: float = 1 / 60):
+        if self.yell_cooldown > 0 :
+            self.yell_cooldown = max(self.yell_cooldown-delta_time, 0)
+        if self.hit_sound_cooldown > 0 :
+            self.hit_sound_cooldown = max(self.hit_sound_cooldown-delta_time, 0)
+        return super().on_update(delta_time)
 
     def make_another(self):
         return FalconCliff()
@@ -318,8 +336,20 @@ class FalconCliff(Tower):
 
     def attack(self, enemy: Enemy):
         if self.can_see(enemy):
-            return self.falcon.attack(enemy), [] # falcon attack should return the damage
-        return 0, []
+            # yell at enemy
+            self.target = enemy
+            sounds = []
+            if self.target != self.old_target and self.yell_cooldown < 0.001:
+                sounds = ['Falcon']
+                self.yell_cooldown += 2.5
+            self.old_target = self.target
+            # hit enemy
+            dmg = self.falcon.attack(enemy)
+            if dmg > 0 and self.hit_sound_cooldown < 0.001:
+                sounds.append('Hit')
+                self.hit_sound_cooldown += 0.050
+            return dmg, [], sounds # falcon attack should return the damage
+        return 0, [], []
     
     def remove_from_sprite_lists(self):
         self.falcon.remove_from_sprite_lists()
@@ -331,7 +361,7 @@ class Bastion(Tower):
         super().__init__(
             texture=ASSETS['bastion'], cooldown=5, range=48, damage=25, name='Bastion', 
             description='Fires at floating & underwater\nDamages all in range', 
-            can_see_types=['floating', 'underwater'])
+            can_see_types=['floating', 'underwater'], attack_sound_name='Catapult')
         self.splash_radius = 32
         self.explode_distance = 32
 
@@ -357,7 +387,7 @@ class Bastion(Tower):
             proj = self.make_runed_projectile(proj)
             explosives.append(proj)
             
-        return 0, explosives # damage will be dealt by projectiles
+        return 0, explosives, [self.attack_sound_name] # damage will be dealt by projectiles
 
 
 class GreekFire(Tower):
@@ -378,6 +408,10 @@ class GreekFire(Tower):
         self.effect_probability_per_second = 0.05
         self.effect_probability_per_particle = 1-(1-self.effect_probability_per_second)**(1.0/self.particles_per_second)
         self.base_sprite = None
+        self.sounds = [Sound('./sounds/FlameSound2.mp3'), Sound('./sounds/FlameSound2.mp3')]
+        self.players = [Player(), Player()]
+        self.next_sound = 0
+        self.time_to_next_sound = 0
 
     def make_another(self):
         return GreekFire()
@@ -401,6 +435,14 @@ class GreekFire(Tower):
 
     def on_update(self, delta_time: float = 1 / 60):
         self.latest_dt = delta_time
+        if self.time_to_next_sound > 0:
+            self.time_to_next_sound = max(0, self.time_to_next_sound-delta_time)
+        if self.target:
+            dist2 = (self.center_x-self.target.center_x)**2 + (self.center_y-self.target.center_y)**2
+            if (dist2 > self.range**2) or (self.target.current_health <= 0.01):
+                self.sounds[0].stop(self.players[0])
+                self.sounds[1].stop(self.players[1])
+                self.time_to_next_sound = 0
         return super().on_update(delta_time)
     
     def attack(self, enemy: Enemy):
@@ -419,8 +461,12 @@ class GreekFire(Tower):
                 damage=dmg_per_particle
             )
             flame_particles.append(self.make_runed_projectile(particle))
-
-        return 0, flame_particles
+        if self.time_to_next_sound < 0.001:
+            k = self.next_sound
+            self.players[k] = self.sounds[k].play()
+            self.next_sound = 1 - self.next_sound
+            self.time_to_next_sound = 2.45
+        return 0, flame_particles, []
 
     def remove_from_sprite_lists(self):
         self.base_sprite.remove_from_sprite_lists()
@@ -432,7 +478,8 @@ class OakTreeTower(Tower):
                             range=112, damage=5, name="Sacred Oak", 
                             description="Fires at flying\nHoming", 
                             can_see_types=['flying'], 
-                            projectiles_are_homing=True)
+                            projectiles_are_homing=True, 
+                            attack_sound_name='Oak')
 
     def make_another(self):
         return OakTreeTower()
@@ -442,10 +489,10 @@ class OakTreeTower(Tower):
         leaf = Projectile(
             texture=PROJECTILES['leaf'], scale=1.0, speed=2.0, angle_rate=360,
             center_x=self.center_x, center_y=self.center_y, 
-            target=enemy, damage=self.damage
+            target=enemy, damage=self.damage, impact_sound='Hit'
         )
         leaf = self.make_runed_projectile(leaf)
-        return 0, [leaf] # damage will be dealt by projectile
+        return 0, [leaf], ['Oak'] # damage will be dealt by projectile
 
 
 class StoneHead(Tower):
@@ -454,7 +501,7 @@ class StoneHead(Tower):
                          range=112, damage=0, name='Stone Head', 
                          description="Fires at flying & floating\nHoming. Slows down enemies", 
                          can_see_types=['flying', 'floating'], has_rotating_top=True, 
-                         projectiles_are_homing=True)
+                         projectiles_are_homing=True, attack_sound_name='Blow')
         self.base_sprite = None
         
     def make_another(self):
@@ -477,7 +524,7 @@ class StoneHead(Tower):
             target=enemy, damage=self.damage, effects=[SlowDown()]
         )
         wind_gust = self.make_runed_projectile(wind_gust)
-        return 0, [wind_gust] # effect will be dealt by projectile
+        return 0, [wind_gust], ['Blow'] # effect will be dealt by projectile
 
     def remove_from_sprite_lists(self):
         self.base_sprite.remove_from_sprite_lists()
@@ -489,7 +536,8 @@ class SparklingPillar(Tower):
         super().__init__(texture=ASSETS['sparkling_pillar'], cooldown=0.3, 
                          range=75, damage=2, name='Sparkling Pillar', 
                          description="Fires at flying\nNever missies", 
-                         can_see_types=['flying'], has_rotating_top=False)
+                         can_see_types=['flying'], has_rotating_top=False,
+                         attack_sound_name='Spark')
         
     def make_another(self):
         return SparklingPillar()
@@ -525,7 +573,8 @@ class QuarryOfRage(Tower):
         super().__init__(texture=ASSETS['quarry_of_rage'], cooldown=4.0, 
                          range=208, damage=30, name='Quarry Of Rage', 
                          description='Fires at floating\nHoming. Fragmentation blast', 
-                         can_see_types=['floating'], projectiles_are_homing=True)
+                         can_see_types=['floating'], projectiles_are_homing=True,
+                         attack_sound_name='Catapult')
     
     def make_another(self):
         return QuarryOfRage()
@@ -536,7 +585,7 @@ class QuarryOfRage(Tower):
                          target=enemy, damage=self.damage)
         bomb = self.make_runed_projectile(bomb)
             
-        return 0, [bomb] # damage will be dealt by projectile
+        return 0, [bomb], [self.attack_sound_name] # damage will be dealt by projectile
 
 
 class SanctumOfTempest(Tower):
@@ -544,7 +593,7 @@ class SanctumOfTempest(Tower):
         super().__init__(cooldown=0.5, 
                          range=96, damage=10, name='Sanctum of Tempest', 
                          description="Fires at flying & floating\nEach 5th hit amplified", 
-                         can_see_types=["floating", "flying"])
+                         can_see_types=["floating", "flying"], attack_sound_name='Discharge')
         self.hit_counter = 0
         for k in range(5):
             self.append_texture(ASSETS['sanctum'+str(k)])
@@ -582,7 +631,7 @@ class SanctumOfTempest(Tower):
                 zap_blast = self.make_runed_projectile(zap_blast)
             self.set_texture(self.hit_counter)
             self.cooldown_remaining = self.cooldown
-            return 0, [zap_blast]
+            return 0, [zap_blast], [self.attack_sound_name]
         
     def on_update(self, delta_time: float = 1 / 60):
         self.attack_animation_remaining -= delta_time

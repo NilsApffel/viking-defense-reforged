@@ -14,7 +14,8 @@ class Projectile(Sprite):
                     damage: float = 1, do_splash_damage: bool = False, splash_radius: float = 10, 
                     impact_effect: FramedExplosion = None, is_retargeting: bool = False, 
                     parent_tower: Sprite = None, effects: list = None, name: str = '', 
-                    num_secondary_projectiles: int = 0, texture: Texture = None):
+                    num_secondary_projectiles: int = 0, texture: Texture = None,
+                    impact_sound: str = None):
         super().__init__(scale=scale, center_x=center_x, 
                          center_y=center_y, angle=angle, texture=texture)
         self.speed = speed
@@ -35,6 +36,7 @@ class Projectile(Sprite):
             self.effects = []
         self.name = name
         self.num_secondary_projectiles = num_secondary_projectiles
+        self.impact_sound = impact_sound
 
         if not self.has_static_target:
             self.target_x = self.target.center_x

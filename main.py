@@ -20,7 +20,7 @@ from utils import timestr, AnimatedSprite
 from waves import Wave, WaveMaker
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.9.0"
+SCREEN_TITLE = "Viking Defense Reforged v0.9.1"
 
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
@@ -1364,7 +1364,9 @@ class GameWindow(arcade.Window):
                     tower.aim_to(enemy)
                     if tower.cooldown_remaining <= 0: # ready to fire
                         # an attack happens
-                        dmg, projlist = tower.attack(enemy)
+                        dmg, projlist, soundlist = tower.attack(enemy)
+                        for sound_name in soundlist:
+                            self.sounds[sound_name].play()
                         if dmg > 0 and (tower.has_rune('kenaz') or tower.has_rune('isa')):
                             effect = deepcopy(tower.rune.effect)
                             thresh = 0.05
@@ -1458,6 +1460,10 @@ class GameWindow(arcade.Window):
             explosion.center_y = projectile.target_y
             self.effects_list.append(explosion)
             self.all_sprites.append(explosion)
+            if explosion.sound_name:
+                self.sounds[explosion.sound_name].play()
+        elif projectile.impact_sound:
+            self.sounds[projectile.impact_sound].play()
         # create secondary projectiles if needed
         sub_projectiles = projectile.make_secondaries(
             all_enemies = self.enemies_list.sprite_list, 
@@ -1729,6 +1735,7 @@ class GameWindow(arcade.Window):
             self.all_sprites.append(new_tower.falcon)
             new_tower.falcon.center_x = new_tower.center_x
             new_tower.falcon.center_y = new_tower.center_y
+            self.sounds['Falcon'].play()
         self.sounds['Construction'].play()
 
     def attempt_tower_sell(self, x: float, y: float):
@@ -1996,12 +2003,12 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : implement more sounds
+# TODO next step :
 
 # Roadmap items : 
 # better text rendering
 # more / better error messages (duration is kind of useless currently + needs customizable color)
 # sounds :
-#   tower shoot (1 per tower type), item select, ability trigger (1 per ability), 
+#   item select, ability trigger (1 per ability), 
 #   unselect, main menu, background, dive/surface? explosions?
-#   also a mute button, and some better volume management
+#   also a mute button, and some better volume management !!

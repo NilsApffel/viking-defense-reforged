@@ -10,11 +10,13 @@ RUNE_EXPLOSION = load_texture('./images/explosions/rune_placement.png')
 
 class GrowingExplosion(Sprite):
     def __init__(self, texture: Texture = None, starting_scale: float = 0.33, lifetime_seconds : float = 0.15, 
-                    scale_increase_rate: float = 5.0, center_x: float = 0, center_y: float = 0):
+                    scale_increase_rate: float = 5.0, center_x: float = 0, center_y: float = 0, 
+                    sound_name: str = None):
         self.max_lifetime = lifetime_seconds
         self.elapsed_lifetime = 0.0
         self.scale_increase_rate = scale_increase_rate
         super().__init__(scale=starting_scale, center_x=center_x, center_y=center_y, texture=texture)
+        self.sound_name = sound_name
 
     def on_update(self, delta_time: float = 1 / 60):
         self.scale += self.scale_increase_rate * delta_time
@@ -32,7 +34,8 @@ class RuneApplyMarker(GrowingExplosion):
 
 class FramedExplosion(AnimatedSprite):
     def __init__(self, frames: list, frame_duration: float, scale: float = 1, 
-                 center_x: float = 0, center_y: float = 0, angle: float = 0):
+                 center_x: float = 0, center_y: float = 0, angle: float = 0, 
+                 sound_name: str = None):
         transition_times=[k*frame_duration for k in range(len(frames)+1)]
         transition_indxs = list(range(len(frames)))
         transition_indxs = transition_indxs + [transition_indxs[-1]]
@@ -40,6 +43,7 @@ class FramedExplosion(AnimatedSprite):
                          transition_indxs=transition_indxs, scale=scale, 
                          center_x=center_x, center_y=center_y, angle=angle)
         self.lifetime = transition_times[-1]
+        self.sound_name = sound_name
 
     def on_update(self, delta_time: float = 1 / 60):
         new_time = self.animation_time + delta_time
@@ -54,7 +58,8 @@ class CatapultExplosion(FramedExplosion):
                  center_x: float = 0, center_y: float = 0):
         super().__init__(scale=scale, frames=CATAPULT_EXPLOSIONS, 
                          center_x=center_x, center_y=center_y, 
-                         frame_duration=0.04/speed_factor)
+                         frame_duration=0.04/speed_factor, 
+                         sound_name='StoneHit')
         
 
 class MjolnirExplosion(FramedExplosion):
