@@ -21,7 +21,7 @@ from waves import Wave, WaveMaker
 import glb
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.9.3"
+SCREEN_TITLE = "Viking Defense Reforged v0.9.4"
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
                        outline_color : arcade.Color=BLACK, align : str='left', width : int=0, 
@@ -88,6 +88,8 @@ class GameWindow(arcade.Window):
         self.user_wants_to_close = False
         self.is_sound_on = True
         self.load_sounds()
+        self.menu_music = arcade.Sound("./sounds/MainMusic.mp3", streaming=True)
+        self.game_music = arcade.Sound("./sounds/BattleMusic.mp3", streaming=True)
 
     def read_score_file(self):
         self.best_waves = []
@@ -141,6 +143,10 @@ class GameWindow(arcade.Window):
             self.load_shop_items()
             self.init_gui_elements()
             self.init_text()
+            if not glb.MUTED:
+                if hasattr(self, 'sound_player'):
+                    self.sound_player.pause()
+                self.sound_player = self.menu_music.play(volume=0.5, loop=True)
             return
         self.game_state = 'playing'
         self.wave_number = 0
@@ -181,6 +187,9 @@ class GameWindow(arcade.Window):
         else:
             self.time_to_next_wave = 60
         self.init_text()
+        self.sound_player.pause()
+        if not(glb.MUTED):
+            self.sound_player = self.game_music.play(volume=0.5, loop=True)
         self.income_score = 0
         self.people_score = 0
         self.unlocks_score = 0
@@ -1709,9 +1718,11 @@ class GameWindow(arcade.Window):
             if glb.MUTED:
                 glb.MUTED = False
                 self.mute_button.set_texture(0)
+                self.sound_player = self.game_music.play(volume=0.5, loop=True)
             else:
                 glb.MUTED = True
                 self.mute_button.set_texture(1)
+                self.sound_player.pause()
 
         return super().on_mouse_press(x, y, button, modifiers)
 
@@ -2038,11 +2049,7 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step : 
-
-# Roadmap items : 
+# Remaining TODOs : 
 # better text rendering
-# more / better error messages (duration is kind of useless currently + needs customizable color)
-# sounds :
-#   main menu, background, dive/surface?
-#   also some better volume management
+# better error messages (duration arg is kind of useless currently + needs customizable color)
+# better volume management
