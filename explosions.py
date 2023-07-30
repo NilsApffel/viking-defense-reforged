@@ -66,7 +66,7 @@ class MjolnirExplosion(FramedExplosion):
     def __init__(self, center_x: float = 0, center_y: float = 0):
         super().__init__(frames=MJOLNIR_EXPLOSIONS, 
                          center_x=center_x, center_y=center_y, 
-                         frame_duration=0.04)
+                         frame_duration=0.04, sound_name='MjolnirExplosion')
 
 
 class AirExplosion(FramedExplosion):

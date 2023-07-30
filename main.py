@@ -21,7 +21,7 @@ from waves import Wave, WaveMaker
 import glb
 
 
-SCREEN_TITLE = "Viking Defense Reforged v0.9.2"
+SCREEN_TITLE = "Viking Defense Reforged v0.9.3"
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
                        outline_color : arcade.Color=BLACK, align : str='left', width : int=0, 
@@ -1557,6 +1557,7 @@ class GameWindow(arcade.Window):
                     right = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH
                     if left <= x <= right: 
                         if k <= self.maps_beaten:
+                            self.sounds["Click1"].play()
                             self.setup(map_number=k+1) 
                             return super().on_mouse_press(x, y, button, modifiers)
             # check if we pressed a "freeplay" button for any map
@@ -1566,6 +1567,7 @@ class GameWindow(arcade.Window):
                     right = LEVEL_SPACING + (LEVEL_WIDTH+LEVEL_SPACING)*k + LEVEL_WIDTH
                     if left <= x <= right: 
                         if k < self.maps_beaten:
+                            self.sounds["Click1"].play()
                             self.setup(map_number=k+1, is_freeplay=True) 
                             return super().on_mouse_press(x, y, button, modifiers)
             return 
@@ -1609,6 +1611,7 @@ class GameWindow(arcade.Window):
                         mjolnir = self.abilities_list[1].trigger(x, y)
                         self.projectiles_list.append(mjolnir)
                         self.all_sprites.append(mjolnir)
+                        self.sounds["MjolnirThrow"].play()
                         self.ability_selected = 0
                 elif self.ability_selected == 3: # Platform placement
                     if self.abilities_list[2].cooldown_remaining <= 0.01:
@@ -1616,6 +1619,7 @@ class GameWindow(arcade.Window):
                         if new_platform:
                             self.platforms.append(new_platform)
                             self.all_sprites.append(new_platform)
+                            self.sounds["Construction"].play()
                             self.ability_selected = 0
                             self.quest_tracker['platforms placed'] += 1
                             for enemy in self.swimmers_list:
@@ -1629,6 +1633,7 @@ class GameWindow(arcade.Window):
                             dist2 = dx**2 + dy**2
                             if dist2 < effect_radius2:
                                 enemy.priority += priority_delta
+                        self.sounds["Command"].play()
                         self.ability_selected = 0
                 elif self.ability_selected == 5: # Harvest
                     if self.abilities_list[4].cooldown_remaining <= 0.01:
@@ -1640,28 +1645,38 @@ class GameWindow(arcade.Window):
                             if dist2 < effect_radius2:
                                 enemy.set_modifier('') # Remove any buff
                                 self.money += reward_fraction*enemy.reward
+                        self.sounds["Harvest"].play()
                         self.ability_selected = 0
             
         # 2. Deal with button clicks 
         # 2.1 Next Wave Start Button
         if (MAP_WIDTH-ATK_BUTT_HEIGHT-5 < x < MAP_WIDTH-5) and (INFO_BAR_HEIGHT+2 < y < CHIN_HEIGHT-10):
             if not self.wave_is_happening:
+                self.sounds["Click2"].play()
                 self.start_wave()
         # 2.2 Shop tab change
         elif (x > MAP_WIDTH) and (y >= SHOP_TOPS[0]): 
             if x <= MAP_WIDTH + (SCREEN_WIDTH-MAP_WIDTH)/3:
-                self.current_shop_tab = 0
+                if self.current_shop_tab != 0:
+                    self.sounds["Click2"].play()
+                    self.current_shop_tab = 0
             elif x > SCREEN_WIDTH - (SCREEN_WIDTH-MAP_WIDTH)/3:
-                self.current_shop_tab = 2
+                if self.current_shop_tab != 2:
+                    self.sounds["Click2"].play()
+                    self.current_shop_tab = 2
             else:
-                self.current_shop_tab = 1
+                if self.current_shop_tab != 1:
+                    self.sounds["Click2"].play()
+                    self.current_shop_tab = 1
         # 2.3 Shop item selection
         elif (x > MAP_WIDTH) and (y >= SHOP_BOTTOMS[-1]): 
             for k in range(0, 5):
                 shop_item = self.shop_listlist[self.current_shop_tab][k]
                 if SHOP_BOTTOMS[k] <= y <= SHOP_TOPS[k]:
                     if shop_item.is_unlocked:
-                        shop_item.actively_selected = True
+                        if not(shop_item.actively_selected):
+                            self.sounds["Click2"].play()
+                            shop_item.actively_selected = True
         # 2.4 Rune selection 
         elif (MAP_WIDTH < x) and (186 <= y <= 215):
             for k in range(7):
@@ -1669,7 +1684,9 @@ class GameWindow(arcade.Window):
                 right = MAP_WIDTH + 5 + k*30 + 29
                 if left <= x <= right:
                     if self.runes_unlocked[k]:
-                        self.rune_selected = k+1
+                        if self.rune_selected != k+1:
+                            self.sounds["Click2"].play()
+                            self.rune_selected = k+1
         # 2.5 Ability selection 
         elif (MAP_WIDTH < x) and (4 <= y <= 44): 
             for k in range(0, 5):
@@ -1677,7 +1694,9 @@ class GameWindow(arcade.Window):
                 right = MAP_WIDTH + 7 + k*42 + 40
                 if left <= x <= right:
                     if self.abilities_unlocked[k] and self.abilities_list[k].cooldown_remaining < 0.01:
-                        self.ability_selected = k+1
+                        if self.ability_selected != k+1:
+                            self.sounds["Click2"].play()
+                            self.ability_selected = k+1
         # 2.6 Pause button
         elif (73 <= x <= 93) and (2 <= y <= 22):
             self.paused = True
@@ -2019,12 +2038,11 @@ if __name__ == "__main__":
     arcade.run()
     arcade.print_timings()
 
-# TODO next step :
+# TODO next step : 
 
 # Roadmap items : 
 # better text rendering
 # more / better error messages (duration is kind of useless currently + needs customizable color)
 # sounds :
-#   item select, ability trigger (1 per ability), 
-#   unselect, main menu, background, dive/surface? explosions?
-#   also a mute button, and some better volume management !!
+#   main menu, background, dive/surface?
+#   also some better volume management
