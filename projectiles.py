@@ -51,7 +51,7 @@ class Projectile(Sprite):
 
     def on_update(self, delta_time: float):
         if not self.has_static_target:
-            if ((self.target is not None)) and (self.target.current_health > 0):
+            if (self.target is not None) and (self.target.current_health > 0):
                 self.target_x = self.target.center_x
                 self.target_y = self.target.center_y
                 # accelerate towards target and lose some speed
