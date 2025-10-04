@@ -1,5 +1,6 @@
-from arcade import (Sprite, draw_arc_filled, draw_circle_filled, draw_circle_outline, 
-draw_scaled_texture_rectangle, load_texture, make_transparent_color, draw_rectangle_filled)
+from arcade import (
+    Sprite, draw_arc_filled, draw_scaled_texture_rectangle, load_texture, draw_rectangle_filled
+)
 from arcade.color import RED, GREEN
 from copy import deepcopy
 from constants import ASSETS, CELL_SIZE, CHIN_HEIGHT, MAP_TARGET_J, MAP_WIDTH, PROJECTILES, TRANSPARENT_BLACK

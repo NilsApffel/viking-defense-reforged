@@ -10,7 +10,7 @@ class Rune():
         try:
             self.icon = RUNE_ICONS[name]
             self.extended_icon = RUNE_ICONS_EXTENDED[name]
-        except:
+        except KeyError:
             self.icon = RUNE_ICONS['laguz']
             self.extended_icon = RUNE_ICONS_EXTENDED['laguz']
         self.preview_image = RUNE_PREVIEW

@@ -1,5 +1,4 @@
 from arcade import Sprite, Texture, load_texture
-from math import floor
 from utils import AnimatedSprite
 
 CATAPULT_EXPLOSIONS = [load_texture('./images/explosions/catapult'+str(k)+'.png') for k in range(6)]

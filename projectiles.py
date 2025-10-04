@@ -2,7 +2,7 @@ from arcade import Sprite, Texture
 from copy import deepcopy
 from math import atan2, pi, sqrt, cos, sin
 from random import random, randint
-from constants import FLAMES, MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, is_debug, PROJECTILES, RAGE_PROJECTILES
+from constants import FLAMES, MAP_WIDTH, SCREEN_HEIGHT, CHIN_HEIGHT, PROJECTILES, RAGE_PROJECTILES
 from enemies import Enemy
 from explosions import FramedExplosion
 from runes import Rune
@@ -28,7 +28,7 @@ class Projectile(Sprite):
         self.do_splash_damage = do_splash_damage
         self.splash_radius = splash_radius
         self.impact_effect = impact_effect
-        self.is_retargeting = (is_retargeting and not (parent_tower is None))
+        self.is_retargeting = (is_retargeting and (parent_tower is not None))
         self.parent_tower = parent_tower
         if effects:
             self.effects = effects
@@ -51,7 +51,7 @@ class Projectile(Sprite):
 
     def on_update(self, delta_time: float):
         if not self.has_static_target:
-            if (not (self.target is None)) and (self.target.current_health > 0):
+            if (self.target is not None) and (self.target.current_health > 0):
                 self.target_x = self.target.center_x
                 self.target_y = self.target.center_y
                 # accelerate towards target and lose some speed
@@ -100,7 +100,7 @@ class Projectile(Sprite):
                 dx = enemy.center_x - self.center_x
                 dy = enemy.center_y - self.center_y
                 dist2 = dx**2 + dy**2
-                if dist2 < 10000 and not (enemy in not_allowed_targets):
+                if dist2 < 10000 and (enemy not in not_allowed_targets):
                     # we found an enemy to shoot, stop looping through enemies and lets go shoot it
                     not_allowed_targets.append(enemy)
                     chosen_enemy = enemy
