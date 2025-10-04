@@ -2050,6 +2050,12 @@ if __name__ == "__main__":
     arcade.print_timings()
 
 # Remaining TODOs : 
+# fix bug where falcon doesn't slow down after removing speed rune, leading to infinite speed glitches
 # better text rendering
 # better error messages (duration arg is kind of useless currently + needs customizable color)
 # better volume management
+# arcade 3.x migration
+
+# Code improvements to make :
+# get rid of star imports & unused imports
+# get to 0 problems flagged by Ruff
