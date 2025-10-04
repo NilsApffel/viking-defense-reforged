@@ -1,9 +1,9 @@
-from arcade import Sprite, Texture, draw_line, draw_scaled_texture_rectangle
+from arcade import Sprite, Texture, draw_line
 from arcade.color import LIGHT_GRAY
 from math import atan2, pi, sqrt, cos, sin, ceil
 from pyglet.media import Player
 from random import random
-from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, is_debug, ZAPS, PROJECTILES
+from constants import MAP_WIDTH, SCREEN_HEIGHT, ASSETS, ZAPS, PROJECTILES
 from copy import deepcopy
 from effects import SlowDown, Inflame, Freeze
 from enemies import Enemy
@@ -90,11 +90,11 @@ class Tower(Sprite):
         dist2 = dx*dx + dy*dy
         if dist2 > self.range**2:
             return False
-        if enemy.is_flying and not ('flying' in self.can_see_types):
+        if enemy.is_flying and ('flying' not in self.can_see_types):
             return False
-        if (not enemy.is_flying) and not ('floating' in self.can_see_types):
+        if (not enemy.is_flying) and ('floating' not in self.can_see_types):
             return False
-        if enemy.is_hidden and not ('underwater' in self.can_see_types):
+        if enemy.is_hidden and ('underwater' not in self.can_see_types):
             return False
         return True
 
@@ -132,7 +132,7 @@ class Tower(Sprite):
     def set_rune(self, rune: Rune):
         if self.has_rune(rune.name):
             return 
-        if (not (self.rune is None)):
+        if self.rune is not None:
             # we need to clear our current rune's effects
             clean_tower = self.make_another()
             self.cooldown = clean_tower.cooldown
@@ -310,7 +310,7 @@ class FalconCliff(Tower):
     def set_rune(self, rune: Rune):
         if self.has_rune(rune.name):
             return 
-        if (not (self.rune is None)):
+        if self.rune is not None:
             # we need to clear our current rune's effects
             clean_tower = self.make_another()
             self.cooldown = clean_tower.cooldown

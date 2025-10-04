@@ -1,4 +1,6 @@
-import csv, os, sys
+import csv
+import os
+import sys
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
 import arcade
@@ -6,14 +8,21 @@ from copy import deepcopy
 from math import floor, atan2, pi
 from random import randint, random
 from abilities import MjolnirAbility, SellTowerAbility, PlatformAbility, CommandAbility, HarvestAbility
-from constants import *
+from constants import (
+    is_debug, SCREEN_HEIGHT, SCREEN_WIDTH, TRANSPARENT_BLACK, SCORE_FILE,
+    MAP_HEIGHT, MAP_WIDTH, CHIN_HEIGHT, LEVEL_WIDTH, LEVEL_SPACING,
+    SHOP_BOTTOMS, SHOP_TOPS, SHOP_ITEM_THUMB_SIZE, WAVE_VIEWER_WIDTH,
+    SHOP_HEIGHT, SHOP_WIDTH, SHOP_ITEM_HEIGHT, ATK_BUTT_HEIGHT, INFO_BAR_HEIGHT,
+    CELL_SIZE, RUNE_NAMES, RUNE_DESCRIPTIONS, ABILITY_NAMES, ABILITY_DESCRIPTIONS,
+    SCORE_FOLDER,
+)
 from enemies import Enemy
 from explosions import AirExplosion, WaterExplosion, RuneApplyMarker
-from grid import *
+from grid import GridCell, cell_lrtb, cell_centerxy, cell_color, nearest_cell_centerxy, nearest_cell_ij
 from projectiles import Projectile
-from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil, Laguz, MiniRune
+from runes import Raidho, Hagalaz, Tiwaz, Kenaz, Isa, Sowil, Laguz
 from shop import ShopItem
-from towers import (Tower, WatchTower, Catapult, FalconCliff, Bastion, GreekFire,
+from towers import (WatchTower, Catapult, FalconCliff, Bastion, GreekFire,
                     OakTreeTower, StoneHead, SparklingPillar, QuarryOfRage, SanctumOfTempest,
                     TempleOfThor, Forge, TempleOfOdin, ChamberOfTheChief, TempleOfFreyr)
 from utils import timestr, AnimatedSprite, MutableSound
@@ -24,7 +33,7 @@ import glb
 SCREEN_TITLE = "Viking Defense Reforged v0.9.4"
 
 def init_outlined_text(text, start_x, start_y, font_size=13, font_name="impact", border: float=1,
-                       outline_color : arcade.Color=BLACK, align : str='left', width : int=0, 
+                       outline_color : arcade.Color=arcade.color.BLACK, align : str='left', width : int=0, 
                        fill_color: arcade.Color=arcade.color.WHITE):
     """Creates and returns a list of 5 arcade.Text objects with the given properties. 
     When drawn together, these 5 objects create an outlined text effect."""
@@ -80,8 +89,8 @@ class GameWindow(arcade.Window):
             self.perf_graph.center_y = SCREEN_HEIGHT - 40
 
         self.range_preview = arcade.Sprite()
-        self.range_preview.append_texture(load_texture('./images/TowerRange.png'))
-        self.range_preview.append_texture(load_texture('./images/AbilityRange.png'))
+        self.range_preview.append_texture(arcade.load_texture('./images/TowerRange.png'))
+        self.range_preview.append_texture(arcade.load_texture('./images/AbilityRange.png'))
         self.range_preview.set_texture(0)
         self.water_shimmer_ind = 0 
         self.water_shimmer_timer = 0.04
@@ -299,12 +308,12 @@ class GameWindow(arcade.Window):
         colors_list = []
         for i in range(len(self.map_cells)-1):
             for j in range(len(self.map_cells[i])):
-                l, r, t, b = cell_lrtb(i, j)
+                left, right, top, bottom = cell_lrtb(i, j)
                 c = cell_color(self.map_cells[i][j].terrain_type)
-                points_list.append((l,t))
-                points_list.append((r+1,t))
-                points_list.append((r+1,b-1))
-                points_list.append((l,b-1))
+                points_list.append((left,top))
+                points_list.append((right+1,top))
+                points_list.append((right+1,bottom-1))
+                points_list.append((left,bottom-1))
                 for m in range(4):
                     colors_list.append(c)
         shape = arcade.create_rectangles_filled_with_colors(points_list, colors_list)
@@ -1070,7 +1079,7 @@ class GameWindow(arcade.Window):
             self.info_box_text[0].text = tower.name
             self.info_box_text[1].text = tower.describe_damage()
             self.info_box_text[2].text = tower.description
-            if not (tower.rune is None):
+            if tower.rune is not None:
                 tower.rune.draw_icon(x=SCREEN_WIDTH-30, y=SHOP_BOTTOMS[-1]-86)
         elif 'rune' in self.hover_target:
             k = int(self.hover_target.split(':')[-1])
@@ -1262,7 +1271,7 @@ class GameWindow(arcade.Window):
     def update_abilities_and_runes(self, delta_time: float):
         # update cooldowns
         for ability in self.abilities_list:
-            if not (ability is None):
+            if ability is not None:
                 ability.on_update(delta_time)
         
         # update unlocks
@@ -1329,7 +1338,7 @@ class GameWindow(arcade.Window):
                             new_enemy.left = randint(0, floor(MAP_WIDTH-new_enemy.width)) # re-roll the dice
                     else:
                         test_j = 99
-                        while not (test_j in self.spawnable_cell_js):
+                        while test_j not in self.spawnable_cell_js:
                             test_j = randint(0, len(self.map_cells[0]))
                         new_enemy.center_x, _ = cell_centerxy(i=0, j=test_j)
                         new_enemy.calc_path(map=self.map_cells)
@@ -1794,7 +1803,7 @@ class GameWindow(arcade.Window):
             if tower.is_2x2: # we'll deal with 2x2 towers later
                 continue
             ti, tj = nearest_cell_ij(tower.center_x, tower.center_y)
-            if (i == ti) and (j == tj) and not('base' in tower.name.lower()):
+            if (i == ti) and (j == tj) and ('base' not in tower.name.lower()):
                 # found the tower
                 price = self.find_tower_price(tower.name)
                 self.money += int(floor(price/2))
@@ -1878,7 +1887,7 @@ class GameWindow(arcade.Window):
                 runed_towers += 1
         self.quest_tracker["current oaks"] = oaks
         self.quest_tracker["current_temples"] = temples
-        self.quest_tracker["current structures"] = len([tower for tower in self.towers_list.sprite_list if not('base' in tower.name.lower())])
+        self.quest_tracker["current structures"] = len([tower for tower in self.towers_list.sprite_list if 'base' not in tower.name.lower()])
         self.quest_tracker["current gold"] = self.money
         self.quest_tracker["current enchanted towers"] = runed_towers
 
@@ -1991,7 +2000,7 @@ class GameWindow(arcade.Window):
         if (x < MAP_WIDTH) and (CHIN_HEIGHT < y):
             for k, tower in enumerate(self.towers_list.sprite_list):
                 if ((tower.left < x < tower.right) and (tower.bottom < y < tower.top)):
-                    if not('base' in tower.name.lower()):
+                    if 'base' not in tower.name.lower():
                         self.hover_target = 'tower:'+str(k)
                         return ret
                 
@@ -2030,7 +2039,7 @@ class GameWindow(arcade.Window):
         self.enemies_left_to_spawn = len(self.wave_list[self.wave_number-1].enemies_list)
         self.next_enemy_index = 0
         for ability in self.abilities_list:
-            if not (ability is None):
+            if ability is not None:
                 ability.cooldown_remaining -= max(self.time_to_next_wave, 0)
 
     def on_close(self):

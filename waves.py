@@ -1,4 +1,4 @@
-from enemies import *
+from enemies import Enemy, TinyBird, SmallShip, MediumDragon, BigDragon, TinyBoat, SmallSnake, MediumBoat, BigWhale
 from math import ceil, floor
 from random import random, randint
 
@@ -9,15 +9,15 @@ class Wave():
         rnk = int(rank)
         try:
             q1 = int(quant1)
-        except:
+        except (ValueError, TypeError):
             q1 = 0
         try:
             q2 = int(quant2)
-        except:
+        except (ValueError, TypeError):
             q2 = 0
         try:
             q3 = int(quant3)
-        except:
+        except (ValueError, TypeError):
             q3 = 0
         
         self.enemies_list = []
@@ -89,12 +89,12 @@ class Wave():
             sizes_str += name2.split(' ')[0].upper()
 
             if ('flying' in name2):
-                if (not ('Flying' in types_str)):
+                if 'Flying' not in types_str:
                     types_str += ' & Flying'
             else:
-                if (not ('Underwater' in types_str)) and (('big' in name2) or ('small' in name2)):
+                if ('Underwater' not in types_str) and (('big' in name2) or ('small' in name2)):
                     types_str += ' & Underwater'
-                if (not ('Floating' in types_str)) and (('tiny' in name2) or ('medium' in name2)):
+                if ('Floating' not in types_str) and (('tiny' in name2) or ('medium' in name2)):
                     types_str += ' & Floating'
 
         # how is sub-wave 3 different ?
@@ -103,12 +103,12 @@ class Wave():
             name3 = self.enemies_list[-1][2] # last enemy of the last sub-wave
             sizes_str += name3.split(' ')[0].upper()
             if ('flying' in name3):
-                if (not ('Flying' in types_str)):
+                if 'Flying' not in types_str:
                     types_str += ' & Flying'
             else:
-                if (not ('Underwater' in types_str)) and (('big' in name3) or ('small' in name3)):
+                if ('Underwater' not in types_str) and (('big' in name3) or ('small' in name3)):
                     types_str += ' & Underwater'
-                if (not ('Floating' in types_str)) and (('tiny' in name3) or ('medium' in name3)):
+                if ('Floating' not in types_str) and (('tiny' in name3) or ('medium' in name3)):
                     types_str += ' & Floating'
 
         total = sizes_str + '\n' + types_str + '\n' + modifiers_str

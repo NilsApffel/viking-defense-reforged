@@ -20,7 +20,7 @@ def new_routing_options(known_cells: list, known_routes: list, map: list):
             j = tup[1]
             if i<0 or j<0 or i>15 or j>14:
                 continue # this cell is outside the map, skip it
-            if (not (tup in known_cells)) and (not (tup in new_cells)):
+            if ((tup not in known_cells)) and ((tup not in new_cells)):
                 if (map[i][j] == "ground"):
                     continue
                 # this is a new cell we can reach

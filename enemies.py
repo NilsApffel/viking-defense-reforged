@@ -3,9 +3,9 @@ from arcade.color import RED, GREEN
 from copy import deepcopy
 from math import atan2, cos, sin, pi
 from random import randint, random
-from constants import ASSETS, MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR, is_debug
+from constants import ASSETS, MAP_TARGET_J, ICE_SHIELD_TEXTURE, FIRE_SHIELD_TEXTURE, HBAR_HEIGHT, HBAR_WIDTH_FACTOR
 from effects import Effect
-from grid import *
+from grid import cell_centerxy, is_in_cell, nearest_cell_ij
 from pathfind import find_path
 from utils import normalize_tuple, AnimatedSprite
 
